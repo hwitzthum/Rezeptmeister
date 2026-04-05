@@ -14,6 +14,7 @@ import ScalingHintsPanel from "@/components/ai/ScalingHintsPanel";
 import NotesPanel from "@/components/recipes/NotesPanel";
 import AddToShoppingListButton from "@/components/shopping/AddToShoppingListButton";
 import AddToCollectionButton from "@/components/collections/AddToCollectionButton";
+import PrintOptionsModal from "@/components/recipes/PrintOptionsModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ export default function RecipeDetailClient({
   const [targetServings, setTargetServings] = useState(recipe.servings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   // Track generated image URL so we can show it without a full page reload
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
@@ -170,6 +172,24 @@ export default function RecipeDetailClient({
 
             <AddToShoppingListButton recipeId={recipe.id} recipeTitle={recipe.title} />
             <AddToCollectionButton recipeId={recipe.id} />
+
+            <Link
+              href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}
+              data-testid="cooking-mode-button"
+            >
+              <Button variant="gold" size="sm">
+                Kochmodus
+              </Button>
+            </Link>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPrintModal(true)}
+              data-testid="print-button"
+            >
+              Drucken
+            </Button>
 
             <Link href={`/rezepte/${recipe.id}/bearbeiten`}>
               <Button variant="outline" size="sm">
@@ -460,6 +480,15 @@ export default function RecipeDetailClient({
           <NotesPanel recipeId={recipe.id} />
         </section>
       </main>
+
+      {/* Drucken / PDF-Dialog */}
+      <PrintOptionsModal
+        open={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        recipe={recipe}
+        targetServings={targetServings}
+        originalServings={recipe.servings}
+      />
 
       {/* Löschen-Dialog */}
       <ConfirmDialog

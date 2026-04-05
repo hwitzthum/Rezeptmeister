@@ -294,18 +294,18 @@
 ## Phase 13 – Kochmodus & Drucken
 
 ### 13.1 Kochmodus
-- [ ] Vollbild-Layout-Komponente (Wake Lock API)
-- [ ] Schritt-für-Schritt-Navigation (Swipe-Gesten oder Buttons)
-- [ ] Zutatenliste als Overlay
-- [ ] Timer-Integration bei Zeitangaben
-- [ ] Grosses, lesbares Font (min. 18px Text, 24px Zutaten)
-- [ ] **E2E-Test:** Kochmodus starten, Steps durchnavigieren, Beenden
+- [x] Vollbild-Layout-Komponente (Wake Lock API)
+- [x] Schritt-für-Schritt-Navigation (Swipe-Gesten oder Buttons)
+- [x] Zutatenliste als Overlay
+- [x] Timer-Integration bei Zeitangaben
+- [x] Grosses, lesbares Font (min. 18px Text, 24px Zutaten)
+- [x] **E2E-Test:** Kochmodus starten, Steps durchnavigieren, Beenden ✅ 5/5 Tests grün
 
 ### 13.2 Drucken & PDF-Export (F-PRINT-01, F-SHARE-01)
-- [ ] Print-CSS-Stylesheet
-- [ ] Optionen: mit/ohne Bild, aktuelle Portionsgrösse
-- [ ] PDF-Generierung (react-pdf oder puppeteer) für Einzelrezept und Sammlung
-- [ ] **E2E-Test:** Druckvorschau öffnen, PDF herunterladen
+- [x] Print-CSS-Stylesheet
+- [x] Optionen: mit/ohne Bild, aktuelle Portionsgrösse
+- [x] PDF-Generierung (@react-pdf/renderer) für Einzelrezept und Sammlung
+- [x] **E2E-Test:** Druckvorschau öffnen, PDF herunterladen ✅ 4/4 Tests grün, 9/9 gesamt
 
 ---
 

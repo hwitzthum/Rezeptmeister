@@ -22,6 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import toast from "react-hot-toast";
 import { Button, Modal, ConfirmDialog } from "@/components/ui";
+import type { RecipeDetail } from "@/components/recipes/RecipeDetailClient";
 
 // ── Typen ────────────────────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ export default function CollectionDetailClient({
     collection.description ?? "",
   );
   const [saving, setSaving] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -293,6 +295,67 @@ export default function CollectionDetailClient({
     }
   }
 
+  // ── PDF Export ──────────────────────────────────────────────────────────
+
+  const handlePdfExport = useCallback(async () => {
+    if (recipesList.length === 0) return;
+    setExportingPdf(true);
+    try {
+      // Alle Rezeptdetails laden — bei Fehler Export abbrechen
+      const fullRecipes: RecipeDetail[] = [];
+      const failedRecipes: string[] = [];
+      for (const r of recipesList) {
+        const res = await fetch(`/api/recipes/${r.recipeId}`);
+        if (res.ok) {
+          const data = await res.json();
+          fullRecipes.push(data);
+        } else {
+          failedRecipes.push(r.title ?? r.recipeId);
+        }
+      }
+
+      if (failedRecipes.length > 0) {
+        toast.error(
+          `${failedRecipes.length} Rezept(e) konnten nicht geladen werden: ${failedRecipes.join(", ")}. Export abgebrochen.`
+        );
+        return;
+      }
+
+      if (fullRecipes.length === 0) {
+        toast.error("Keine Rezepte konnten geladen werden.");
+        return;
+      }
+
+      const { generateCollectionPdf } = await import(
+        "@/components/recipes/RecipePdf"
+      );
+      const blob = await generateCollectionPdf({
+        collectionName: collection.name,
+        recipes: fullRecipes.map((r) => ({
+          recipe: r,
+          targetServings: r.servings,
+          originalServings: r.servings,
+          includeImage: true,
+        })),
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${collection.name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF wurde erstellt.");
+    } catch (err) {
+      console.error("PDF-Export fehlgeschlagen:", err);
+      toast.error("PDF-Export fehlgeschlagen.");
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [recipesList, collection.id, collection.name]);
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -332,6 +395,15 @@ export default function CollectionDetailClient({
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          <Button
+            data-testid="collection-pdf-export"
+            variant="outline"
+            size="sm"
+            onClick={() => void handlePdfExport()}
+            disabled={exportingPdf || recipesList.length === 0}
+          >
+            {exportingPdf ? "Wird erstellt…" : "PDF exportieren"}
+          </Button>
           <Button
             data-testid="edit-collection-button"
             variant="outline"
