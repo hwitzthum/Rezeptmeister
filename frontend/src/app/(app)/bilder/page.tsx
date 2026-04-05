@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ImageUploadZone, { type UploadedImage } from "@/components/images/ImageUploadZone";
 import { ConfirmDialog, Button, Modal } from "@/components/ui";
 import { formatDate, formatBytes } from "@/lib/format";
+import OcrPreviewPanel, { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
 
 type FilterMode = "alle" | "zugeordnet" | "unzugeordnet";
+type OcrState = "idle" | "running" | "done" | "error";
 
 interface RecipeSummary {
   id: string;
@@ -14,6 +17,7 @@ interface RecipeSummary {
 }
 
 export default function BilderPage() {
+  const router = useRouter();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -25,6 +29,11 @@ export default function BilderPage() {
   const [deleting, setDeleting] = useState(false);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [assigning, setAssigning] = useState(false);
+
+  // OCR-Status
+  const [ocrState, setOcrState] = useState<OcrState>("idle");
+  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [showOcrModal, setShowOcrModal] = useState(false);
 
   // Defer recipes fetch until the detail panel opens for the first time
   useEffect(() => {
@@ -110,6 +119,38 @@ export default function BilderPage() {
     } finally {
       setAssigning(false);
     }
+  }
+
+  async function runOcr(image: UploadedImage) {
+    setOcrState("running");
+    setOcrResult(null);
+    setShowOcrModal(true);
+    try {
+      const res = await fetch("/api/ai/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageId: image.id }),
+      });
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? "OCR fehlgeschlagen.");
+      }
+      const data = (await res.json()) as OcrResult;
+      setOcrResult(data);
+      setOcrState("done");
+    } catch (err) {
+      setOcrState("error");
+      toast.error(err instanceof Error ? err.message : "OCR fehlgeschlagen.");
+      setShowOcrModal(false);
+    }
+  }
+
+  function handleOcrSaved(recipeId: string) {
+    setShowOcrModal(false);
+    setOcrState("idle");
+    setOcrResult(null);
+    setSelectedImage(null);
+    router.push(`/rezepte/${recipeId}`);
   }
 
   return (
@@ -247,6 +288,22 @@ export default function BilderPage() {
               </select>
             </div>
 
+            {/* OCR-Aktion */}
+            <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)]">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">Rezept aus Bild extrahieren</p>
+                <p className="text-xs text-[var(--text-muted)]">KI liest den Rezepttext und erstellt ein neues Rezept</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { void runOcr(selectedImage); }}
+                disabled={ocrState === "running"}
+              >
+                {ocrState === "running" ? "Wird analysiert …" : "OCR starten"}
+              </Button>
+            </div>
+
             <div className="flex justify-end">
               <Button
                 variant="danger"
@@ -257,6 +314,41 @@ export default function BilderPage() {
               </Button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* OCR-Vorschau-Modal */}
+      <Modal
+        open={showOcrModal}
+        onClose={() => {
+          if (ocrState !== "running") {
+            setShowOcrModal(false);
+            setOcrState("idle");
+            setOcrResult(null);
+          }
+        }}
+        title="Rezept aus Bild extrahiert"
+        size="xl"
+      >
+        {ocrState === "running" && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-10 h-10 rounded-full border-4 border-terra-200 border-t-terra-500 animate-spin" />
+            <p className="text-sm text-[var(--text-muted)]">
+              KI analysiert das Bild … Dies kann einige Sekunden dauern.
+            </p>
+          </div>
+        )}
+        {ocrState === "done" && ocrResult && selectedImage && (
+          <OcrPreviewPanel
+            result={ocrResult}
+            imageId={selectedImage.id}
+            onSaved={handleOcrSaved}
+            onClose={() => {
+              setShowOcrModal(false);
+              setOcrState("idle");
+              setOcrResult(null);
+            }}
+          />
         )}
       </Modal>
 

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { recipes, ingredients } from "@/lib/db/schema";
+import { recipes, ingredients, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders } from "@/lib/backend";
+import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
 import { USER_ROLE } from "@/lib/auth";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
+import { decrypt } from "@/lib/crypto";
 
 // ── GET /api/recipes/[id] ─────────────────────────────────────────────────────
 
@@ -150,12 +151,21 @@ export async function PUT(
       }
     });
 
-    // Fire-and-forget: Embedding neu berechnen
+    // Fire-and-forget: Embedding neu berechnen (nur wenn Gemini-Schlüssel vorhanden)
     const backendUrl = process.env.BACKEND_URL;
     if (backendUrl) {
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+        columns: { apiKeyEncrypted: true, apiProvider: true },
+      });
+      let geminiKey: string | null = null;
+      if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
+        try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
+      }
+      const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
       fetch(`${backendUrl}/embed/text`, {
         method: "POST",
-        headers: buildBackendHeaders(),
+        headers,
         body: JSON.stringify({
           recipe_id: id,
           text: [data.title, data.description, data.instructions]

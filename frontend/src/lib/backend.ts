@@ -10,3 +10,14 @@ export function buildBackendHeaders(): Record<string, string> {
   }
   return headers;
 }
+
+/**
+ * Like buildBackendHeaders() but also injects the user's decrypted Gemini API key
+ * as X-Gemini-API-Key (per HTTP spec for credentials — never in the body).
+ */
+export function buildAiHeaders(geminiApiKey: string): Record<string, string> {
+  return {
+    ...buildBackendHeaders(),
+    "X-Gemini-API-Key": geminiApiKey,
+  };
+}

@@ -5,10 +5,11 @@ import sharp from "sharp";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { images, recipes } from "@/lib/db/schema";
+import { images, recipes, users } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders } from "@/lib/backend";
+import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
+import { decrypt } from "@/lib/crypto";
 import {
   ALLOWED_IMAGE_MIME,
   MAX_IMAGE_BYTES,
@@ -155,13 +156,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
   }
 
-  // Fire-and-forget embedding (Phase 6 implementation); only image_id is sent —
-  // backend derives the file path from its own UPLOAD_DIR.
+  // Fire-and-forget Bild-Embedding (nur wenn Gemini-Schlüssel vorhanden)
   const backendUrl = process.env.BACKEND_URL;
   if (backendUrl) {
+    const userRecord = await db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+      columns: { apiKeyEncrypted: true, apiProvider: true },
+    });
+    let geminiKey: string | null = null;
+    if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
+      try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
+    }
+    const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
     fetch(`${backendUrl}/embed/image`, {
       method: "POST",
-      headers: buildBackendHeaders(),
+      headers,
       body: JSON.stringify({ image_id: imageId }),
     }).catch((err) => {
       console.error("Bild-Embedding-Berechnung fehlgeschlagen:", err);

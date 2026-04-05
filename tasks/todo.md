@@ -158,24 +158,25 @@
 ## Phase 6 – FastAPI KI-Pipeline (Embeddings & OCR)
 
 ### 6.1 Embedding-Service
-- [ ] FastAPI-Router `POST /embed/text` (Gemini Embedding 2)
-- [ ] FastAPI-Router `POST /embed/image`
-- [ ] FastAPI-Router `POST /embed/multimodal` (Text + Bild interleaved)
-- [ ] `embedding_service.py` mit Gemini API-Client
-- [ ] Task-Instruction-Präfixe (`task: search_query`, `task: search_document`)
-- [ ] Background Tasks für asynchrone Embedding-Erstellung
-- [ ] Batch-Embedding-Funktion
-- [ ] HNSW-Index auf `recipes.embedding` und `images.embedding`
-- [ ] **Test:** Embedding-Endpoint gibt 3072-dimensionalen Vektor zurück
+- [x] FastAPI-Router `POST /embed/text` (gemini-embedding-2-preview)
+- [x] FastAPI-Router `POST /embed/image` (nativ multimodal, kein describe-then-embed)
+- [x] FastAPI-Router `POST /embed/multimodal` (Text + Bild interleaved)
+- [x] `embedding_service.py` mit google-genai SDK (google-generativeai deprecated → ersetzt)
+- [x] Inhaltspräfixe statt task_type: "search_document: " / "search_query: " (gemini-embedding-2-preview unterstützt task_type nicht)
+- [x] Background Tasks für asynchrone Embedding-Erstellung (nie blockierend)
+- [x] Batch-Embedding-Funktion
+- [x] halfvec+HNSW-Index auf `recipes.embedding` und `images.embedding` (Alembic Migration 0001)
+- [x] X-Gemini-API-Key Header-Weitergabe: Next.js injiziert entschlüsselten Schlüssel bei fire-and-forget Calls
+- [x] **Test:** 12 Backend-Tests grün, 7 Route-Tests (skip ohne asyncpg im PATH, per Konvention) ✅
 
 ### 6.2 OCR / Textextraktion aus Bildern (F-AI-01)
-- [ ] FastAPI-Router `POST /ocr/extract` (Bild + Gemini multimodal)
-- [ ] Strukturierte Extraktion: Titel, Zutaten (mit CH-Masseinheiten), Anleitung, Metadaten
-- [ ] Übersetzung von Nicht-Deutsch ins Deutsche
-- [ ] Next.js: API-Route `/api/ai/ocr` (Proxy zu FastAPI mit User-API-Schlüssel)
-- [ ] **Frontend-Design-Skill:** OCR-Vorschau-Panel mit Editiermöglichkeit vor dem Speichern
-- [ ] Rezept aus OCR-Ergebnis erstellen (source_type=image_ocr)
-- [ ] **E2E-Test:** Bild mit Rezepttext hochladen → OCR läuft → Vorschau zeigen → Rezept speichern
+- [x] FastAPI-Router `POST /ocr/extract` (Bild + gemini-3.1-pro-preview multimodal)
+- [x] Strukturierte Extraktion: Titel, Zutaten (mit CH-Masseinheiten), Anleitung, Metadaten (Pydantic response_schema)
+- [x] Übersetzung von Nicht-Deutsch ins Deutsche (Prompt-Instruktion)
+- [x] Next.js: API-Route `/api/ai/ocr` (Proxy zu FastAPI mit User-API-Schlüssel, AI_LIMIT Rate-Limit)
+- [x] OCR-Vorschau-Panel `OcrPreviewPanel.tsx` mit Editiermöglichkeit vor dem Speichern
+- [x] Rezept aus OCR-Ergebnis erstellen (source_type=image_ocr), Bild wird automatisch zugeordnet
+- [x] **E2E-Test:** 5/5 Phase-6-Tests grün ✅
 
 ---
 

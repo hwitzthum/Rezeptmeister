@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -9,6 +10,14 @@ import app.models  # noqa: F401 – alle Modelle laden
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Always use the same DATABASE_URL the application uses.
+# Priority: explicit env var → pydantic-settings (reads backend/.env) → alembic.ini fallback.
+# This ensures `alembic upgrade` and the runtime API always hit the same database.
+from app.config import get_settings  # noqa: E402
+_db_url = os.environ.get("DATABASE_URL") or get_settings().database_url
+if _db_url:
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 target_metadata = Base.metadata
 

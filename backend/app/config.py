@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     # Leave empty in development to disable the check.
     internal_secret: str = ""
 
+    # Gemini model names (configurable for future upgrades)
+    gemini_embedding_model: str = "gemini-embedding-2-preview"
+    gemini_ocr_model: str = "gemini-3.1-pro-preview"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 

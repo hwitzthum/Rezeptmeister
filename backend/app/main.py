@@ -6,7 +6,8 @@ from starlette.requests import Request
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import images as images_router
+from app.routers import embed as embed_router
+from app.routers import ocr as ocr_router
 
 settings = get_settings()
 
@@ -32,11 +33,14 @@ app.add_middleware(
 )
 
 
+_TOKEN_EXEMPT = {"/health", "/docs", "/redoc", "/openapi.json"}
+
+
 class InternalTokenMiddleware(BaseHTTPMiddleware):
-    """Require X-Internal-Token on all routes except /health when internal_secret is set."""
+    """Require X-Internal-Token on all routes except health/docs when internal_secret is set."""
 
     async def dispatch(self, request: Request, call_next):
-        if settings.internal_secret and request.url.path != "/health":
+        if settings.internal_secret and request.url.path not in _TOKEN_EXEMPT:
             token = request.headers.get("X-Internal-Token")
             if token != settings.internal_secret:
                 return JSONResponse({"detail": "Unauthorized"}, status_code=401)
@@ -46,7 +50,8 @@ class InternalTokenMiddleware(BaseHTTPMiddleware):
 app.add_middleware(InternalTokenMiddleware)
 
 
-app.include_router(images_router.router)
+app.include_router(embed_router.router)
+app.include_router(ocr_router.router)
 
 
 @app.get("/health", tags=["System"])

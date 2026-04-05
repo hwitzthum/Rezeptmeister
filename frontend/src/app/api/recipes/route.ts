@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { recipes, ingredients } from "@/lib/db/schema";
+import { recipes, ingredients, images, users } from "@/lib/db/schema";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders } from "@/lib/backend";
+import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
+import { decrypt } from "@/lib/crypto";
 
 const listQuerySchema = z.object({
   q: z.string().max(200).optional(),
@@ -49,7 +50,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = recipeBodySchema.safeParse(body);
+  const postBodySchema = recipeBodySchema.extend({
+    imageId: z.string().uuid().optional(),
+  });
+
+  const parsed = postBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validierungsfehler.", details: parsed.error.flatten() },
@@ -57,8 +62,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const data = parsed.data;
+  const { imageId, ...data } = parsed.data;
   const totalTime = calcTotalTime(data.prepTimeMinutes, data.cookTimeMinutes);
+
+  // If an imageId was supplied, verify it belongs to this user before entering
+  // the transaction — fail fast with a clear error rather than a silent rollback.
+  if (imageId) {
+    const [img] = await db
+      .select({ id: images.id })
+      .from(images)
+      .where(and(eq(images.id, imageId), eq(images.userId, session.user.id)))
+      .limit(1);
+    if (!img) {
+      return NextResponse.json({ error: "Bild nicht gefunden." }, { status: 404 });
+    }
+  }
 
   try {
     const recipe = await db.transaction(async (tx) => {
@@ -95,15 +113,32 @@ export async function POST(request: Request) {
         );
       }
 
+      // Atomically link the image to this recipe within the same transaction.
+      if (imageId) {
+        await tx
+          .update(images)
+          .set({ recipeId: newRecipe.id })
+          .where(and(eq(images.id, imageId), eq(images.userId, session.user.id)));
+      }
+
       return newRecipe;
     });
 
-    // Fire-and-forget: Embedding im Hintergrund berechnen
+    // Fire-and-forget: Embedding im Hintergrund berechnen (nur wenn Gemini-Schlüssel vorhanden)
     const backendUrl = process.env.BACKEND_URL;
     if (backendUrl) {
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+        columns: { apiKeyEncrypted: true, apiProvider: true },
+      });
+      let geminiKey: string | null = null;
+      if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
+        try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
+      }
+      const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
       fetch(`${backendUrl}/embed/text`, {
         method: "POST",
-        headers: buildBackendHeaders(),
+        headers,
         body: JSON.stringify({
           recipe_id: recipe.id,
           text: [recipe.title, recipe.description, recipe.instructions]
