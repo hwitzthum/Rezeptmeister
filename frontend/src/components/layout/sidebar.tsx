@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Sparkles, Link as LucideLink } from "lucide-react";
+import UrlImportDialog from "@/components/ai/UrlImportDialog";
 
 interface NavItem {
   href: string;
@@ -94,6 +97,7 @@ const navItems: NavItem[] = [
   { href: "/sammlungen",    label: "Sammlungen",       icon: <FolderIcon /> },
   { href: "/werkzeuge",     label: "Werkzeuge",        icon: <WrenchIcon /> },
   { href: "/einstellungen", label: "Einstellungen",    icon: <SettingsIcon /> },
+  { href: "/vorschlaege",   label: "Vorschläge",       icon: <Sparkles className="w-5 h-5" /> },
   { href: "/admin",         label: "Admin",            icon: <ShieldIcon />, adminOnly: true },
 ];
 
@@ -104,6 +108,7 @@ interface SidebarProps {
 
 export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
   const pathname = usePathname();
+  const [showUrlImport, setShowUrlImport] = useState(false);
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
@@ -170,8 +175,27 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
               </li>
             );
           })}
+
+          {/* URL importieren — opens dialog instead of navigating */}
+          <li>
+            <button
+              type="button"
+              onClick={() => setShowUrlImport(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+            >
+              <span className="shrink-0 text-warm-400 group-hover:text-warm-600 transition-colors duration-150" aria-hidden="true">
+                <LucideLink className="w-5 h-5" />
+              </span>
+              URL importieren
+            </button>
+          </li>
         </ul>
       </nav>
+
+      <UrlImportDialog
+        isOpen={showUrlImport}
+        onClose={() => setShowUrlImport(false)}
+      />
 
       {/* User footer */}
       {userName && (

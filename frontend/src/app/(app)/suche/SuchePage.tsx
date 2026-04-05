@@ -7,6 +7,8 @@ import toast from "react-hot-toast";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { formatTime } from "@/lib/format";
 import { Input, Select } from "@/components/ui";
+import WebSearchResults from "@/components/ai/WebSearchResults";
+import UrlImportDialog from "@/components/ai/UrlImportDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -103,7 +105,11 @@ export default function SuchePage() {
   const pathname = usePathname();
 
   // ── Search mode ───────────────────────────────────────────────────────────
-  const [searchMode, setSearchMode] = useState<"volltext" | "ki">("volltext");
+  const [searchMode, setSearchMode] = useState<"volltext" | "ki" | "web">("volltext");
+
+  // ── URL import state (triggered from web search results) ─────────────────
+  const [importUrl, setImportUrl] = useState("");
+  const [showUrlImport, setShowUrlImport] = useState(false);
 
   // ── Filter state (initialised from URL on mount) ──────────────────────────
   const [q, setQ] = useState(searchParams.get("q") ?? "");
@@ -312,6 +318,8 @@ export default function SuchePage() {
 
   const hasActiveFilters = activeFilters.length > 0;
   const isKiMode = searchMode === "ki";
+  const isWebMode = searchMode === "web";
+  const isVolltextMode = searchMode === "volltext";
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -354,9 +362,22 @@ export default function SuchePage() {
                 KI-Suche
                 <span className="text-xs leading-none" aria-hidden>✨</span>
               </button>
+              <button
+                type="button"
+                data-testid="web-suche-toggle"
+                onClick={() => setSearchMode("web")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  isWebMode
+                    ? "bg-terra-500 text-white shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                }`}
+              >
+                Web
+                <span className="text-xs leading-none" aria-hidden>🌐</span>
+              </button>
             </div>
 
-            {!isKiMode && (
+            {isVolltextMode && (
               <span className="text-sm text-[var(--text-muted)]">
                 {loading ? "Suche läuft…" : `${total} Rezept${total !== 1 ? "e" : ""}`}
               </span>
@@ -387,6 +408,8 @@ export default function SuchePage() {
               placeholder={
                 isKiMode
                   ? "Beschreiben Sie, was Sie kochen möchten… (Enter zum Suchen)"
+                  : isWebMode
+                  ? "Rezept im Web suchen…"
                   : "Rezept, Zutat oder Beschreibung suchen…"
               }
               value={q}
@@ -402,7 +425,7 @@ export default function SuchePage() {
           </div>
 
           {/* Sort (Volltext only) */}
-          {!isKiMode && (
+          {isVolltextMode && (
             <select
               value={sortierung}
               onChange={(e) => setSortierung(e.target.value)}
@@ -428,7 +451,7 @@ export default function SuchePage() {
           )}
 
           {/* Mobile filter toggle (Volltext only) */}
-          {!isKiMode && (
+          {isVolltextMode && (
             <button
               type="button"
               onClick={() => setShowMobileFilters((v) => !v)}
@@ -500,7 +523,7 @@ export default function SuchePage() {
         )}
 
         {/* Volltext: active filter chips */}
-        {!isKiMode && hasActiveFilters && (
+        {isVolltextMode && hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mt-2">
             {activeFilters.map((f) => (
               <span
@@ -541,7 +564,7 @@ export default function SuchePage() {
       )}
 
       {/* Mobile filter panel (Volltext only) */}
-      {!isKiMode && showMobileFilters && (
+      {isVolltextMode && showMobileFilters && (
         <div className="lg:hidden bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] px-6 py-4">
           <FilterSidebar
             kategorie={kategorie} setKategorie={setKategorie}
@@ -560,7 +583,7 @@ export default function SuchePage() {
       {/* Main layout */}
       <div className="flex">
         {/* Desktop sidebar (Volltext only) */}
-        {!isKiMode && (
+        {isVolltextMode && (
           <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-[var(--border-subtle)] p-6 sticky top-[calc(4.5rem+1px)] self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-4">
               Filter
@@ -581,7 +604,15 @@ export default function SuchePage() {
 
         {/* Results */}
         <main className="flex-1 px-6 lg:px-8 py-6 min-w-0">
-          {isKiMode ? (
+          {isWebMode ? (
+            <WebSearchResults
+              query={q}
+              onImport={(url) => {
+                setImportUrl(url);
+                setShowUrlImport(true);
+              }}
+            />
+          ) : isKiMode ? (
             <KiResults
               results={kiResults}
               loading={kiLoading}
@@ -622,6 +653,16 @@ export default function SuchePage() {
           )}
         </main>
       </div>
+
+      {/* URL import dialog — triggered from web search results */}
+      <UrlImportDialog
+        isOpen={showUrlImport}
+        initialUrl={importUrl}
+        onClose={() => {
+          setShowUrlImport(false);
+          setImportUrl("");
+        }}
+      />
     </div>
   );
 }

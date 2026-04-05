@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # Gemini model names (configurable for future upgrades)
     gemini_embedding_model: str = "gemini-embedding-2-preview"
     gemini_ocr_model: str = "gemini-3.1-pro-preview"
+    gemini_flash_model: str = "gemini-2.5-flash"
+    gemini_image_gen_model: str = "gemini-2.5-flash-image"
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]

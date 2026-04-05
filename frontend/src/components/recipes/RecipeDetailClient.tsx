@@ -8,6 +8,9 @@ import { formatAmount } from "@/lib/units";
 import toast from "react-hot-toast";
 import RecipeImageManager from "@/components/images/RecipeImageManager";
 import type { UploadedImage } from "@/components/images/ImageUploadZone";
+import GenerateImageButton from "@/components/ai/GenerateImageButton";
+import NutritionPanel from "@/components/ai/NutritionPanel";
+import ScalingHintsPanel from "@/components/ai/ScalingHintsPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,6 +25,16 @@ interface Ingredient {
 }
 
 type RecipeImage = UploadedImage;
+
+interface NutritionInfo {
+  kcal: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  fiber_g: number;
+  confidence: string;
+  label: string;
+}
 
 export interface RecipeDetail {
   id: string;
@@ -39,6 +52,7 @@ export interface RecipeDetail {
   isFavorite: boolean;
   ingredients: Ingredient[];
   images: RecipeImage[];
+  nutritionInfo: NutritionInfo | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +69,13 @@ export default function RecipeDetailClient({
   const [targetServings, setTargetServings] = useState(recipe.servings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Track generated image URL so we can show it without a full page reload
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+  const hasPrimaryImage =
+    !!generatedImageUrl ||
+    recipe.images.some((i) => i.isPrimary) ||
+    recipe.images.length > 0;
 
   // ── Favorit ───────────────────────────────────────────────────────────────
 
@@ -165,10 +186,11 @@ export default function RecipeDetailClient({
       <div className="relative h-64 sm:h-80 bg-gradient-to-br from-terra-100 via-cream-100 to-warm-100 overflow-hidden">
         {(() => {
           const heroImg = recipe.images.find((i) => i.isPrimary) ?? recipe.images[0];
-          return heroImg ? (
+          const displaySrc = generatedImageUrl ?? heroImg?.filePath;
+          return displaySrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={heroImg.filePath}
+              src={displaySrc}
               alt={recipe.title}
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -187,11 +209,20 @@ export default function RecipeDetailClient({
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
+              {!hasPrimaryImage && (
+                <GenerateImageButton
+                  recipeId={recipe.id}
+                  title={recipe.title}
+                  ingredients={recipe.ingredients.map((i) => i.name)}
+                  category={recipe.category ?? ""}
+                  onImageGenerated={(url) => setGeneratedImageUrl(url)}
+                />
+              )}
             </div>
           );
         })()}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        {/* Gradient overlay — decorative only, must not intercept clicks */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
 
         {/* Titel im Hero */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -284,7 +315,7 @@ export default function RecipeDetailClient({
               </h2>
 
               {/* Portionsrechner */}
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center gap-3 mb-2 pb-3 border-b border-[var(--border-subtle)]">
                 <span className="text-sm text-[var(--text-secondary)]">
                   Portionen:
                 </span>
@@ -321,13 +352,25 @@ export default function RecipeDetailClient({
                 </div>
               </div>
 
+              {/* KI-Skalierungshinweise — only shown at extreme scaling factors */}
+              <ScalingHintsPanel
+                ingredients={recipe.ingredients.map((i) => ({
+                  name: i.name,
+                  amount: i.amount ? Number(i.amount) : null,
+                  unit: i.unit ?? "",
+                }))}
+                instructions={recipe.instructions}
+                originalServings={recipe.servings}
+                targetServings={targetServings}
+              />
+
               {/* Zutatenliste */}
               {recipe.ingredients.length === 0 ? (
-                <p className="text-sm text-[var(--text-muted)] italic">
+                <p className="text-sm text-[var(--text-muted)] italic mt-4">
                   Keine Zutaten angegeben.
                 </p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-2 mt-4">
                   {recipe.ingredients.map((ing) => {
                     const amount = scaledAmount(ing.amount);
                     return (
@@ -379,6 +422,18 @@ export default function RecipeDetailClient({
                   )}
                 </div>
               )}
+
+              {/* Nährwerte */}
+              <NutritionPanel
+                recipeId={recipe.id}
+                ingredients={recipe.ingredients.map((i) => ({
+                  name: i.name,
+                  amount: i.amount ? Number(i.amount) : null,
+                  unit: i.unit ?? "",
+                }))}
+                servings={targetServings}
+                initialNutrition={recipe.nutritionInfo}
+              />
             </div>
           </aside>
         </div>
