@@ -311,10 +311,10 @@
 
 ## Phase 14 – Einheitenumrechner (F-CONV-01)
 
-- [ ] `frontend/src/lib/units/` Konvertierungs-Utilities (US cups ↔ dl/g, °F ↔ °C, oz ↔ g, etc.)
-- [ ] Zutatenbewusste Konvertierung (1 Cup Mehl = 125g, 1 Cup Zucker = 200g)
-- [ ] **Frontend-Design-Skill:** Eigenständige Umrechner-Seite `/werkzeuge` (Sofortergebnis, zutatenbewusst)
-- [ ] **E2E-Test:** Verschiedene Einheiten umrechnen, zutatenbewusst
+- [x] `frontend/src/lib/units/` Konvertierungs-Utilities (US cups ↔ dl/g, °F ↔ °C, oz ↔ g, etc.)
+- [x] Zutatenbewusste Konvertierung (1 Cup Mehl = 125g, 1 Cup Zucker = 200g)
+- [x] **Frontend-Design-Skill:** Eigenständige Umrechner-Seite `/werkzeuge` (Sofortergebnis, zutatenbewusst)
+- [x] **E2E-Test:** Verschiedene Einheiten umrechnen, zutatenbewusst ✅ 7/7 Tests grün
 
 ---
 
