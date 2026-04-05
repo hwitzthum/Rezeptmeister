@@ -126,3 +126,24 @@ export const KUECHEN = [
   "Amerikanisch",
   "International",
 ] as const;
+
+// ── Re-Exports aus converter.ts ─────────────────────────────────────────────
+
+export {
+  convertUnit,
+  isIngredientRelevant,
+  getUnitLabel,
+  getUnitsForCategory,
+  UNITS,
+  CATEGORY_LABELS,
+  INGREDIENT_DENSITIES,
+  QUICK_REFERENCES,
+} from "./converter";
+
+export type {
+  ConversionCategory,
+  UnitInfo,
+  IngredientInfo,
+  ConversionResult,
+  QuickReference,
+} from "./converter";
