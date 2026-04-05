@@ -11,6 +11,7 @@ import type { UploadedImage } from "@/components/images/ImageUploadZone";
 import GenerateImageButton from "@/components/ai/GenerateImageButton";
 import NutritionPanel from "@/components/ai/NutritionPanel";
 import ScalingHintsPanel from "@/components/ai/ScalingHintsPanel";
+import NotesPanel from "@/components/recipes/NotesPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -449,11 +450,9 @@ export default function RecipeDetailClient({
           <RecipeImageManager recipeId={recipe.id} initialImages={recipe.images} />
         </section>
 
-        {/* Notizen-Platzhalter (Phase 9) */}
+        {/* Notizen & Bewertungen */}
         <section className="mt-10 pt-6 border-t border-[var(--border-subtle)]">
-          <p className="text-sm text-[var(--text-muted)] italic">
-            Notizen und Bewertungen folgen in Phase 9.
-          </p>
+          <NotesPanel recipeId={recipe.id} />
         </section>
       </main>
 

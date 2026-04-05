@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { recipes, ingredients, images, users } from "@/lib/db/schema";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { recipes, ingredients, images, users, recipeNotes } from "@/lib/db/schema";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
@@ -247,7 +247,7 @@ export async function GET(request: Request) {
           ? desc(recipes.updatedAt)
           : desc(recipes.createdAt);
 
-  const rows = await db
+  const rawRows = await db
     .select({
       id: recipes.id,
       title: recipes.title,
@@ -267,6 +267,34 @@ export async function GET(request: Request) {
     .orderBy(orderBy)
     .limit(limit)
     .offset((seite - 1) * limit);
+
+  // Compute average ratings in a single aggregation query
+  let ratingsMap: Record<string, number | null> = {};
+  if (rawRows.length > 0) {
+    const recipeIds = rawRows.map((r) => r.id);
+    const ratingRows = await db
+      .select({
+        recipeId: recipeNotes.recipeId,
+        avgRating: sql<number | null>`AVG(${recipeNotes.rating})::double precision`,
+      })
+      .from(recipeNotes)
+      .where(
+        and(
+          inArray(recipeNotes.recipeId, recipeIds),
+          eq(recipeNotes.userId, session.user.id),
+          isNotNull(recipeNotes.rating),
+        ),
+      )
+      .groupBy(recipeNotes.recipeId);
+    ratingsMap = Object.fromEntries(
+      ratingRows.map((r) => [r.recipeId, r.avgRating ?? null]),
+    );
+  }
+
+  const rows = rawRows.map((r) => ({
+    ...r,
+    averageRating: ratingsMap[r.id] ?? null,
+  }));
 
   // Faceted counts (optional, only when includeFacets=true)
   let facets:

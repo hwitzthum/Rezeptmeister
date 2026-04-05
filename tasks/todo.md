@@ -246,11 +246,11 @@
 
 ## Phase 9 – Notizen & Memory (F-NOTE-01)
 
-- [ ] API-Routes `GET/POST/PUT/DELETE /api/notes/[recipeId]`
-- [ ] Notiztypen: Tipp, Variation, Erinnerung, Bewertung (1–5 Sterne), Allgemein
-- [ ] Durchschnittsbewertung auf Rezeptkarte anzeigen
-- [ ] **Frontend-Design-Skill:** Notizen-Panel in Rezeptdetail (Tabbed, Sternebewertung-Komponente)
-- [ ] **E2E-Test:** Notiz erstellen, bewerten, Durchschnittsstern auf Karte sichtbar
+- [x] API-Routes `GET/POST/PUT/DELETE /api/notes/[recipeId]`
+- [x] Notiztypen: Tipp, Variation, Erinnerung, Bewertung (1–5 Sterne), Allgemein
+- [x] Durchschnittsbewertung auf Rezeptkarte anzeigen
+- [x] **Frontend-Design-Skill:** Notizen-Panel in Rezeptdetail (Tabbed, Sternebewertung-Komponente)
+- [x] **E2E-Test:** Notiz erstellen, bewerten, Durchschnittsstern auf Karte sichtbar
 
 ---
 
