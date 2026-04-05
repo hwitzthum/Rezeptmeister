@@ -63,6 +63,11 @@ export function checkRateLimit(
   key: string,
   config: RateLimitConfig = DEFAULT_LIMIT,
 ): RateLimitResult {
+  // Disable rate limiting in test/development when explicitly opted out
+  if (process.env.DISABLE_RATE_LIMIT === "true") {
+    return { allowed: true, remaining: config.max };
+  }
+
   const now = Date.now();
   const entry = store.get(key);
 

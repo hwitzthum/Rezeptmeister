@@ -1,0 +1,3 @@
+ALTER TABLE "shopping_list_items" ADD COLUMN "meal_plan_entry_id" uuid;--> statement-breakpoint
+ALTER TABLE "shopping_list_items" ADD CONSTRAINT "shopping_list_items_meal_plan_entry_id_meal_plans_id_fk" FOREIGN KEY ("meal_plan_entry_id") REFERENCES "public"."meal_plans"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_meal_plans_unique_slot" ON "meal_plans" USING btree ("user_id","date","meal_type");

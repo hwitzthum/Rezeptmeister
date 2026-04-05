@@ -245,6 +245,10 @@ export const shoppingListItems = pgTable(
     isChecked: boolean("is_checked").notNull().default(false),
     aisleCategory: varchar("aisle_category", { length: 100 }),
     sortOrder: integer("sort_order").notNull().default(0),
+    mealPlanEntryId: uuid("meal_plan_entry_id").references(
+      () => mealPlans.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -273,7 +277,10 @@ export const mealPlans = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("idx_meal_plans_user_date").on(t.userId, t.date)],
+  (t) => [
+    index("idx_meal_plans_user_date").on(t.userId, t.date),
+    uniqueIndex("idx_meal_plans_unique_slot").on(t.userId, t.date, t.mealType),
+  ],
 );
 
 // ── collections ───────────────────────────────────────────────────
@@ -343,6 +350,20 @@ export const recipeNotesRelations = relations(recipeNotes, ({ one }) => ({
     references: [recipes.id],
   }),
   user: one(users, { fields: [recipeNotes.userId], references: [users.id] }),
+}));
+
+export const shoppingListItemsRelations = relations(shoppingListItems, ({ one }) => ({
+  user: one(users, { fields: [shoppingListItems.userId], references: [users.id] }),
+  recipe: one(recipes, { fields: [shoppingListItems.recipeId], references: [recipes.id] }),
+  mealPlanEntry: one(mealPlans, {
+    fields: [shoppingListItems.mealPlanEntryId],
+    references: [mealPlans.id],
+  }),
+}));
+
+export const mealPlansRelations = relations(mealPlans, ({ one }) => ({
+  user: one(users, { fields: [mealPlans.userId], references: [users.id] }),
+  recipe: one(recipes, { fields: [mealPlans.recipeId], references: [recipes.id] }),
 }));
 
 export const collectionsRelations = relations(collections, ({ one, many }) => ({
