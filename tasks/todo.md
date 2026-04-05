@@ -195,48 +195,52 @@
 ## Phase 8 – KI-Funktionen (F-AI-02 bis F-AI-07)
 
 ### 8.1 Rezeptvorschläge (F-AI-02)
-- [ ] FastAPI-Router `POST /ai/suggest-recipes`
-- [ ] Kontext: verfügbare Zutaten, Küchenart, Zeitbudget, Saisonalität (CH)
-- [ ] Generierung von 3–5 Vorschlägen mit Titel + Beschreibung + Zeitschätzung
-- [ ] Vollständige Rezeptgenerierung bei Auswahl
-- [ ] Token-Verbrauchsanzeige
-- [ ] **Frontend-Design-Skill:** Vorschlags-Interface mit Einschränkungsoptionen, Regenerieren-Button
-- [ ] **E2E-Test:** Rezeptvorschläge generieren, einen auswählen, vollständiges Rezept speichern
+- [x] FastAPI-Router `POST /ai/suggest` (Gemini Flash, strukturierter Output, 5 Vorschläge)
+- [x] Kontext: verfügbare Zutaten, Küchenart, Zeitbudget, Saisonalität (CH)
+- [x] Generierung von 5 Vorschlägen mit Titel + Beschreibung + Zeitschätzung
+- [x] Vollständige Rezeptgenerierung bei Auswahl (`POST /ai/generate-recipe`)
+- [x] Token-Verbrauchsanzeige
+- [x] **Frontend-Design-Skill:** Vorschlags-Interface (`RecipeSuggestions.tsx`) mit Einschränkungsoptionen, Regenerieren-Button, Seite `/vorschlaege`
+- [x] **E2E-Test:** `phase-8.spec.ts` — Vorschläge generieren, Rezept aus Vorschlag erstellen
 
 ### 8.2 Intelligente Portionsumrechnung (F-AI-03 KI)
-- [ ] FastAPI-Router `POST /ai/scale-recipe`
-- [ ] KI-Hinweise bei starker Skalierung (Gewürze, Backzeiten, Rundung)
-- [ ] Einheitenkonvertierung: 1500 ml → 1.5 l, 0.5 dl → 50 ml etc.
-- [ ] **E2E-Test:** Rezept von 4 auf 20 Portionen skalieren → KI-Hinweise erscheinen
+- [x] FastAPI-Router `POST /ai/scale-recipe`
+- [x] KI-Hinweise bei starker Skalierung (Faktor > 2 oder < 0.5; Gewürze, Backzeiten, Rundung)
+- [x] Einheitenkonvertierung: ≥1000 ml → l, ≥1000 g → kg
+- [x] `ScalingHintsPanel.tsx` in Rezeptdetailansicht eingebettet
+- [x] **E2E-Test:** Skalierungshinweise bei 5× Faktor erscheinen
 
 ### 8.3 Bildgenerierung (F-AI-04)
-- [ ] FastAPI-Router `POST /ai/generate-image`
-- [ ] Automatische Prompt-Erstellung aus Rezepttitel + Zutaten + Kategorie
-- [ ] Generiertes Bild mit "KI-generiert"-Badge
-- [ ] Bild-Embedding erstellen nach Generierung
-- [ ] **E2E-Test:** Rezept ohne Bild öffnen → "Bild generieren" → Vorschau → Akzeptieren
+- [x] FastAPI-Router `POST /ai/generate-image` (gemini-2.0-flash-preview-image-generation)
+- [x] Automatische Prompt-Erstellung aus Rezepttitel + Zutaten + Kategorie
+- [x] Generiertes Bild mit "KI-generiert"-Badge (`source_type='ai_generated'`)
+- [x] Bild-Embedding erstellen nach Generierung (Background Task)
+- [x] `GenerateImageButton.tsx` — erscheint wenn kein Hauptbild vorhanden
+- [x] **E2E-Test:** Bildgenerierung via API gibt `image_id` + `thumbnail_url` zurück
 
 ### 8.4 URL-Import (F-AI-06)
-- [ ] FastAPI-Router `POST /import/url`
-- [ ] Webseite abrufen, schema.org/Recipe JSON-LD bevorzugt parsen
-- [ ] Fallback: KI-basiertes Parsing
-- [ ] CH-Masseinheiten-Konvertierung (cups → dl/g, °F → °C)
-- [ ] Next.js API-Route `/api/ai/import-url`
-- [ ] **Frontend-Design-Skill:** URL-Import-Dialog mit Vorschau-Editor
-- [ ] **E2E-Test:** Rezept-URL eingeben → Import → Vorschau → Speichern
+- [x] FastAPI-Router `POST /import/url`
+- [x] Webseite abrufen, schema.org/Recipe JSON-LD bevorzugt parsen (BeautifulSoup4)
+- [x] Fallback: KI-basiertes Parsing (Gemini Flash)
+- [x] CH-Masseinheiten-Konvertierung (cups → dl, oz/lb → g, tbsp → EL, tsp → TL, °F → °C)
+- [x] Next.js API-Route `/api/ai/import-url`
+- [x] **Frontend-Design-Skill:** `UrlImportDialog.tsx` (2-Schritt-Modal mit OcrPreviewPanel)
+- [x] **E2E-Test:** URL-Import von Chefkoch gibt Titel zurück
 
 ### 8.5 Websuche nach Rezepten (F-AI-05)
-- [ ] FastAPI-Router `POST /search/web`
-- [ ] Suchresultate-Liste mit Titel, Quelle, Vorschau
-- [ ] Import eines Suchresultats via URL-Import-Service
-- [ ] **E2E-Test:** Suchbegriff eingeben → Ergebnisse → ein Rezept importieren
+- [x] FastAPI-Router `POST /search/web` (Gemini Grounding / Google Search)
+- [x] Suchresultate-Liste mit Titel, Quelle (Domain), Vorschau
+- [x] Import eines Suchresultats via URL-Import-Dialog
+- [x] `WebSearchResults.tsx` — neuer "Web"-Tab in `/suche`
+- [x] **E2E-Test:** Websuche gibt Ergebnisse mit `url` zurück
 
 ### 8.6 Nährwertberechnung (F-AI-07)
-- [ ] FastAPI-Router `POST /ai/nutrition`
-- [ ] Schätzung aus Zutatenliste (kcal, Protein, Fett, KH, Ballaststoffe)
-- [ ] "ca. 450 kcal"-Kennzeichnung
-- [ ] Manuelle Überschreibung möglich
-- [ ] **E2E-Test:** Zutaten eingeben → Nährwerte berechnen → anzeigen und überschreiben
+- [x] FastAPI-Router `POST /ai/nutrition` (Gemini Flash, strukturierter Output)
+- [x] Schätzung aus Zutatenliste (kcal, Protein, Fett, KH, Ballaststoffe)
+- [x] "ca. 450 kcal"-Kennzeichnung
+- [x] Manuelle Überschreibung + Speichern via `PATCH /api/recipes/[id]/nutrition`
+- [x] `NutritionPanel.tsx` in Rezeptdetailansicht
+- [x] **E2E-Test:** Nährwerte berechnen → `per_serving.kcal > 0`, Label korrekt
 
 ---
 

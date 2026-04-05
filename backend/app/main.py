@@ -9,6 +9,9 @@ from app.config import get_settings
 from app.routers import embed as embed_router
 from app.routers import ocr as ocr_router
 from app.routers import search as search_router
+from app.routers import ai as ai_router
+from app.routers import import_router
+from app.routers import web_search as web_search_router
 
 settings = get_settings()
 
@@ -54,6 +57,9 @@ app.add_middleware(InternalTokenMiddleware)
 app.include_router(embed_router.router)
 app.include_router(ocr_router.router)
 app.include_router(search_router.router)
+app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
+app.include_router(import_router.router, prefix="/import", tags=["Import"])
+app.include_router(web_search_router.router, prefix="/search", tags=["WebSearch"])
 
 
 @app.get("/health", tags=["System"])
