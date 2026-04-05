@@ -6,6 +6,7 @@ from starlette.requests import Request
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
+from app.routers import images as images_router
 
 settings = get_settings()
 
@@ -43,6 +44,9 @@ class InternalTokenMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(InternalTokenMiddleware)
+
+
+app.include_router(images_router.router)
 
 
 @app.get("/health", tags=["System"])

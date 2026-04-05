@@ -117,22 +117,22 @@
 ## Phase 4 – Bildverwaltung (F-IMG-01 bis F-IMG-04)
 
 ### 4.1 Bild-Upload (F-IMG-01)
-- [ ] API-Route `POST /api/images/upload` (Validierung MIME-Type, max 10 MB)
-- [ ] Thumbnail-Generierung (300×300 WebP) via sharp
-- [ ] Lokale Speicherung in `uploads/originals/` und `uploads/thumbnails/`
-- [ ] FastAPI: Bild-Embedding via Gemini Embedding 2 asynchron
-- [ ] **Frontend-Design-Skill:** Drag-and-Drop Upload-Zone mit Fortschrittsanzeige
-- [ ] **E2E-Test:** Bild hochladen, Thumbnail erscheint, Fehlermeldung bei falschem Format
+- [x] API-Route `POST /api/images/upload` (Validierung MIME-Type, max 10 MB)
+- [x] Thumbnail-Generierung (300×300 WebP) via sharp
+- [x] Lokale Speicherung in `uploads/originals/` und `uploads/thumbnails/`
+- [x] FastAPI: Bild-Embedding via Gemini Embedding 2 asynchron (Phase-4-Stub, Phase-6-Implementierung)
+- [x] **Frontend-Design-Skill:** Drag-and-Drop Upload-Zone mit Fortschrittsanzeige (ImageUploadZone)
+- [x] **E2E-Test:** Bild hochladen, Thumbnail erscheint, Fehlermeldung bei falschem Format
 
 ### 4.2 Bilder einem Rezept zuordnen (F-IMG-02/03/04)
-- [ ] API-Route `DELETE /api/images/[id]`
-- [ ] API-Route `PATCH /api/images/[id]` (is_primary setzen, recipe_id zuordnen)
-- [ ] API-Route `GET /api/images` (Galerie, gefiltert)
-- [ ] Bildergalerie-Seite `/bilder`
-- [ ] Drag-and-Drop-Sortierung innerhalb Rezept
-- [ ] Batch-Zuordnung und Batch-Löschung
-- [ ] Bestätigungsdialog vor Bildlöschung
-- [ ] **E2E-Test:** Bild hochladen, Rezept zuordnen, als Hauptbild markieren, löschen
+- [x] API-Route `DELETE /api/images/[id]`
+- [x] API-Route `PATCH /api/images/[id]` (is_primary setzen, recipe_id zuordnen)
+- [x] API-Route `GET /api/images` (Galerie, gefiltert)
+- [x] Bildergalerie-Seite `/bilder`
+- [x] Drag-and-Drop-Sortierung innerhalb Rezept (frontend-only via @dnd-kit/sortable)
+- [x] Batch-Zuordnung und Batch-Löschung
+- [x] Bestätigungsdialog vor Bildlöschung
+- [x] **E2E-Test:** Bild hochladen, Rezept zuordnen, als Hauptbild markieren, löschen ✅ 17/17 Tests grün
 
 ---
 

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import RecipeDetailClient from "@/components/recipes/RecipeDetailClient";
+import { thumbnailUrl } from "@/lib/images";
 import type { Metadata } from "next";
 
 // Deduplicate auth() across generateMetadata + page within the same request
@@ -37,9 +38,8 @@ export default async function RecipeDetailPage({ params }: PageProps) {
         orderBy: (fields, { asc }) => [asc(fields.sortOrder)],
       },
       images: {
-        where: (fields, { eq }) => eq(fields.isPrimary, true),
-        columns: { embedding: false },
-        limit: 1,
+        columns: { embedding: false, extractedText: false },
+        orderBy: (fields, { desc }) => [desc(fields.createdAt)],
       },
     },
   });
@@ -47,7 +47,16 @@ export default async function RecipeDetailPage({ params }: PageProps) {
   if (!recipe) notFound();
 
   // Serialisieren für Client-Übergabe (Date → string)
-  const serialized = JSON.parse(JSON.stringify(recipe));
+  // thumbnailUrl wird abgeleitet (keine eigene DB-Spalte)
+  const serialized = JSON.parse(
+    JSON.stringify({
+      ...recipe,
+      images: recipe.images.map((img) => ({
+        ...img,
+        thumbnailUrl: thumbnailUrl(img.filePath),
+      })),
+    }),
+  );
 
   return <RecipeDetailClient recipe={serialized} />;
 }

@@ -53,7 +53,9 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 
 # ── Uploads (dev only — never commit user data) ───────────────────────────────
-uploads/
+/uploads/
+frontend/uploads/
+backend/uploads/
 
 # ── Docker ───────────────────────────────────────────────────────────────────
 # Keep docker-compose.yml; ignore any local override
