@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipes, ingredients } from "@/lib/db/schema";
-import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders } from "@/lib/backend";
@@ -14,10 +14,14 @@ const listQuerySchema = z.object({
   kueche: z.string().max(100).optional(),
   schwierigkeit: z.enum(["einfach", "mittel", "anspruchsvoll"]).optional(),
   favoriten: z.enum(["true", "false"]).optional(),
+  zeitaufwand: z.coerce.number().int().positive().optional(),
+  zutaten: z.string().max(100).optional(),
+  ernaehrungsform: z.string().max(50).optional(),
+  includeFacets: z.enum(["true", "false"]).default("false"),
   seite: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
   sortierung: z
-    .enum(["neueste", "alphabetisch", "bearbeitet"])
+    .enum(["neueste", "alphabetisch", "bearbeitet", "relevanz"])
     .default("neueste"),
 });
 
@@ -143,18 +147,56 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Ungültige Parameter." }, { status: 400 });
   }
 
-  const { q, kategorie, kueche, schwierigkeit, favoriten, seite, limit, sortierung } =
-    parsed.data;
+  const {
+    q,
+    kategorie,
+    kueche,
+    schwierigkeit,
+    favoriten,
+    zeitaufwand,
+    zutaten,
+    ernaehrungsform,
+    includeFacets,
+    seite,
+    limit,
+    sortierung,
+  } = parsed.data;
 
-  const conditions = [eq(recipes.userId, session.user.id)];
-  if (q) conditions.push(ilike(recipes.title, `%${q}%`));
-  if (kategorie) conditions.push(eq(recipes.category, kategorie));
-  if (kueche) conditions.push(eq(recipes.cuisine, kueche));
-  if (schwierigkeit)
-    conditions.push(eq(recipes.difficulty, schwierigkeit));
-  if (favoriten === "true") conditions.push(eq(recipes.isFavorite, true));
+  // Base conditions: applied to all queries including facet counts.
+  // Does NOT include kategorie/kueche/schwierigkeit so facets can be computed
+  // without the respective dimension's own filter.
+  const alwaysConditions = [eq(recipes.userId, session.user.id)];
+  if (q)
+    alwaysConditions.push(
+      sql`recipes.fts_vector @@ websearch_to_tsquery('german', ${q})`,
+    );
+  if (favoriten === "true")
+    alwaysConditions.push(eq(recipes.isFavorite, true));
+  if (zeitaufwand)
+    alwaysConditions.push(
+      sql`${recipes.totalTimeMinutes} <= ${zeitaufwand}`,
+    );
+  if (ernaehrungsform)
+    // scalar = ANY(array_column): correct PostgreSQL idiom — "is this value in the array?"
+    alwaysConditions.push(sql`${ernaehrungsform} = ANY(${recipes.tags})`);
+  if (zutaten)
+    alwaysConditions.push(
+      sql`${recipes.id} IN (SELECT recipe_id FROM ingredients WHERE name ILIKE ${`%${zutaten}%`})`,
+    );
 
-  const where = and(...conditions);
+  // Dimension conditions for the main query
+  const categoryCond = kategorie ? eq(recipes.category, kategorie) : null;
+  const cuisineCond = kueche ? eq(recipes.cuisine, kueche) : null;
+  const difficultyCond = schwierigkeit
+    ? eq(recipes.difficulty, schwierigkeit)
+    : null;
+
+  const where = and(
+    ...alwaysConditions,
+    ...(categoryCond ? [categoryCond] : []),
+    ...(cuisineCond ? [cuisineCond] : []),
+    ...(difficultyCond ? [difficultyCond] : []),
+  );
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })
@@ -162,11 +204,13 @@ export async function GET(request: Request) {
     .where(where);
 
   const orderBy =
-    sortierung === "alphabetisch"
-      ? asc(recipes.title)
-      : sortierung === "bearbeitet"
-        ? desc(recipes.updatedAt)
-        : desc(recipes.createdAt);
+    sortierung === "relevanz" && q
+      ? sql`ts_rank(recipes.fts_vector, websearch_to_tsquery('german', ${q})) DESC`
+      : sortierung === "alphabetisch"
+        ? asc(recipes.title)
+        : sortierung === "bearbeitet"
+          ? desc(recipes.updatedAt)
+          : desc(recipes.createdAt);
 
   const rows = await db
     .select({
@@ -189,10 +233,69 @@ export async function GET(request: Request) {
     .limit(limit)
     .offset((seite - 1) * limit);
 
+  // Faceted counts (optional, only when includeFacets=true)
+  let facets:
+    | {
+        categories: { value: string; count: number }[];
+        cuisines: { value: string; count: number }[];
+        difficulties: { value: string; count: number }[];
+      }
+    | undefined;
+
+  if (includeFacets === "true") {
+    const [cats, cuisineRows, diffRows] = await Promise.all([
+      db
+        .select({ value: recipes.category, count: sql<number>`count(*)::int` })
+        .from(recipes)
+        .where(
+          and(
+            ...alwaysConditions,
+            ...(cuisineCond ? [cuisineCond] : []),
+            ...(difficultyCond ? [difficultyCond] : []),
+          ),
+        )
+        .groupBy(recipes.category),
+      db
+        .select({ value: recipes.cuisine, count: sql<number>`count(*)::int` })
+        .from(recipes)
+        .where(
+          and(
+            ...alwaysConditions,
+            ...(categoryCond ? [categoryCond] : []),
+            ...(difficultyCond ? [difficultyCond] : []),
+          ),
+        )
+        .groupBy(recipes.cuisine),
+      db
+        .select({ value: recipes.difficulty, count: sql<number>`count(*)::int` })
+        .from(recipes)
+        .where(
+          and(
+            ...alwaysConditions,
+            ...(categoryCond ? [categoryCond] : []),
+            ...(cuisineCond ? [cuisineCond] : []),
+          ),
+        )
+        .groupBy(recipes.difficulty),
+    ]);
+    facets = {
+      categories: cats
+        .filter((r) => r.value)
+        .map((r) => ({ value: r.value!, count: r.count })),
+      cuisines: cuisineRows
+        .filter((r) => r.value)
+        .map((r) => ({ value: r.value!, count: r.count })),
+      difficulties: diffRows
+        .filter((r) => r.value)
+        .map((r) => ({ value: r.value!, count: r.count })),
+    };
+  }
+
   return NextResponse.json({
     recipes: rows,
     total,
     seite,
     hasMore: seite * limit < total,
+    ...(facets ? { facets } : {}),
   });
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RecipeCard, Button } from "@/components/ui";
@@ -258,19 +259,6 @@ export default function RezeptListePage() {
 }
 
 // ── Hilfsfunktionen & Komponenten ─────────────────────────────────────────────
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setDebounced(value), delay);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [value, delay]);
-  return debounced;
-}
 
 function FilterSelect({
   value,

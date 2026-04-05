@@ -14,3 +14,11 @@ export function formatBytes(bytes: number | null): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+/** Formats a duration in minutes as "X Min." or "X Std. Y Min." */
+export function formatTime(minutes: number): string {
+  if (minutes < 60) return `${minutes} Min.`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h} Std. ${m} Min.` : `${h} Std.`;
+}

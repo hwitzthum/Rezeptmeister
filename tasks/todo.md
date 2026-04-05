@@ -139,19 +139,19 @@
 ## Phase 5 – Volltext-Suche & Filter (F-SEARCH-01/03)
 
 ### 5.1 Volltextsuche
-- [ ] PostgreSQL `tsvector`-Spalte für Rezepte (Deutsch, `german` config)
-- [ ] Trigger oder Computed Column für automatische Aktualisierung
-- [ ] API-Route `GET /api/recipes?q=...` mit `tsquery`-Suche
-- [ ] **Frontend-Design-Skill:** Suchleiste mit Debounce, Suchbegriffe hervorgehoben
-- [ ] Suche-Seite `/suche`
-- [ ] **E2E-Test:** Suchbegriff eingeben, relevante Rezepte erscheinen mit Highlighting
+- [x] PostgreSQL `tsvector`-Spalte für Rezepte (Deutsch, `german` config)
+- [x] Trigger oder Computed Column für automatische Aktualisierung
+- [x] API-Route `GET /api/recipes?q=...` mit `tsquery`-Suche (`websearch_to_tsquery`, Gewichtung A/B/C)
+- [x] **Frontend-Design-Skill:** Suchleiste mit Debounce (400ms), Suchbegriffe hervorgehoben (`<mark>`)
+- [x] Suche-Seite `/suche`
+- [x] **E2E-Test:** Suchbegriff eingeben, relevante Rezepte erscheinen mit Highlighting ✅ 21/21 Tests grün
 
 ### 5.2 Kategoriebasierte Filter (F-SEARCH-03)
-- [ ] Erweiterte Filter-UI in der Seitenleiste der Suche
-- [ ] Filter: Kategorie, Küche, Ernährungsform, Schwierigkeitsgrad, Zeitaufwand, Zutaten
-- [ ] Filter in URL abgebildet (shareable)
-- [ ] Treffer-Zähler pro Filteroption
-- [ ] **E2E-Test:** Mehrere Filter kombinieren, URL teilen, Filter nach Reload korrekt gesetzt
+- [x] Erweiterte Filter-UI in der Seitenleiste der Suche
+- [x] Filter: Kategorie, Küche, Ernährungsform, Schwierigkeitsgrad, Zeitaufwand, Zutaten
+- [x] Filter in URL abgebildet (shareable)
+- [x] Treffer-Zähler pro Filteroption (Faceted Counts via `includeFacets=true`)
+- [x] **E2E-Test:** Mehrere Filter kombinieren, URL teilen, Filter nach Reload korrekt gesetzt ✅
 
 ---
 
