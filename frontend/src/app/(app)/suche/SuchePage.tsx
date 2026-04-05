@@ -730,15 +730,15 @@ function KiResults({ results, loading, error, searched, hasImageOrQuery, onReset
         <div className="mt-4 flex flex-col gap-2 text-sm text-[var(--text-muted)]">
           <span className="inline-flex items-center gap-2">
             <span className="text-terra-400">→</span>
-            „Schnelles Abendessen mit Hühnchen und Gemüse"
+            &bdquo;Schnelles Abendessen mit Hühnchen und Gemüse&ldquo;
           </span>
           <span className="inline-flex items-center gap-2">
             <span className="text-terra-400">→</span>
-            „Etwas Süsses für den Sonntagnachmittag"
+            &bdquo;Etwas Süsses für den Sonntagnachmittag&ldquo;
           </span>
           <span className="inline-flex items-center gap-2">
             <span className="text-terra-400">→</span>
-            „Vegetarisch, unter 30 Minuten"
+            &bdquo;Vegetarisch, unter 30 Minuten&ldquo;
           </span>
         </div>
       </div>

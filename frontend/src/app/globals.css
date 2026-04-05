@@ -227,10 +227,16 @@ h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 
-.animate-fade-in    { animation: fadeIn 0.2s var(--ease-smooth) both; }
-.animate-slide-up   { animation: slideUp 0.25s var(--ease-smooth) both; }
-.animate-slide-down { animation: slideDown 0.25s var(--ease-smooth) both; }
-.animate-scale-in   { animation: scaleIn 0.2s var(--ease-spring) both; }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in       { animation: fadeIn 0.2s var(--ease-smooth) both; }
+.animate-slide-up      { animation: slideUp 0.25s var(--ease-smooth) both; }
+.animate-slide-down    { animation: slideDown 0.25s var(--ease-smooth) both; }
+.animate-scale-in      { animation: scaleIn 0.2s var(--ease-spring) both; }
+.animate-slide-in-right { animation: slideInRight 0.3s var(--ease-smooth) both; }
 
 /* Staggered children */
 .stagger-children > * { animation-fill-mode: both; }
@@ -260,6 +266,10 @@ h4, h5, h6 {
   .no-print    { display: none !important; }
   .print-only  { display: block !important; }
 
+  /* Alles ausser .print-only verbergen — verhindert doppelte Ausgabe */
+  body > *:not(.print-only) { display: none !important; }
+  body > .print-only { display: block !important; }
+
   body {
     background: white;
     color: black;
@@ -268,5 +278,36 @@ h4, h5, h6 {
 
   h1, h2, h3 {
     page-break-after: avoid;
+  }
+
+  /* Rezept-Druck-Layout */
+  .print-recipe {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-recipe-header {
+    page-break-after: avoid;
+  }
+
+  .print-recipe-image {
+    max-height: 200px;
+    object-fit: cover;
+  }
+
+  .print-ingredients {
+    page-break-inside: avoid;
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .print-instructions p {
+    page-break-inside: avoid;
+  }
+
+  /* Sammlungs-Druck: Seitenumbruch zwischen Rezepten */
+  .print-recipe-separator {
+    page-break-before: always;
   }
 }

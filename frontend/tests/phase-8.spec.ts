@@ -238,6 +238,7 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
   });
 
   test("8.7 Rezeptvorschläge werden generiert", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -263,9 +264,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     const first = (resp.body.suggestions as Record<string, unknown>[])[0];
     expect(first).toHaveProperty("title");
     expect(first).toHaveProperty("description");
-  }, 60_000);
+  });
 
   test("8.8 Vollständiges Rezept aus Vorschlag generieren", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -289,9 +291,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     expect(Array.isArray(resp.body.ingredients)).toBe(true);
     expect((resp.body.ingredients as unknown[]).length).toBeGreaterThan(0);
     expect(resp.body).toHaveProperty("instructions");
-  }, 60_000);
+  });
 
   test("8.9 Nährwerte werden berechnet", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -318,9 +321,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
 
     expect(resp.body).toHaveProperty("label");
     expect(String(resp.body.label)).toMatch(/ca\. \d+ kcal/);
-  }, 60_000);
+  });
 
   test("8.10 Nährwerte werden auf Rezept gespeichert", async ({ page }) => {
+    test.setTimeout(30_000);
     await loginAdmin(page);
     expect(testRecipeId).toBeTruthy();
 
@@ -341,9 +345,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("success", true);
-  }, 30_000);
+  });
 
   test("8.11 Skalierungshinweise bei starker Skalierung (Faktor >2)", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -371,9 +376,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     expect(resp.body).toHaveProperty("factor");
     expect(Number(resp.body.factor)).toBeCloseTo(5, 0);
     expect(resp.body).toHaveProperty("scaled_ingredients");
-  }, 60_000);
+  });
 
   test("8.12 Rezept von URL importieren", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -391,9 +397,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     expect(resp.body).toHaveProperty("title");
     expect(String(resp.body.title).length).toBeGreaterThan(0);
     expect(resp.body).toHaveProperty("ingredients");
-  }, 60_000);
+  });
 
   test("8.13 Websuche nach Rezepten liefert Ergebnisliste", async ({ page }) => {
+    test.setTimeout(60_000);
     await loginAdmin(page);
 
     const resp = await page.evaluate(async () => {
@@ -413,9 +420,10 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     const first = (resp.body.results as Record<string, unknown>[])[0];
     expect(first).toHaveProperty("url");
     expect(first).toHaveProperty("title");
-  }, 60_000);
+  });
 
   test("8.14 KI-Bild für Rezept generieren", async ({ page }) => {
+    test.setTimeout(120_000);
     await loginAdmin(page);
     expect(testRecipeId).toBeTruthy();
 
@@ -436,7 +444,7 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("image_id");
     expect(resp.body).toHaveProperty("thumbnail_url");
-  }, 120_000);
+  });
 
   // ── UI-driven tests for the three flows the audit found broken ────────────────
 
