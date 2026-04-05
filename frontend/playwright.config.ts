@@ -20,5 +20,8 @@ export default defineConfig({
     url: "http://localhost:3002/api/health",
     reuseExistingServer: true,
     timeout: 60_000,
+    env: {
+      DISABLE_RATE_LIMIT: "true",
+    },
   },
 });

@@ -256,9 +256,9 @@ test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
     await loginAdmin(page);
     await page.goto("/einstellungen");
     await page.waitForLoadState("networkidle");
-    // Either "KI-Funktionen sind deaktiviert" (no key) or "gespeichert" banner (has key)
-    const noKey = page.locator("text=KI-Funktionen sind deaktiviert");
-    const hasKey = page.locator("text=gespeichert").first();
+    // Either "KI-Funktionen sind deaktiviert." span (no key) or "gespeichert" in green status (has key)
+    const noKey = page.locator("span.text-terra-600", { hasText: "KI-Funktionen sind deaktiviert." });
+    const hasKey = page.locator(".bg-green-50", { hasText: "gespeichert" });
     await expect(noKey.or(hasKey)).toBeVisible({ timeout: 8_000 });
   });
 

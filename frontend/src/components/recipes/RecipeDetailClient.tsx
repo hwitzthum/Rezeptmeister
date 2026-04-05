@@ -12,6 +12,8 @@ import GenerateImageButton from "@/components/ai/GenerateImageButton";
 import NutritionPanel from "@/components/ai/NutritionPanel";
 import ScalingHintsPanel from "@/components/ai/ScalingHintsPanel";
 import NotesPanel from "@/components/recipes/NotesPanel";
+import AddToShoppingListButton from "@/components/shopping/AddToShoppingListButton";
+import AddToCollectionButton from "@/components/collections/AddToCollectionButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -165,6 +167,9 @@ export default function RecipeDetailClient({
             >
               <HeartIcon filled={isFavorite} className="w-4 h-4" />
             </button>
+
+            <AddToShoppingListButton recipeId={recipe.id} recipeTitle={recipe.title} />
+            <AddToCollectionButton recipeId={recipe.id} />
 
             <Link href={`/rezepte/${recipe.id}/bearbeiten`}>
               <Button variant="outline" size="sm">

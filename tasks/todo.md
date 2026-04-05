@@ -256,38 +256,38 @@
 
 ## Phase 10 – Einkaufsliste (F-SHOP-01/02)
 
-- [ ] API-Routes `GET/POST/PUT/DELETE /api/shopping-list`
-- [ ] Intelligentes Zusammenführen doppelter Zutaten (200g Mehl + 300g Mehl = 500g Mehl)
-- [ ] Kategorisierung nach Ladenabteilung (Obst & Gemüse, Milchprodukte, etc.)
-- [ ] **Frontend-Design-Skill:** Einkaufslisten-UI (mobil-optimiert, grosse Touch-Ziele, Abhaken-Funktion)
-- [ ] "Alle abhaken" / Reset
-- [ ] Aus Rezeptdetail: Zutaten zur Einkaufsliste hinzufügen
-- [ ] Aus Wochenplan: Einkaufsliste generieren
-- [ ] Manueller Eintrag
-- [ ] **E2E-Test:** Zutaten aus Rezept hinzufügen, zusammenführen testen, abhaken, Reset
+- [x] API-Routes `GET/POST/PUT/DELETE /api/shopping-list`
+- [x] Intelligentes Zusammenführen doppelter Zutaten (200g Mehl + 300g Mehl = 500g Mehl)
+- [x] Kategorisierung nach Ladenabteilung (Obst & Gemüse, Milchprodukte, etc.)
+- [x] **Frontend-Design-Skill:** Einkaufslisten-UI (mobil-optimiert, grosse Touch-Ziele, Abhaken-Funktion)
+- [x] "Alle abhaken" / Reset
+- [x] Aus Rezeptdetail: Zutaten zur Einkaufsliste hinzufügen
+- [x] Aus Wochenplan: Einkaufsliste generieren
+- [x] Manueller Eintrag
+- [x] **E2E-Test:** Zutaten aus Rezept hinzufügen, zusammenführen testen, abhaken, Reset ✅ 8/8 Tests grün
 
 ---
 
 ## Phase 11 – Wochenplanung (F-PLAN-01)
 
-- [ ] API-Routes `GET/POST/PUT/DELETE /api/meal-plans`
-- [ ] **Frontend-Design-Skill:** Kalenderansicht (Wochenansicht), Drag-and-Drop Slots
-- [ ] 4 Slots pro Tag: Frühstück, Mittagessen, Abendessen, Snack
-- [ ] Portionsgrösse pro Eintrag anpassbar
-- [ ] Navigation vor/zurück (Wochen)
-- [ ] "Einkaufsliste generieren"-Button
-- [ ] **E2E-Test:** Rezept per Drag-and-Drop in Slot ziehen, Einkaufsliste aus Plan generieren
+- [x] API-Routes `GET/POST/PUT/DELETE /api/meal-plans`
+- [x] **Frontend-Design-Skill:** Kalenderansicht (Wochenansicht), Drag-and-Drop Slots
+- [x] 4 Slots pro Tag: Frühstück, Mittagessen, Abendessen, Snack
+- [x] Portionsgrösse pro Eintrag anpassbar
+- [x] Navigation vor/zurück (Wochen)
+- [x] "Einkaufsliste generieren"-Button
+- [x] **E2E-Test:** Rezept per Drag-and-Drop in Slot ziehen, Einkaufsliste aus Plan generieren ✅ 7/7 Tests grün
 
 ---
 
 ## Phase 12 – Sammlungen / Kochbücher (F-COLL-01)
 
-- [ ] API-Routes `GET/POST/PUT/DELETE /api/collections`
-- [ ] API-Route `POST/DELETE /api/collections/[id]/rezepte`
-- [ ] **Frontend-Design-Skill:** Sammlungs-Grid mit Titelbildern, Drag-and-Drop innerhalb Sammlung
-- [ ] Rezept zu Sammlung hinzufügen (aus Detailansicht)
-- [ ] CRUD Sammlung (Name, Beschreibung, Titelbild)
-- [ ] **E2E-Test:** Sammlung erstellen, Rezepte hinzufügen/entfernen, sortieren
+- [x] API-Routes `GET/POST/PUT/DELETE /api/collections`
+- [x] API-Route `POST/DELETE /api/collections/[id]/rezepte`
+- [x] **Frontend-Design-Skill:** Sammlungs-Grid mit Titelbildern, Drag-and-Drop innerhalb Sammlung
+- [x] Rezept zu Sammlung hinzufügen (aus Detailansicht)
+- [x] CRUD Sammlung (Name, Beschreibung, Titelbild)
+- [x] **E2E-Test:** Sammlung erstellen, Rezepte hinzufügen/entfernen, sortieren ✅ 8/8 Tests grün
 
 ---
 
