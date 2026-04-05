@@ -183,12 +183,12 @@
 ## Phase 7 – Semantische Suche (F-SEARCH-02)
 
 ### 7.1 Vektorsuche im Backend
-- [ ] FastAPI-Router `POST /search/semantic` (Query-Embedding + pgvector Cosinus-Ähnlichkeit)
-- [ ] FastAPI-Router `POST /search/hybrid` (Volltext + Vektor kombiniert, RRF-Ranking)
-- [ ] Bild → Rezept Cross-Modal-Suche
-- [ ] Next.js API-Route `/api/search/semantic` (Proxy)
-- [ ] **Frontend-Design-Skill:** Semantische Suche UI mit natürlicher Sprache, Cross-Modal-Upload
-- [ ] **E2E-Test:** Natürlichsprachliche Suchanfrage → relevante Ergebnisse
+- [x] FastAPI-Router `POST /search/semantic` (Query-Embedding + pgvector Cosinus-Ähnlichkeit)
+- [x] FastAPI-Router `POST /search/hybrid` (Volltext + Vektor kombiniert, RRF-Ranking)
+- [x] Bild → Rezept Cross-Modal-Suche
+- [x] Next.js API-Route `/api/search/semantic` (Proxy)
+- [x] **Frontend-Design-Skill:** Semantische Suche UI mit natürlicher Sprache, Cross-Modal-Upload
+- [x] **E2E-Test:** Natürlichsprachliche Suchanfrage → relevante Ergebnisse ✅ 8/8 Tests grün
 
 ---
 
