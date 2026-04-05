@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   REZEPTMEISTER – Design System
+   Aesthetic: "Schweizer Küchenmagazin"
+   Editorial warmth meets Alpine precision
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Tailwind v4 Theme Tokens ── */
+@theme {
+  /* Terrakotta family */
+  --color-terra-50:  #fdf3f0;
+  --color-terra-100: #fbe5df;
+  --color-terra-200: #f6c5b8;
+  --color-terra-300: #ef9b87;
+  --color-terra-400: #e56b54;
+  --color-terra-500: #c24d2c;
+  --color-terra-600: #a83d22;
+  --color-terra-700: #8c311a;
+  --color-terra-800: #742819;
+  --color-terra-900: #5f2318;
+  --color-terra-950: #33100a;
+
+  /* Cream family */
+  --color-cream-50:  #fffdf9;
+  --color-cream-100: #fff8f0;
+  --color-cream-200: #feead5;
+  --color-cream-300: #fcd5ad;
+  --color-cream-400: #f9b97d;
+
+  /* Gold / Senf family */
+  --color-gold-300: #edcd7e;
+  --color-gold-400: #e6b84a;
+  --color-gold-500: #d4a843;
+  --color-gold-600: #b88b31;
+  --color-gold-700: #956e24;
+  --color-gold-800: #6e5018;
+
+  /* Warm neutrals */
+  --color-warm-50:  #fafaf8;
+  --color-warm-100: #f4f3ef;
+  --color-warm-200: #e6e3db;
+  --color-warm-300: #d1ccc1;
+  --color-warm-400: #b3aca0;
+  --color-warm-500: #908880;
+  --color-warm-600: #736c64;
+  --color-warm-700: #5c564f;
+  --color-warm-800: #3e3a35;
+  --color-warm-900: #27241f;
+  --color-warm-950: #141210;
+
+  /* Typography */
+  --font-display: var(--font-playfair), "Georgia", "Times New Roman", serif;
+  --font-sans:    var(--font-dm-sans), "Helvetica Neue", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  /* Border radius */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  /* Custom shadows */
+  --shadow-warm-xs: 0 1px 2px 0 oklch(0.47 0.15 31 / 0.06);
+  --shadow-warm-sm: 0 1px 4px 0 oklch(0.47 0.15 31 / 0.09), 0 1px 2px -1px oklch(0.1 0.02 30 / 0.06);
+  --shadow-warm:    0 4px 14px -2px oklch(0.47 0.15 31 / 0.14), 0 2px 6px -2px oklch(0.1 0.02 30 / 0.08);
+  --shadow-warm-lg: 0 10px 32px -4px oklch(0.47 0.15 31 / 0.18), 0 4px 12px -4px oklch(0.1 0.02 30 / 0.12);
+  --shadow-warm-xl: 0 20px 50px -8px oklch(0.47 0.15 31 / 0.22), 0 8px 20px -8px oklch(0.1 0.02 30 / 0.14);
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── CSS Runtime Variables (light mode defaults) ── */
+:root {
+  --bg-base:      #fff8f0;
+  --bg-surface:   #fffdf9;
+  --bg-elevated:  #ffffff;
+  --bg-subtle:    #f4f3ef;
+
+  --border-base:   #e6e3db;
+  --border-strong: #d1ccc1;
+
+  --text-primary:   #27241f;
+  --text-secondary: #5c564f;
+  --text-muted:     #908880;
+  --text-inverse:   #fff8f0;
+
+  --focus-ring: #c24d2c;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg-base:      #1c1a16;
+  --bg-surface:   #231f1a;
+  --bg-elevated:  #2c2720;
+  --bg-subtle:    #352f27;
+
+  --border-base:   #3e3a35;
+  --border-strong: #5c564f;
+
+  --text-primary:   #f4f3ef;
+  --text-secondary: #d1ccc1;
+  --text-muted:     #908880;
+  --text-inverse:   #27241f;
+
+  --focus-ring: #e56b54;
+
+  color-scheme: dark;
+}
+
+/* ── Base Styles ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+/* Subtle paper grain texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ── Typography ── */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Recipe titles specifically use display font */
+.title-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ── Focus Styles ── */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: oklch(0.47 0.15 31 / 0.15);
+  color: var(--text-primary);
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in    { animation: fadeIn 0.2s var(--ease-smooth) both; }
+.animate-slide-up   { animation: slideUp 0.25s var(--ease-smooth) both; }
+.animate-slide-down { animation: slideDown 0.25s var(--ease-smooth) both; }
+.animate-scale-in   { animation: scaleIn 0.2s var(--ease-spring) both; }
+
+/* Staggered children */
+.stagger-children > * { animation-fill-mode: both; }
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ── Skeleton Shimmer ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 25%,
+    var(--border-base) 50%,
+    var(--bg-subtle) 75%
+  );
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* ── Print ── */
+@media print {
+  body::before { display: none; }
+  .no-print    { display: none !important; }
+  .print-only  { display: block !important; }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+}

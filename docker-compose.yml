@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: rezeptmeister
+      POSTGRES_USER: rezeptmeister
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-localdev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rezeptmeister"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    # Port 8000 is NOT published externally — access via Next.js proxy only.
+    # For local direct access during development, add: ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rezeptmeister:${DB_PASSWORD:-localdev}@db:5432/rezeptmeister
+      UPLOAD_DIR: /app/uploads
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-}
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
