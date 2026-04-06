@@ -4,6 +4,7 @@ from app.models.image import Image
 from app.models.shopping import ShoppingListItem
 from app.models.meal_plan import MealPlan
 from app.models.collection import Collection, CollectionRecipe
+from app.models.job import ReEmbedJob
 
 __all__ = [
     "User",
@@ -15,4 +16,5 @@ __all__ = [
     "MealPlan",
     "Collection",
     "CollectionRecipe",
+    "ReEmbedJob",
 ]
