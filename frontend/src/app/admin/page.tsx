@@ -34,12 +34,12 @@ export default async function AdminPage() {
             Admin
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-warm-500 hidden sm:block">
+            <span className="text-warm-500 dark:text-warm-400 hidden sm:block">
               {session.user.email}
             </span>
             <Link
               href="/"
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-warm-600 hover:bg-[var(--bg-subtle)] transition-colors"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-warm-600 dark:text-warm-400 hover:bg-[var(--bg-subtle)] transition-colors"
             >
               Zurück zur App
             </Link>

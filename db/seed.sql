@@ -144,3 +144,122 @@ INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
     ('10000000-0000-0000-0000-000000000005', 'Eier', 2, 'Stk.', 8),
     ('10000000-0000-0000-0000-000000000005', 'Rahm (Vollrahm)', 2, 'dl', 9),
     ('10000000-0000-0000-0000-000000000005', 'Zucker (für Guss)', 2, 'EL', 10);
+
+-- Musterrezept 6: Älplermagronen
+INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
+    ('10000000-0000-0000-0000-000000000006',
+     '00000000-0000-0000-0000-000000000002',
+     'Älplermagronen',
+     'Deftige Älplermagronen mit Kartoffeln, Rahm und Käse – das Hirtengericht aus den Schweizer Alpen, serviert mit Apfelmus.',
+     '1. Kartoffeln schälen und in ca. 1 cm grosse Würfel schneiden.
+2. Kartoffelwürfel in reichlich Salzwasser 5 Minuten vorkochen.
+3. Magronen (kurze Röhren) zu den Kartoffeln geben und gemäss Packungsanleitung al dente kochen. Abgiessen, 1 dl Kochwasser auffangen.
+4. Zwiebeln in feine Ringe schneiden und in Butter goldbraun rösten.
+5. Rahm und aufgefangenes Kochwasser in einer grossen Pfanne erhitzen.
+6. Kartoffeln und Magronen dazugeben, gut mischen.
+7. Geriebenen Gruyère unterrühren, bis er schmilzt.
+8. Mit Salz, Pfeffer und einer Prise Muskatnuss abschmecken.
+9. Auf Teller verteilen, Röstzwiebeln darübergeben.
+10. Mit Apfelmus als Beilage servieren.',
+     4, 15, 25, 40, 'einfach', 'manual', 'Schweizerisch', 'Hauptgericht',
+     ARRAY['Schweiz', 'Alpen', 'Deftig', 'Vegetarisch', 'Kartoffeln', 'Käse']);
+
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
+    ('10000000-0000-0000-0000-000000000006', 'Magronen (kurze Röhren)', 250, 'g', 1),
+    ('10000000-0000-0000-0000-000000000006', 'Kartoffeln (festkochend)', 400, 'g', 2),
+    ('10000000-0000-0000-0000-000000000006', 'Gruyère (gerieben)', 150, 'g', 3),
+    ('10000000-0000-0000-0000-000000000006', 'Rahm (Vollrahm)', 2, 'dl', 4),
+    ('10000000-0000-0000-0000-000000000006', 'Zwiebeln (gross)', 2, 'Stk.', 5),
+    ('10000000-0000-0000-0000-000000000006', 'Butter', 40, 'g', 6),
+    ('10000000-0000-0000-0000-000000000006', 'Muskatnuss', 1, 'Msp.', 7),
+    ('10000000-0000-0000-0000-000000000006', 'Salz und Pfeffer', NULL, NULL, 8),
+    ('10000000-0000-0000-0000-000000000006', 'Apfelmus (als Beilage)', 3, 'dl', 9);
+
+-- Musterrezept 7: Basler Mehlsuppe
+INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
+    ('10000000-0000-0000-0000-000000000007',
+     '00000000-0000-0000-0000-000000000002',
+     'Basler Mehlsuppe',
+     'Die traditionelle Basler Mehlsuppe – eine kräftige, dunkel geröstete Suppe, die zur Fasnacht in Basel serviert wird.',
+     '1. Butter in einem grossen Topf schmelzen und das Mehl unter ständigem Rühren darin anrösten, bis es gleichmässig dunkelbraun ist (ca. 15–20 Minuten). Vorsicht: nicht anbrennen lassen!
+2. Zwiebeln fein hacken und zum gerösteten Mehl geben. 2–3 Minuten mitrösten.
+3. Die Fleischbrühe nach und nach unter kräftigem Rühren dazugiessen, damit keine Klumpen entstehen.
+4. Aufkochen lassen, dann die Hitze reduzieren und 30 Minuten leise köcheln lassen.
+5. Mit Salz, Pfeffer und einer Prise Muskatnuss abschmecken.
+6. Die Suppe durch ein feines Sieb passieren.
+7. Den Gruyère reiben. In vorgewärmte Teller füllen und grosszügig mit geriebenem Käse bestreuen.
+8. Heiss servieren – traditionell in der Morgenstunde der Basler Fasnacht.',
+     4, 10, 50, 60, 'mittel', 'manual', 'Schweizerisch', 'Suppe',
+     ARRAY['Basel', 'Fasnacht', 'Tradition', 'Suppe', 'Winter']);
+
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
+    ('10000000-0000-0000-0000-000000000007', 'Butter', 60, 'g', 1),
+    ('10000000-0000-0000-0000-000000000007', 'Mehl (Weissmehl)', 60, 'g', 2),
+    ('10000000-0000-0000-0000-000000000007', 'Zwiebeln', 2, 'Stk.', 3),
+    ('10000000-0000-0000-0000-000000000007', 'Fleischbrühe (kräftig)', 1, 'l', 4),
+    ('10000000-0000-0000-0000-000000000007', 'Gruyère (gerieben)', 100, 'g', 5),
+    ('10000000-0000-0000-0000-000000000007', 'Muskatnuss', 1, 'Msp.', 6),
+    ('10000000-0000-0000-0000-000000000007', 'Salz und Pfeffer', NULL, NULL, 7);
+
+-- Musterrezept 8: Bündner Gerstensuppe
+INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
+    ('10000000-0000-0000-0000-000000000008',
+     '00000000-0000-0000-0000-000000000002',
+     'Bündner Gerstensuppe',
+     'Die gehaltvolle Gerstensuppe aus Graubünden mit Rollgerste, Gemüse und Bündnerfleisch – ein wärmendes Wintergericht.',
+     '1. Rollgerste in kaltem Wasser 2 Stunden (oder über Nacht) einweichen. Abgiessen.
+2. Speck in kleine Würfel schneiden und in einem grossen Topf auslassen.
+3. Zwiebeln, Karotten, Sellerie und Lauch putzen und in feine Würfel schneiden.
+4. Das Gemüse zum Speck geben und 5 Minuten andünsten.
+5. Eingeweichte Rollgerste dazugeben und kurz mitrösten.
+6. Fleischbrühe und Wasser dazugiessen, aufkochen.
+7. Hitze reduzieren und zugedeckt ca. 1.5 Stunden köcheln lassen, bis die Gerste weich ist.
+8. Rahm einrühren und nochmals 5 Minuten ziehen lassen.
+9. Bündnerfleisch in feine Streifen schneiden.
+10. Suppe mit Salz und Pfeffer abschmecken.
+11. In Teller füllen und mit Bündnerfleischstreifen und gehackter Petersilie garnieren.',
+     6, 20, 100, 120, 'mittel', 'manual', 'Schweizerisch', 'Suppe',
+     ARRAY['Graubünden', 'Bündner', 'Suppe', 'Winter', 'Deftig', 'Gerste']);
+
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
+    ('10000000-0000-0000-0000-000000000008', 'Rollgerste', 200, 'g', 1),
+    ('10000000-0000-0000-0000-000000000008', 'Geräucherter Speck', 100, 'g', 2),
+    ('10000000-0000-0000-0000-000000000008', 'Zwiebeln', 2, 'Stk.', 3),
+    ('10000000-0000-0000-0000-000000000008', 'Karotten', 2, 'Stk.', 4),
+    ('10000000-0000-0000-0000-000000000008', 'Stangensellerie', 2, 'Stk.', 5),
+    ('10000000-0000-0000-0000-000000000008', 'Lauch', 1, 'Stk.', 6),
+    ('10000000-0000-0000-0000-000000000008', 'Fleischbrühe', 1, 'l', 7),
+    ('10000000-0000-0000-0000-000000000008', 'Wasser', 5, 'dl', 8),
+    ('10000000-0000-0000-0000-000000000008', 'Rahm (Vollrahm)', 1, 'dl', 9),
+    ('10000000-0000-0000-0000-000000000008', 'Bündnerfleisch', 100, 'g', 10),
+    ('10000000-0000-0000-0000-000000000008', 'Petersilie (gehackt)', 2, 'EL', 11),
+    ('10000000-0000-0000-0000-000000000008', 'Salz und Pfeffer', NULL, NULL, 12);
+
+-- Musterrezept 9: Vermicelles
+INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
+    ('10000000-0000-0000-0000-000000000009',
+     '00000000-0000-0000-0000-000000000002',
+     'Vermicelles',
+     'Das elegante Schweizer Kastanien-Dessert – feine Marroni-Vermicelles auf einem Meringue-Nest mit Schlagrahm.',
+     '1. Kastanien mit einem Messer kreuzweise einritzen und in kochendem Wasser 20 Minuten garen.
+2. Noch heiss schälen (innere Haut sorgfältig entfernen – geht am besten, solange die Kastanien warm sind).
+3. Geschälte Kastanien mit der Milch und der Vanilleschote in einem Topf weich kochen (ca. 25 Minuten).
+4. Vanilleschote entfernen. Kastanien abtropfen lassen (Kochflüssigkeit auffangen).
+5. Kastanien mit Puderzucker und Kirsch durch eine Kartoffelpresse oder ein Passevite drücken.
+6. Falls die Masse zu trocken ist, löffelweise Kochflüssigkeit dazugeben.
+7. Schlagrahm mit 1 EL Zucker steif schlagen.
+8. Meringue-Schalen auf Teller setzen und mit einem Klacks Schlagrahm füllen.
+9. Die Kastanienmasse locker und spaghettiartig über den Schlagrahm häufeln.
+10. Mit einem Tupfer Schlagrahm und Puderzucker garnieren. Sofort servieren.',
+     4, 40, 45, 85, 'anspruchsvoll', 'manual', 'Schweizerisch', 'Dessert',
+     ARRAY['Dessert', 'Kastanien', 'Marroni', 'Herbst', 'Klassiker', 'Elegant']);
+
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
+    ('10000000-0000-0000-0000-000000000009', 'Frische Kastanien (Marroni)', 800, 'g', 1),
+    ('10000000-0000-0000-0000-000000000009', 'Milch', 3, 'dl', 2),
+    ('10000000-0000-0000-0000-000000000009', 'Vanilleschote', 1, 'Stk.', 3),
+    ('10000000-0000-0000-0000-000000000009', 'Puderzucker', 100, 'g', 4),
+    ('10000000-0000-0000-0000-000000000009', 'Kirsch (Kirschwasser)', 2, 'EL', 5),
+    ('10000000-0000-0000-0000-000000000009', 'Schlagrahm', 3, 'dl', 6),
+    ('10000000-0000-0000-0000-000000000009', 'Zucker (für Schlagrahm)', 1, 'EL', 7),
+    ('10000000-0000-0000-0000-000000000009', 'Meringue-Schalen (fertig gekauft)', 4, 'Stk.', 8);

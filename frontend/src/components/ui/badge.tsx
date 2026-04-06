@@ -21,14 +21,14 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  terra:   "bg-terra-50 text-terra-700 border border-terra-200",
-  gold:    "bg-gold-50 text-gold-700 border border-gold-200",
-  green:   "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  warm:    "bg-warm-100 text-warm-700 border border-warm-200",
-  blue:    "bg-blue-50 text-blue-700 border border-blue-200",
-  red:     "bg-red-50 text-red-700 border border-red-200",
+  terra:   "bg-terra-50 text-terra-700 border border-terra-200 dark:bg-terra-950/30 dark:text-terra-300 dark:border-terra-800",
+  gold:    "bg-gold-50 text-gold-700 border border-gold-200 dark:bg-gold-950/30 dark:text-gold-300 dark:border-gold-800",
+  green:   "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800",
+  warm:    "bg-warm-100 text-warm-700 border border-warm-200 dark:bg-warm-800 dark:text-warm-300 dark:border-warm-700",
+  blue:    "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
+  red:     "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800",
   outline: "bg-transparent text-[var(--text-secondary)] border border-[var(--border-base)]",
-  source:  "bg-warm-100 text-warm-600 border border-warm-200",
+  source:  "bg-warm-100 text-warm-600 border border-warm-200 dark:bg-warm-800 dark:text-warm-400 dark:border-warm-700",
 };
 
 const sizeStyles: Record<BadgeSize, string> = {
@@ -77,7 +77,7 @@ export function Badge({
       {removable && (
         <button
           type="button"
-          className="ml-0.5 -mr-0.5 rounded hover:bg-black/10 transition-colors p-0.5"
+          className="ml-0.5 -mr-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors p-0.5"
           onClick={onRemove}
           aria-label="Entfernen"
         >

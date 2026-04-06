@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import ImageUploadZone, { type UploadedImage } from "@/components/images/ImageUploadZone";
 import { ConfirmDialog, Button, Modal } from "@/components/ui";
 import { formatDate, formatBytes } from "@/lib/format";
 import OcrPreviewPanel, { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
+import { normaliseImageSrc } from "@/lib/images";
 
 type FilterMode = "alle" | "zugeordnet" | "unzugeordnet";
 type OcrState = "idle" | "running" | "done" | "error";
@@ -181,7 +183,7 @@ export default function BilderPage() {
                 "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                 filter === f
                   ? "bg-terra-500 text-white"
-                  : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-warm-100",
+                  : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-warm-100 dark:hover:bg-warm-800",
               ].join(" ")}
             >
               {f === "alle" ? "Alle" : f === "zugeordnet" ? "Zugeordnet" : "Nicht zugeordnet"}
@@ -193,7 +195,7 @@ export default function BilderPage() {
         {loading && images.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-xl bg-warm-100 animate-pulse" />
+              <div key={i} className="aspect-square rounded-xl bg-warm-100 dark:bg-warm-800 animate-pulse" />
             ))}
           </div>
         ) : images.length === 0 ? (
@@ -217,11 +219,12 @@ export default function BilderPage() {
                     selectedImage?.id === image.id ? "border-terra-500" : "border-transparent",
                   ].join(" ")}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={image.thumbnailUrl}
                     alt={image.altText ?? image.fileName ?? "Bild"}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                    className="object-cover"
                   />
                   {image.isPrimary && (
                     <div className="absolute top-1 left-1">
@@ -254,12 +257,13 @@ export default function BilderPage() {
       >
         {selectedImage && (
           <div className="space-y-4">
-            <div className="aspect-video bg-warm-50 rounded-xl overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selectedImage.filePath}
+            <div className="relative aspect-video bg-warm-50 dark:bg-warm-900 rounded-xl overflow-hidden">
+              <Image
+                src={normaliseImageSrc(selectedImage.filePath)}
                 alt={selectedImage.altText ?? selectedImage.fileName ?? "Bild"}
-                className="w-full h-full object-contain"
+                fill
+                sizes="(max-width: 1024px) 100vw, 80vw"
+                className="object-contain"
               />
             </div>
 

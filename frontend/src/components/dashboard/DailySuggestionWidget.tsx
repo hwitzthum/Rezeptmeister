@@ -74,14 +74,14 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border border-gold-300/40 bg-gradient-to-br from-gold-50/80 via-[var(--bg-surface)] to-cream-100/60 p-5"
+      className="relative overflow-hidden rounded-xl border border-gold-300/40 dark:border-gold-700/40 bg-gradient-to-br from-gold-50/80 via-[var(--bg-surface)] to-cream-100/60 dark:from-gold-950/30 dark:to-warm-900/60 p-5"
       data-testid="daily-suggestion-widget"
     >
       {/* Decorative glow */}
-      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gold-300/20 blur-xl pointer-events-none" />
+      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gold-300/20 dark:bg-gold-700/10 blur-xl pointer-events-none" />
 
       <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2 relative">
-        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gold-100 text-gold-600">
+        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gold-100 dark:bg-gold-950/30 text-gold-600 dark:text-gold-400">
           <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
@@ -109,7 +109,7 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
           </p>
           <div className="flex items-center gap-3 mt-3 text-xs text-[var(--text-muted)]">
             {suggestion.time_minutes && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warm-100/80">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warm-100/80 dark:bg-warm-800/80">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
                 </svg>
@@ -117,7 +117,7 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
               </span>
             )}
             {suggestion.difficulty && (
-              <span className="px-2 py-0.5 rounded-md bg-warm-100/80">{suggestion.difficulty}</span>
+              <span className="px-2 py-0.5 rounded-md bg-warm-100/80 dark:bg-warm-800/80">{suggestion.difficulty}</span>
             )}
           </div>
           <Button

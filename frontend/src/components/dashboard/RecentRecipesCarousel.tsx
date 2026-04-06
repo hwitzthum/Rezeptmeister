@@ -74,7 +74,7 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
+            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
             aria-label="Nach links scrollen"
             data-testid="carousel-left"
           >
@@ -85,7 +85,7 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
+            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
             aria-label="Nach rechts scrollen"
             data-testid="carousel-right"
           >

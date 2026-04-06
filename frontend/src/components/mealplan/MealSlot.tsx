@@ -34,7 +34,7 @@ export default function MealSlot({
       data-testid={`meal-slot-${date}-${mealType}`}
       className={[
         "min-h-[60px] rounded-xl transition-all duration-150",
-        isOver ? "ring-2 ring-terra-400 bg-terra-50/50" : "",
+        isOver ? "ring-2 ring-terra-400 bg-terra-50/50 dark:bg-terra-950/30" : "",
         entry ? "" : "border border-dashed border-[var(--border-base)]",
       ].join(" ")}
     >
@@ -114,7 +114,7 @@ function FilledSlot({
           type="button"
           onClick={() => onRemove(entry.id)}
           data-testid={`meal-plan-remove-${entry.id}`}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+          className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-all"
           aria-label="Entfernen"
         >
           <XIcon />

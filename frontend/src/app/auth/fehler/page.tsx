@@ -32,7 +32,7 @@ function FehlerContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center px-4">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/40">
           <svg
             className="h-10 w-10 text-red-500"
             fill="none"
@@ -59,7 +59,7 @@ function FehlerContent() {
         <div className="bg-[var(--bg-surface)] rounded-2xl shadow-warm border border-[var(--border-subtle)] p-8 mb-6">
           <p className="text-[var(--text-secondary)] leading-relaxed">{description}</p>
           {errorCode !== "Default" && (
-            <p className="mt-3 text-xs text-warm-400 font-mono">
+            <p className="mt-3 text-xs text-warm-400 dark:text-warm-500 font-mono">
               Fehlercode: {errorCode}
             </p>
           )}

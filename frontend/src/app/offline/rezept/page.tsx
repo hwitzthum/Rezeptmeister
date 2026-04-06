@@ -53,7 +53,7 @@ function OfflineRecipeContent() {
     return (
       <div className="min-h-screen bg-[var(--bg-base,#FFF8F0)] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-warm-500 mb-4">
+          <p className="text-warm-500 dark:text-warm-400 mb-4">
             Dieses Rezept ist nicht offline verfügbar.
           </p>
           <Link
@@ -80,7 +80,7 @@ function OfflineRecipeContent() {
       {/* Offline banner */}
       <div
         data-testid="offline-recipe-banner"
-        className="bg-warm-800 text-cream-50 text-center text-sm py-2 px-4"
+        className="bg-warm-800 dark:bg-warm-900 text-cream-50 text-center text-sm py-2 px-4"
       >
         Offline-Modus — Einige Funktionen sind nicht verfügbar
       </div>
@@ -90,7 +90,7 @@ function OfflineRecipeContent() {
         <div className="max-w-3xl mx-auto">
           <Link
             href="/offline"
-            className="text-sm text-warm-500 hover:text-terra-500 mb-2 inline-flex items-center gap-1"
+            className="text-sm text-warm-500 dark:text-warm-400 hover:text-terra-500 mb-2 inline-flex items-center gap-1"
           >
             <svg
               className="w-4 h-4"
@@ -115,22 +115,22 @@ function OfflineRecipeContent() {
             {recipe.title}
           </h1>
           {recipe.description && (
-            <p className="text-warm-500 text-sm mt-1">{recipe.description}</p>
+            <p className="text-warm-500 dark:text-warm-400 text-sm mt-1">{recipe.description}</p>
           )}
           {/* Meta badges */}
           <div className="flex gap-2 mt-3 flex-wrap">
             {recipe.category && (
-              <span className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-warm-100 dark:bg-warm-800 text-warm-600 dark:text-warm-400 px-2 py-0.5 rounded-full">
                 {recipe.category}
               </span>
             )}
             {recipe.difficulty && (
-              <span className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-warm-100 dark:bg-warm-800 text-warm-600 dark:text-warm-400 px-2 py-0.5 rounded-full">
                 {recipe.difficulty}
               </span>
             )}
             {recipe.totalTimeMinutes && (
-              <span className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-warm-100 dark:bg-warm-800 text-warm-600 dark:text-warm-400 px-2 py-0.5 rounded-full">
                 {recipe.totalTimeMinutes} Min.
               </span>
             )}
@@ -145,6 +145,7 @@ function OfflineRecipeContent() {
           <img
             src={imageUrls[0].url}
             alt={recipe.title}
+            loading="lazy"
             className="w-full h-48 sm:h-64 object-cover rounded-xl"
           />
         </div>
@@ -155,7 +156,7 @@ function OfflineRecipeContent() {
         {/* Servings scaler */}
         <section>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-warm-600">
+            <label className="text-sm font-medium text-warm-600 dark:text-warm-400">
               Portionen:
             </label>
             <div className="flex items-center gap-2">
@@ -163,7 +164,7 @@ function OfflineRecipeContent() {
                 onClick={() =>
                   setTargetServings((s) => Math.max(1, (s ?? 1) - 1))
                 }
-                className="w-8 h-8 rounded-lg border border-[var(--border-base,#e5e0db)] flex items-center justify-center text-warm-500 hover:border-terra-300"
+                className="w-8 h-8 rounded-lg border border-[var(--border-base,#e5e0db)] flex items-center justify-center text-warm-500 dark:text-warm-400 hover:border-terra-300"
               >
                 −
               </button>
@@ -175,7 +176,7 @@ function OfflineRecipeContent() {
               </span>
               <button
                 onClick={() => setTargetServings((s) => (s ?? 1) + 1)}
-                className="w-8 h-8 rounded-lg border border-[var(--border-base,#e5e0db)] flex items-center justify-center text-warm-500 hover:border-terra-300"
+                className="w-8 h-8 rounded-lg border border-[var(--border-base,#e5e0db)] flex items-center justify-center text-warm-500 dark:text-warm-400 hover:border-terra-300"
               >
                 +
               </button>
@@ -197,15 +198,15 @@ function OfflineRecipeContent() {
               return (
                 <li
                   key={ing.id}
-                  className="flex items-baseline gap-2 py-1 border-b border-warm-100 last:border-0"
+                  className="flex items-baseline gap-2 py-1 border-b border-warm-100 dark:border-warm-800 last:border-0"
                 >
-                  <span className="font-medium text-warm-700 min-w-[3rem] text-right">
+                  <span className="font-medium text-warm-700 dark:text-warm-300 min-w-[3rem] text-right">
                     {scaledAmount ? formatAmount(scaledAmount) : ""}
                   </span>
-                  <span className="text-warm-500 min-w-[2rem]">
+                  <span className="text-warm-500 dark:text-warm-400 min-w-[2rem]">
                     {ing.unit || ""}
                   </span>
-                  <span className="text-warm-800">
+                  <span className="text-warm-800 dark:text-warm-200">
                     {ing.name}
                     {ing.isOptional && (
                       <span className="text-warm-400 text-xs ml-1">
@@ -224,7 +225,7 @@ function OfflineRecipeContent() {
           <h2 className="text-lg font-semibold mb-3">Zubereitung</h2>
           <div
             data-testid="offline-instructions"
-            className="prose prose-warm max-w-none text-warm-700 whitespace-pre-wrap"
+            className="prose prose-warm dark:prose-invert max-w-none text-warm-700 dark:text-warm-300 whitespace-pre-wrap"
           >
             {recipe.instructions}
           </div>
@@ -243,12 +244,12 @@ function OfflineRecipeContent() {
               ].map((n) => (
                 <div
                   key={n.label}
-                  className="bg-[var(--bg-surface,#fff)] rounded-lg p-3 text-center border border-warm-100"
+                  className="bg-[var(--bg-surface,#fff)] rounded-lg p-3 text-center border border-warm-100 dark:border-warm-800"
                 >
-                  <div className="text-lg font-semibold text-warm-800">
+                  <div className="text-lg font-semibold text-warm-800 dark:text-warm-200">
                     {n.value}
                   </div>
-                  <div className="text-xs text-warm-500">{n.label}</div>
+                  <div className="text-xs text-warm-500 dark:text-warm-400">{n.label}</div>
                 </div>
               ))}
             </div>

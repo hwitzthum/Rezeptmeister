@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { Button, Modal, ConfirmDialog } from "@/components/ui";
 
@@ -194,13 +195,14 @@ export default function CollectionsClient({
             >
               {/* Cover image or placeholder */}
               <Link href={`/sammlungen/${collection.id}`}>
-                <div className="h-36 bg-gradient-to-br from-terra-100 to-warm-100 relative overflow-hidden">
+                <div className="h-36 bg-gradient-to-br from-terra-100 to-warm-100 dark:from-terra-950/40 dark:to-warm-900 relative overflow-hidden">
                   {collection.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={collection.coverImageUrl}
                       alt={collection.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -220,7 +222,7 @@ export default function CollectionsClient({
                     {collection.name}
                   </h2>
                 </Link>
-                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-terra-50 text-terra-600">
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-terra-50 dark:bg-terra-950/30 text-terra-600 dark:text-terra-400">
                   {collection.recipeCount}{" "}
                   {collection.recipeCount === 1 ? "Rezept" : "Rezepte"}
                 </span>

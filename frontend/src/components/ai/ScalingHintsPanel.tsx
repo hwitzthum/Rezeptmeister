@@ -93,7 +93,7 @@ export default function ScalingHintsPanel({
       {fetched && !hintsStale && (hints.length > 0 || generalNote) && (
         <div className="mt-2 space-y-2">
           {generalNote && (
-            <div className="flex gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+            <div className="flex gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
               <span className="shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
               <p>{generalNote}</p>
             </div>
@@ -101,7 +101,7 @@ export default function ScalingHintsPanel({
           {hints.map((h, i) => (
             <div
               key={i}
-              className="flex gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800"
+              className="flex gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300"
             >
               <span className="shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
               <p>{h}</p>

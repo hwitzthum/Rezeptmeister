@@ -39,11 +39,36 @@ export const UPLOAD_API_PREFIX = "/api/uploads";
 /**
  * Derives the thumbnail API URL from a stored filePath.
  * filePath: /api/uploads/originals/uuid.jpg → /api/uploads/thumbnails/uuid.webp
+ *
+ * Also normalises legacy paths stored without leading /api/uploads/ prefix
+ * (e.g. "uploads/originals/..." from older AI-generated images).
  */
 export function thumbnailUrl(filePath: string): string {
-  return filePath
+  let normalised = filePath;
+  if (!normalised.startsWith("/")) {
+    normalised = `/${normalised}`;
+  }
+  if (normalised.startsWith("/uploads/")) {
+    normalised = `/api${normalised}`;
+  }
+  return normalised
     .replace("/originals/", "/thumbnails/")
     .replace(/\.(jpg|jpeg|png|webp)$/i, ".webp");
+}
+
+/**
+ * Normalises a DB-stored image path so it is valid as a next/image src.
+ * Handles legacy paths stored without the /api/uploads/ prefix.
+ */
+export function normaliseImageSrc(filePath: string): string {
+  let normalised = filePath;
+  if (!normalised.startsWith("/")) {
+    normalised = `/${normalised}`;
+  }
+  if (normalised.startsWith("/uploads/")) {
+    normalised = `/api${normalised}`;
+  }
+  return normalised;
 }
 
 /**

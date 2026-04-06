@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sparkles, Link as LucideLink } from "lucide-react";
 import UrlImportDialog from "@/components/ai/UrlImportDialog";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 
 interface NavItem {
   href: string;
@@ -132,7 +133,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
           <div className="w-9 h-9 rounded-xl bg-terra-500 flex items-center justify-center shadow-warm-sm">
             <ChefHatIcon />
           </div>
-          <span className="font-display font-bold text-lg text-[var(--text-primary)] group-hover:text-terra-600 transition-colors">
+          <span className="font-display font-bold text-lg text-[var(--text-primary)] group-hover:text-terra-600 dark:group-hover:text-terra-400 transition-colors">
             Rezeptmeister
           </span>
         </Link>
@@ -151,7 +152,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
                     "transition-all duration-150 group",
                     active
-                      ? "bg-terra-50 text-terra-700 shadow-warm-xs"
+                      ? "bg-terra-50 text-terra-700 shadow-warm-xs dark:bg-terra-950/30 dark:text-terra-300"
                       : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
                   ].join(" ")}
                   aria-current={active ? "page" : undefined}
@@ -159,7 +160,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
                   <span
                     className={[
                       "shrink-0 transition-colors duration-150",
-                      active ? "text-terra-500" : "text-warm-400 group-hover:text-warm-600",
+                      active ? "text-terra-500 dark:text-terra-400" : "text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300",
                     ].join(" ")}
                     aria-hidden="true"
                   >
@@ -167,7 +168,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
                   </span>
                   {item.label}
                   {item.adminOnly && (
-                    <span className="ml-auto text-xs bg-terra-100 text-terra-600 px-1.5 py-0.5 rounded-md font-medium">
+                    <span className="ml-auto text-xs bg-terra-100 text-terra-600 px-1.5 py-0.5 rounded-md font-medium dark:bg-terra-900/30 dark:text-terra-400">
                       Admin
                     </span>
                   )}
@@ -183,7 +184,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
               onClick={() => setShowUrlImport(true)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
             >
-              <span className="shrink-0 text-warm-400 group-hover:text-warm-600 transition-colors duration-150" aria-hidden="true">
+              <span className="shrink-0 text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300 transition-colors duration-150" aria-hidden="true">
                 <LucideLink className="w-5 h-5" />
               </span>
               URL importieren
@@ -197,12 +198,17 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
         onClose={() => setShowUrlImport(false)}
       />
 
+      {/* Theme toggle */}
+      <div className="px-4 py-3 border-t border-[var(--border-base)]">
+        <ThemeToggle compact />
+      </div>
+
       {/* User footer */}
       {userName && (
         <div className="px-4 py-4 border-t border-[var(--border-base)]">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-xl bg-terra-100 flex items-center justify-center shrink-0">
-              <span className="text-terra-600 text-sm font-semibold">
+            <div className="w-8 h-8 rounded-xl bg-terra-100 dark:bg-terra-900/30 flex items-center justify-center shrink-0">
+              <span className="text-terra-600 dark:text-terra-400 text-sm font-semibold">
                 {userName.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -243,7 +249,7 @@ export function BottomNav() {
                 className={[
                   "flex flex-col items-center justify-center gap-1 h-full w-full px-1",
                   "transition-colors duration-150",
-                  active ? "text-terra-500" : "text-warm-400 hover:text-warm-700",
+                  active ? "text-terra-500" : "text-warm-500 hover:text-warm-700 dark:text-warm-400 dark:hover:text-warm-300",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >

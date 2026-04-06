@@ -37,11 +37,11 @@ const TYPE_LABELS: Record<NoteType, string> = {
 };
 
 const TYPE_BADGE: Record<NoteType, string> = {
-  tipp: "bg-sky-50 text-sky-700 border-sky-200",
-  variation: "bg-violet-50 text-violet-700 border-violet-200",
-  erinnerung: "bg-amber-50 text-amber-700 border-amber-200",
-  bewertung: "bg-[#FDF8E7] text-[#9A7A1A] border-[#E8D88A]",
-  allgemein: "bg-warm-100 text-warm-600 border-warm-200",
+  tipp: "bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800",
+  variation: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800",
+  erinnerung: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  bewertung: "bg-[#FDF8E7] dark:bg-gold-950/30 text-[#9A7A1A] dark:text-gold-400 border-[#E8D88A] dark:border-gold-800",
+  allgemein: "bg-warm-100 dark:bg-warm-800 text-warm-600 dark:text-warm-400 border-warm-200 dark:border-warm-700",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ function StarDisplay({ rating }: { rating: number }) {
       {[1, 2, 3, 4, 5].map((s) => (
         <svg
           key={s}
-          className={`w-3.5 h-3.5 ${s <= rating ? "text-[#D4A843]" : "text-warm-200"}`}
+          className={`w-3.5 h-3.5 ${s <= rating ? "text-[#D4A843]" : "text-warm-200 dark:text-warm-700"}`}
           fill="currentColor"
           viewBox="0 0 20 20"
           aria-hidden="true"
@@ -100,7 +100,7 @@ function StarPicker({
         >
           <svg
             className={`w-6 h-6 transition-colors ${
-              s <= (hovered || value) ? "text-[#D4A843]" : "text-warm-200"
+              s <= (hovered || value) ? "text-[#D4A843]" : "text-warm-200 dark:text-warm-700"
             }`}
             fill="currentColor"
             viewBox="0 0 20 20"
@@ -291,11 +291,11 @@ function NotesSkeleton() {
       {[1, 2, 3].map((n) => (
         <div key={n} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
           <div className="flex justify-between mb-3">
-            <div className="h-5 w-20 bg-warm-100 rounded-md" />
-            <div className="h-4 w-14 bg-warm-100 rounded" />
+            <div className="h-5 w-20 bg-warm-100 dark:bg-warm-800 rounded-md" />
+            <div className="h-4 w-14 bg-warm-100 dark:bg-warm-800 rounded" />
           </div>
-          <div className="h-4 bg-warm-100 rounded mb-2 w-full" />
-          <div className="h-4 bg-warm-100 rounded w-3/4" />
+          <div className="h-4 bg-warm-100 dark:bg-warm-800 rounded mb-2 w-full" />
+          <div className="h-4 bg-warm-100 dark:bg-warm-800 rounded w-3/4" />
         </div>
       ))}
     </div>
@@ -390,7 +390,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
             Notizen & Bewertungen
           </h2>
           {notes.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-terra-100 text-terra-700">
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-terra-100 dark:bg-terra-900/40 text-terra-700 dark:text-terra-300">
               {notes.length}
             </span>
           )}
@@ -416,7 +416,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
                     "px-1.5 py-0 rounded-full text-xs font-bold tabular-nums",
                     activeTab === tab.key
                       ? "bg-white/20 text-white"
-                      : "bg-warm-200 text-warm-600",
+                      : "bg-warm-200 dark:bg-warm-700 text-warm-600 dark:text-warm-300",
                   ].join(" ")}
                 >
                   {tabCount(tab.key)}
@@ -433,7 +433,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
           <NotesSkeleton />
         ) : filtered.length === 0 ? (
           <div className="py-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-warm-100 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-warm-100 dark:bg-warm-800 flex items-center justify-center mx-auto mb-3">
               <PencilLineIcon className="w-6 h-6 text-warm-400" />
             </div>
             <p className="text-sm text-[var(--text-muted)]">

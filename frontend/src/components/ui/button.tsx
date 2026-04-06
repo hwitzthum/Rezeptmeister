@@ -21,6 +21,8 @@ const variantStyles: Record<ButtonVariant, string> = {
     "active:bg-terra-700",
     "shadow-warm-sm hover:shadow-warm",
     "disabled:bg-terra-300 disabled:border-terra-300 disabled:cursor-not-allowed",
+    "dark:bg-terra-600 dark:border-terra-600 dark:hover:bg-terra-500 dark:hover:border-terra-500 dark:active:bg-terra-400",
+    "dark:disabled:bg-terra-800 dark:disabled:border-terra-800",
   ].join(" "),
 
   secondary: [
@@ -28,6 +30,8 @@ const variantStyles: Record<ButtonVariant, string> = {
     "hover:bg-warm-200 hover:border-warm-300",
     "active:bg-warm-300",
     "disabled:opacity-50 disabled:cursor-not-allowed",
+    "dark:bg-warm-800 dark:text-warm-200 dark:border-warm-700",
+    "dark:hover:bg-warm-700 dark:hover:border-warm-600 dark:active:bg-warm-600",
   ].join(" "),
 
   outline: [
@@ -35,6 +39,8 @@ const variantStyles: Record<ButtonVariant, string> = {
     "hover:bg-terra-50 hover:border-terra-500",
     "active:bg-terra-100",
     "disabled:opacity-50 disabled:cursor-not-allowed",
+    "dark:text-terra-400 dark:border-terra-600",
+    "dark:hover:bg-terra-950/30 dark:hover:border-terra-500 dark:active:bg-terra-900/40",
   ].join(" "),
 
   ghost: [
@@ -42,6 +48,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     "hover:bg-warm-100 hover:text-warm-900",
     "active:bg-warm-200",
     "disabled:opacity-50 disabled:cursor-not-allowed",
+    "dark:text-warm-300 dark:hover:bg-warm-800 dark:hover:text-warm-100 dark:active:bg-warm-700",
   ].join(" "),
 
   danger: [
@@ -50,6 +57,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     "active:bg-red-800",
     "shadow-warm-sm hover:shadow-warm",
     "disabled:opacity-50 disabled:cursor-not-allowed",
+    "dark:bg-red-700 dark:border-red-700 dark:hover:bg-red-600 dark:hover:border-red-600 dark:active:bg-red-500",
   ].join(" "),
 
   gold: [
@@ -58,6 +66,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     "active:bg-gold-700",
     "shadow-warm-sm hover:shadow-warm",
     "disabled:opacity-50 disabled:cursor-not-allowed",
+    "dark:bg-gold-600 dark:border-gold-600 dark:hover:bg-gold-500 dark:hover:border-gold-500 dark:active:bg-gold-400",
   ].join(" "),
 };
 
@@ -113,7 +122,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={[
           "inline-flex items-center justify-center font-medium",
           "transition-all duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-warm-900",
           "select-none cursor-pointer",
           variantStyles[variant],
           sizeStyles[size],

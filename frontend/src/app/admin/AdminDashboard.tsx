@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 type UserStatus = "pending" | "approved" | "rejected";
 type UserRole = "admin" | "user";
@@ -28,9 +28,9 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 };
 
 const STATUS_STYLES: Record<UserStatus, string> = {
-  pending: "bg-gold-500/10 text-gold-700 border border-gold-500/20",
-  approved: "bg-green-50 text-green-700 border border-green-200",
-  rejected: "bg-red-50 text-red-700 border border-red-200",
+  pending: "bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/20",
+  approved: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800",
+  rejected: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800",
 };
 
 function formatDate(iso: string) {
@@ -239,10 +239,234 @@ export default function AdminDashboard({
     });
   }
 
+  // ── KI-Verwaltung state ──────────────────────────────────────────
+  const [reEmbedLoading, setReEmbedLoading] = useState(false);
+  const [reEmbedProgress, setReEmbedProgress] = useState<{
+    totalUsers: number;
+    completedJobs: number;
+    totalRecipes: number;
+    completedRecipes: number;
+    totalErrors: number;
+    allDone: boolean;
+  } | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Aufraeum-Effekt fuer Polling
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  async function handleReEmbed() {
+    setReEmbedLoading(true);
+    setReEmbedProgress(null);
+    try {
+      const res = await fetch("/api/admin/re-embed", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        const errMsg = json.error ?? "Re-Embedding fehlgeschlagen.";
+        if (res.status === 400 && errMsg.includes("Schluessel")) {
+          showToast(
+            "Kein Gemini API-Schluessel konfiguriert. Bitte unter Einstellungen hinterlegen.",
+            "error",
+          );
+        } else {
+          showToast(errMsg, "error");
+        }
+        return;
+      }
+
+      const { jobs, totalUsers, skippedUsers } = json as {
+        jobs: { userId: string; jobId: string }[];
+        totalUsers: number;
+        skippedUsers: number;
+      };
+
+      if (skippedUsers > 0) {
+        showToast(
+          `${skippedUsers} Benutzer uebersprungen (fehlerhafter Schluessel).`,
+          "error",
+        );
+      }
+
+      setReEmbedProgress({
+        totalUsers,
+        completedJobs: 0,
+        totalRecipes: 0,
+        completedRecipes: 0,
+        totalErrors: 0,
+        allDone: false,
+      });
+
+      // Polling starten
+      const jobIds = jobs.map((j) => j.jobId).join(",");
+      pollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(
+            `/api/admin/re-embed/status?jobIds=${encodeURIComponent(jobIds)}`,
+          );
+          if (!statusRes.ok) return;
+          const status = (await statusRes.json()) as {
+            totalRecipes: number;
+            completedRecipes: number;
+            totalErrors: number;
+            completedJobs: number;
+            allDone: boolean;
+          };
+
+          setReEmbedProgress((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  totalRecipes: status.totalRecipes,
+                  completedRecipes: status.completedRecipes,
+                  totalErrors: status.totalErrors,
+                  completedJobs: status.completedJobs,
+                  allDone: status.allDone,
+                }
+              : prev,
+          );
+
+          if (status.allDone) {
+            if (pollRef.current) clearInterval(pollRef.current);
+            pollRef.current = null;
+            setReEmbedLoading(false);
+            showToast(
+              `Re-Embedding abgeschlossen: ${status.completedRecipes}/${status.totalRecipes} Rezepte erfolgreich${status.totalErrors > 0 ? `, ${status.totalErrors} Fehler` : ""}.`,
+              status.totalErrors > 0 ? "error" : "success",
+            );
+          }
+        } catch {
+          // Polling-Fehler ignorieren, naechster Versuch in 2s
+        }
+      }, 2000);
+    } catch {
+      showToast("Netzwerkfehler beim Re-Embedding.", "error");
+    } finally {
+      // Loading bleibt true bis Polling abgeschlossen ist
+      if (!pollRef.current) setReEmbedLoading(false);
+    }
+  }
+
   const pendingCount = data?.users?.filter((u) => u.status === "pending").length ?? 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      {/* KI-Verwaltung */}
+      <div className="mb-10">
+        <h2
+          className="text-xl font-bold text-[var(--text-primary)] mb-4"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          KI-Verwaltung
+        </h2>
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-warm p-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Rezept-Embeddings
+              </h3>
+              <p className="text-xs text-warm-500 dark:text-warm-400 mt-1">
+                Berechnet die Embeddings aller Rezepte neu (pro Benutzer mit
+                eigenem API-Schluessel). Nuetzlich nach einem Modell-Upgrade
+                oder wenn die Suche nicht korrekt funktioniert.
+              </p>
+            </div>
+            <button
+              onClick={handleReEmbed}
+              disabled={reEmbedLoading}
+              className="inline-flex items-center gap-2 rounded-lg bg-terra-500 px-4 py-2 text-sm font-semibold text-white shadow-warm-sm hover:bg-terra-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {reEmbedLoading ? (
+                <>
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Wird berechnet...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Alle Rezepte neu einbetten
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Fortschrittsanzeige */}
+          {reEmbedProgress && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-xs text-warm-600 dark:text-warm-400">
+                <span>
+                  {reEmbedProgress.allDone
+                    ? "Abgeschlossen"
+                    : `Benutzer: ${reEmbedProgress.completedJobs}/${reEmbedProgress.totalUsers}`}
+                </span>
+                <span>
+                  {reEmbedProgress.completedRecipes}/{reEmbedProgress.totalRecipes} Rezepte
+                  {reEmbedProgress.totalErrors > 0 && (
+                    <span className="text-red-500 ml-1">
+                      ({reEmbedProgress.totalErrors} Fehler)
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-warm-200 dark:bg-warm-700 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    reEmbedProgress.allDone
+                      ? reEmbedProgress.totalErrors > 0
+                        ? "bg-gold-500"
+                        : "bg-green-500"
+                      : "bg-terra-500"
+                  }`}
+                  style={{
+                    width: `${
+                      reEmbedProgress.totalRecipes > 0
+                        ? Math.round(
+                            (reEmbedProgress.completedRecipes /
+                              reEmbedProgress.totalRecipes) *
+                              100,
+                          )
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -252,7 +476,7 @@ export default function AdminDashboard({
           >
             Benutzerverwaltung
           </h1>
-          <p className="mt-1 text-warm-500 text-sm">
+          <p className="mt-1 text-warm-500 dark:text-warm-400 text-sm">
             {data ? `${data.total} Benutzer insgesamt` : "Wird geladen…"}
           </p>
         </div>
@@ -296,7 +520,7 @@ export default function AdminDashboard({
               className={`px-3 py-2 text-xs font-medium transition-colors ${
                 statusFilter === s
                   ? "bg-terra-500 text-white"
-                  : "text-warm-600 hover:bg-[var(--bg-subtle)]"
+                  : "text-warm-600 dark:text-warm-400 hover:bg-[var(--bg-subtle)]"
               }`}
             >
               {s === "all" ? "Alle" : STATUS_LABELS[s]}
@@ -318,11 +542,11 @@ export default function AdminDashboard({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 uppercase tracking-wider">Benutzer</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 uppercase tracking-wider">Rolle</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 uppercase tracking-wider">Registriert</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-warm-500 uppercase tracking-wider">Aktionen</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Benutzer</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Rolle</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Registriert</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Aktionen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -335,12 +559,12 @@ export default function AdminDashboard({
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-[var(--text-primary)]">
-                        {user.name ?? <span className="italic text-warm-400">Kein Name</span>}
+                        {user.name ?? <span className="italic text-warm-400 dark:text-warm-500">Kein Name</span>}
                       </div>
-                      <div className="text-warm-500 text-xs mt-0.5">{user.email}</div>
+                      <div className="text-warm-500 dark:text-warm-400 text-xs mt-0.5">{user.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-warm-600">
+                      <span className="text-warm-600 dark:text-warm-400">
                         {user.role === "admin" ? "Administrator" : "Benutzer"}
                       </span>
                     </td>
@@ -351,7 +575,7 @@ export default function AdminDashboard({
                         {STATUS_LABELS[user.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-warm-500 text-xs">
+                    <td className="px-4 py-3 text-warm-500 dark:text-warm-400 text-xs">
                       {formatDate(user.createdAt)}
                     </td>
                     <td className="px-4 py-3">
@@ -361,7 +585,7 @@ export default function AdminDashboard({
                           <button
                             onClick={() => updateUser(user.id, { status: "approved" })}
                             title="Freigeben"
-                            className="rounded-md p-1.5 text-green-600 hover:bg-green-50 transition-colors"
+                            className="rounded-md p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -373,7 +597,7 @@ export default function AdminDashboard({
                           <button
                             onClick={() => updateUser(user.id, { status: "rejected" })}
                             title="Ablehnen"
-                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 transition-colors"
+                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -385,7 +609,7 @@ export default function AdminDashboard({
                           <button
                             onClick={() => askRoleChange(user)}
                             title={user.role === "admin" ? "Zum Benutzer degradieren" : "Zum Admin befördern"}
-                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 transition-colors"
+                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -397,7 +621,7 @@ export default function AdminDashboard({
                           <button
                             onClick={() => askDelete(user)}
                             title="Löschen"
-                            className="rounded-md p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                            className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -415,7 +639,7 @@ export default function AdminDashboard({
 
         {/* Pagination */}
         {data && data.pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] text-sm text-warm-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] text-sm text-warm-500 dark:text-warm-400">
             <span>
               Seite {data.page} von {data.pages}
             </span>

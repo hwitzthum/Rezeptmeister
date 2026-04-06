@@ -129,7 +129,7 @@ export default function UnitConverter() {
                 "transition-all duration-200",
                 isActive
                   ? "bg-terra-500 text-white shadow-warm-sm"
-                  : "bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:border-terra-300 hover:text-terra-600 hover:bg-terra-50",
+                  : "bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:border-terra-300 hover:text-terra-600 hover:bg-terra-50 dark:hover:bg-terra-950/30",
               ].join(" ")}
             >
               {CATEGORY_ICONS[cat]}
@@ -207,8 +207,8 @@ export default function UnitConverter() {
                 aria-label="Einheiten tauschen"
                 className={[
                   "w-11 h-11 rounded-full flex items-center justify-center",
-                  "bg-terra-50 border-2 border-terra-200 text-terra-500",
-                  "hover:bg-terra-100 hover:border-terra-300 hover:scale-110",
+                  "bg-terra-50 dark:bg-terra-950/30 border-2 border-terra-200 dark:border-terra-700 text-terra-500",
+                  "hover:bg-terra-100 dark:hover:bg-terra-900/30 hover:border-terra-300 hover:scale-110",
                   "active:scale-95",
                   "transition-all duration-200",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2",
@@ -227,8 +227,8 @@ export default function UnitConverter() {
                 data-testid="converter-result"
                 className={[
                   "w-full min-h-[52px] flex items-center px-4 py-3 rounded-xl",
-                  "bg-gradient-to-br from-cream-50 to-cream-100",
-                  "border border-gold-300/50",
+                  "bg-gradient-to-br from-cream-50 to-cream-100 dark:from-warm-800 dark:to-warm-900",
+                  "border border-gold-300/50 dark:border-gold-700/50",
                   "text-lg font-semibold tabular-nums",
                   result ? "text-terra-600" : "text-warm-400",
                 ].join(" ")}
@@ -276,7 +276,7 @@ export default function UnitConverter() {
           {showIngredient && (
             <div className="mt-6 pt-6 border-t border-[var(--border-base)] animate-slide-up">
               <div className="flex items-start gap-3">
-                <div className="shrink-0 mt-1 w-8 h-8 rounded-lg bg-gold-500/10 flex items-center justify-center">
+                <div className="shrink-0 mt-1 w-8 h-8 rounded-lg bg-gold-500/10 dark:bg-gold-500/20 flex items-center justify-center">
                   <svg className="w-4 h-4 text-gold-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
@@ -318,7 +318,7 @@ export default function UnitConverter() {
           {/* ── Ingredient badge on result ────────────────────────────── */}
           {result?.ingredientUsed && (
             <div className="mt-4 animate-fade-in">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gold-500/10 text-gold-700 border border-gold-300/30">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gold-500/10 dark:bg-gold-500/20 text-gold-700 dark:text-gold-400 border border-gold-300/30 dark:border-gold-700/30">
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                 </svg>
@@ -354,7 +354,7 @@ export default function UnitConverter() {
                   {ref.to}
                 </span>
                 {ref.note && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gold-500/10 text-gold-700">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gold-500/10 dark:bg-gold-500/20 text-gold-700 dark:text-gold-400">
                     {ref.note}
                   </span>
                 )}

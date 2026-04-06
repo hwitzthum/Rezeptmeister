@@ -56,7 +56,7 @@ export default function WartenPage() {
                 clipRule="evenodd"
               />
             </svg>
-            <p className="text-sm text-warm-700">
+            <p className="text-sm text-warm-700 dark:text-warm-300">
               Solange Ihr Konto noch nicht freigegeben ist, können Sie sich nicht anmelden.
             </p>
           </div>
@@ -64,7 +64,7 @@ export default function WartenPage() {
 
         <Link
           href="/auth/anmelden"
-          className="inline-flex items-center gap-2 rounded-lg border border-terra-400 px-5 py-2.5 text-sm font-medium text-terra-500 transition-all hover:bg-terra-50 hover:border-terra-500"
+          className="inline-flex items-center gap-2 rounded-lg border border-terra-400 px-5 py-2.5 text-sm font-medium text-terra-500 transition-all hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:border-terra-500"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

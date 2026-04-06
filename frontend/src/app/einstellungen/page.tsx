@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import ApiKeyForm from "./ApiKeyForm";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 import Link from "next/link";
 
 export const metadata = {
@@ -25,7 +26,7 @@ export default async function EinstellungenPage() {
           >
             Rezeptmeister
           </Link>
-          <span className="text-sm text-warm-500 hidden sm:block">
+          <span className="text-sm text-warm-500 dark:text-warm-400 hidden sm:block">
             {session.user.email}
           </span>
         </div>
@@ -48,7 +49,7 @@ export default async function EinstellungenPage() {
             >
               KI-API-Schlüssel
             </h2>
-            <p className="mt-1 text-sm text-warm-500">
+            <p className="mt-1 text-sm text-warm-500 dark:text-warm-400">
               Hinterlegen Sie Ihren eigenen API-Schlüssel (BYOK). Er wird verschlüsselt gespeichert und
               nie im Klartext übertragen.
             </p>
@@ -57,6 +58,13 @@ export default async function EinstellungenPage() {
             <ApiKeyForm />
           </div>
         </section>
+
+        {/* Darstellung */}
+        <div className="mt-6 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-base)] p-6">
+          <h2 className="font-display text-xl font-bold mb-4" style={{ fontFamily: "var(--font-display)" }}>Darstellung</h2>
+          <p className="text-sm text-[var(--text-secondary)] mb-4">Wähle dein bevorzugtes Farbschema</p>
+          <ThemeToggle />
+        </div>
 
         {/* Account section */}
         <section className="mt-6 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)] shadow-warm overflow-hidden">
@@ -70,17 +78,17 @@ export default async function EinstellungenPage() {
           </div>
           <div className="px-6 py-6 space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-warm-600">Name</span>
+              <span className="text-warm-600 dark:text-warm-400">Name</span>
               <span className="font-medium text-[var(--text-primary)]">
-                {session.user.name ?? <span className="italic text-warm-400">Nicht angegeben</span>}
+                {session.user.name ?? <span className="italic text-warm-400 dark:text-warm-500">Nicht angegeben</span>}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-warm-600">E-Mail</span>
+              <span className="text-warm-600 dark:text-warm-400">E-Mail</span>
               <span className="font-medium text-[var(--text-primary)]">{session.user.email}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-warm-600">Rolle</span>
+              <span className="text-warm-600 dark:text-warm-400">Rolle</span>
               <span className="font-medium text-[var(--text-primary)]">
                 {session.user.role === "admin" ? "Administrator" : "Benutzer"}
               </span>

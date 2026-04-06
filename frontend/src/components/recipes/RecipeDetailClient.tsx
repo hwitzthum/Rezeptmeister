@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, ConfirmDialog, DifficultyBadge } from "@/components/ui";
 import { formatAmount } from "@/lib/units";
+import { normaliseImageSrc } from "@/lib/images";
 import toast from "react-hot-toast";
 import RecipeImageManager from "@/components/images/RecipeImageManager";
 import type { UploadedImage } from "@/components/images/ImageUploadZone";
@@ -16,6 +17,7 @@ import AddToShoppingListButton from "@/components/shopping/AddToShoppingListButt
 import AddToCollectionButton from "@/components/collections/AddToCollectionButton";
 import PrintOptionsModal from "@/components/recipes/PrintOptionsModal";
 import OfflineToggleButton from "@/components/recipes/OfflineToggleButton";
+import Image from "next/image";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -166,7 +168,7 @@ export default function RecipeDetailClient({
                 "w-9 h-9 rounded-xl flex items-center justify-center",
                 "border transition-all duration-150",
                 isFavorite
-                  ? "border-terra-300 bg-terra-50 text-terra-500"
+                  ? "border-terra-300 bg-terra-50 dark:bg-terra-950/30 dark:border-terra-700 text-terra-500"
                   : "border-[var(--border-base)] text-warm-400 hover:text-terra-500 hover:border-terra-300",
               ].join(" ")}
             >
@@ -213,16 +215,19 @@ export default function RecipeDetailClient({
       </header>
 
       {/* Hero */}
-      <div className="relative h-64 sm:h-80 bg-gradient-to-br from-terra-100 via-cream-100 to-warm-100 overflow-hidden">
+      <div className="relative h-64 sm:h-80 bg-gradient-to-br from-terra-100 via-cream-100 to-warm-100 dark:from-terra-950/40 dark:via-warm-900 dark:to-warm-900 overflow-hidden">
         {(() => {
           const heroImg = recipe.images.find((i) => i.isPrimary) ?? recipe.images[0];
-          const displaySrc = generatedImageUrl ?? heroImg?.filePath;
+          const rawSrc = generatedImageUrl ?? heroImg?.filePath;
+          const displaySrc = rawSrc ? normaliseImageSrc(rawSrc) : undefined;
           return displaySrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={displaySrc}
               alt={recipe.title}
-              className="absolute inset-0 w-full h-full object-cover"
+              fill
+              sizes="100vw"
+              priority
+              className="object-cover"
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -271,17 +276,17 @@ export default function RecipeDetailClient({
         <div className="flex flex-wrap gap-2 mb-4">
           {recipe.difficulty && <DifficultyBadge difficulty={recipe.difficulty} />}
           {recipe.category && (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 text-warm-700">
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
               {recipe.category}
             </span>
           )}
           {recipe.cuisine && (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 text-warm-700">
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
               {recipe.cuisine}
             </span>
           )}
           {recipe.totalTimeMinutes && (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 text-warm-700 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300 flex items-center gap-1">
               <ClockIcon className="w-3.5 h-3.5" />
               {formatTime(recipe.totalTimeMinutes)}
             </span>
@@ -301,7 +306,7 @@ export default function RecipeDetailClient({
             {recipe.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-md text-xs bg-terra-50 text-terra-600 border border-terra-100"
+                className="px-2 py-0.5 rounded-md text-xs bg-terra-50 dark:bg-terra-950/30 text-terra-600 dark:text-terra-400 border border-terra-100 dark:border-terra-800"
               >
                 {tag}
               </span>

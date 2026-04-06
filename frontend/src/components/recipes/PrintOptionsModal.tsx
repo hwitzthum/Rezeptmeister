@@ -148,7 +148,7 @@ export default function PrintOptionsModal({
         </div>
 
         {/* Vorschau */}
-        <div className="border border-[var(--border-subtle)] rounded-xl p-4 bg-white text-black max-h-80 overflow-y-auto">
+        <div className="border border-[var(--border-subtle)] rounded-xl p-4 bg-white dark:bg-warm-900 text-black dark:text-warm-100 max-h-80 overflow-y-auto">
           <PrintableRecipe
             recipe={recipe}
             targetServings={servings}

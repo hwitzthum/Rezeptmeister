@@ -32,6 +32,7 @@ frontend/*.tsbuildinfo
 frontend/next-env.d.ts
 
 # ── Test artifacts ───────────────────────────────────────────────────────────
+.playwright-mcp/
 test-results/
 frontend/test-results/
 frontend/playwright-report/

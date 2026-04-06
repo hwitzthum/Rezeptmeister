@@ -190,8 +190,8 @@ export default function AddToCollectionButton({
                       className={[
                         "w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors",
                         isAdded
-                          ? "text-[var(--text-muted)] bg-warm-50 cursor-default"
-                          : "text-[var(--text-primary)] hover:bg-warm-50 cursor-pointer",
+                          ? "text-[var(--text-muted)] bg-warm-50 dark:bg-warm-800 cursor-default"
+                          : "text-[var(--text-primary)] hover:bg-warm-50 dark:hover:bg-warm-800 cursor-pointer",
                       ].join(" ")}
                     >
                       {isAdded ? (
@@ -235,7 +235,7 @@ export default function AddToCollectionButton({
                 ) : (
                   <button
                     onClick={() => setShowInlineCreate(true)}
-                    className="w-full text-left px-3 py-2 text-sm text-terra-500 hover:bg-terra-50 flex items-center gap-2 transition-colors font-medium"
+                    className="w-full text-left px-3 py-2 text-sm text-terra-500 hover:bg-terra-50 dark:hover:bg-terra-950/30 flex items-center gap-2 transition-colors font-medium"
                   >
                     <PlusIcon className="w-4 h-4 shrink-0" />
                     Neue Sammlung

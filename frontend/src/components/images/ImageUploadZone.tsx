@@ -162,7 +162,7 @@ export default function ImageUploadZone({
         <div
           className={[
             "w-12 h-12 rounded-xl flex items-center justify-center",
-            isDragging ? "bg-terra-100 text-terra-600" : "bg-warm-100 text-warm-500",
+            isDragging ? "bg-terra-100 dark:bg-terra-900/40 text-terra-600" : "bg-warm-100 dark:bg-warm-800 text-warm-500 dark:text-warm-400",
           ].join(" ")}
         >
           <UploadIcon />
@@ -174,7 +174,7 @@ export default function ImageUploadZone({
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Wird hochgeladen …
             </p>
-            <div className="h-2 w-full rounded-full bg-warm-100 overflow-hidden">
+            <div className="h-2 w-full rounded-full bg-warm-100 dark:bg-warm-800 overflow-hidden">
               <div
                 className="h-full rounded-full bg-terra-500 transition-all duration-150"
                 style={{ width: `${progress}%` }}

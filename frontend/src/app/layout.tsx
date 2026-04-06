@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/layout/ServiceWorkerRegistration";
+import ThemeProvider from "@/components/layout/ThemeProvider";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -52,8 +53,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        {children}
-        <ServiceWorkerRegistration />
+        <ThemeProvider>
+          {children}
+          <ServiceWorkerRegistration />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -103,12 +104,14 @@ function SortableRecipeCard({
       </div>
 
       {/* Thumbnail */}
-      <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-warm-100">
+      <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-warm-100 dark:bg-warm-800">
         {recipe.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={recipe.thumbnailUrl}
             alt={recipe.title}
+            width={56}
+            height={56}
+            sizes="56px"
             className="w-full h-full object-cover"
           />
         ) : (
@@ -128,7 +131,7 @@ function SortableRecipeCard({
         </Link>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           {recipe.category && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-terra-50 text-terra-600 font-medium">
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-terra-50 dark:bg-terra-950/30 text-terra-600 dark:text-terra-400 font-medium">
               {recipe.category}
             </span>
           )}
@@ -149,7 +152,7 @@ function SortableRecipeCard({
       <button
         data-testid={`remove-recipe-button-${recipe.recipeId}`}
         onClick={() => onRemove(recipe.recipeId)}
-        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-warm-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-all"
         title="Aus Sammlung entfernen"
         aria-label="Aus Sammlung entfernen"
       >

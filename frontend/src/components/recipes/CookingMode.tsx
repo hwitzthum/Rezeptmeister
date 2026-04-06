@@ -237,7 +237,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
                 ? timerFlash === key
                   ? "bg-gold-500 text-white ring-2 ring-gold-300 scale-110"
                   : "bg-green-500 text-white"
-                : "bg-terra-100 text-terra-700 hover:bg-terra-200 border border-terra-300",
+                : "bg-terra-100 dark:bg-terra-900/40 text-terra-700 dark:text-terra-300 hover:bg-terra-200 dark:hover:bg-terra-800/40 border border-terra-300 dark:border-terra-700",
           ].join(" ")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +336,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
 
       {/* ── Laufende Timer (global sichtbar) ──────────────────────────── */}
       {runningTimers.length > 0 && (
-        <div className="shrink-0 px-4 py-2 bg-terra-50 border-b border-terra-200">
+        <div className="shrink-0 px-4 py-2 bg-terra-50 dark:bg-terra-950/30 border-b border-terra-200 dark:border-terra-800">
           <div className="flex items-center gap-3 max-w-3xl mx-auto overflow-x-auto">
             <svg className="w-4 h-4 text-terra-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
@@ -402,7 +402,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
                     ? "w-3 h-3 bg-terra-500"
                     : i < currentStep
                       ? "w-2 h-2 bg-terra-300"
-                      : "w-2 h-2 bg-warm-200",
+                      : "w-2 h-2 bg-warm-200 dark:bg-warm-700",
                 ].join(" ")}
               />
             ))}

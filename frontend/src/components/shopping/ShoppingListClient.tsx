@@ -183,7 +183,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
             </h1>
             <span
               data-testid="shopping-list-count"
-              className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-terra-100 text-terra-700"
+              className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-terra-100 dark:bg-terra-900/40 text-terra-700 dark:text-terra-300"
             >
               {uncheckedCount}
             </span>
@@ -294,6 +294,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
             <button
               type="button"
               onClick={() => toggleAisle(aisle)}
+              aria-expanded={!collapsedAisles.has(aisle)}
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--bg-base)]/50 transition-colors"
             >
               <span
@@ -370,7 +371,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
                       type="button"
                       data-testid={`shopping-list-delete-${item.id}`}
                       onClick={() => handleDelete(item.id)}
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                       aria-label={`${item.ingredientName} loeschen`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

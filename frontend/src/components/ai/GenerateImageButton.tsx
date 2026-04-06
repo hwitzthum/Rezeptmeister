@@ -70,7 +70,7 @@ export default function GenerateImageButton({
           loading={loading}
           disabled={loading}
           onClick={() => { void handleGenerate(); }}
-          className="bg-white/80 hover:bg-white"
+          className="bg-white/80 hover:bg-white dark:bg-warm-900/80 dark:hover:bg-warm-900"
         >
           KI-Bild generieren
         </Button>

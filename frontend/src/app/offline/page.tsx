@@ -37,7 +37,7 @@ export default function OfflinePage() {
           {!isOnline && (
             <span
               data-testid="offline-badge"
-              className="text-xs bg-warm-200 text-warm-700 px-2 py-1 rounded-full"
+              className="text-xs bg-warm-200 dark:bg-warm-700 text-warm-700 dark:text-warm-200 px-2 py-1 rounded-full"
             >
               Offline
             </span>
@@ -48,7 +48,7 @@ export default function OfflinePage() {
       {/* Content */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
         <h2 className="text-xl font-semibold mb-1">Gespeicherte Rezepte</h2>
-        <p className="text-sm text-warm-500 mb-6">
+        <p className="text-sm text-warm-500 dark:text-warm-400 mb-6">
           {isOnline
             ? "Rezepte, die für den Offline-Zugang gespeichert wurden."
             : "Sie sind offline. Nur gespeicherte Rezepte sind verfügbar."}
@@ -96,9 +96,9 @@ export default function OfflinePage() {
                   <div className="flex items-center gap-4">
                     {/* Thumbnail */}
                     {r.imageThumbnails.length > 0 ? (
-                      <ThumbnailFromBlob blob={r.imageThumbnails[0].blob} />
+                      <ThumbnailFromBlob blob={r.imageThumbnails[0].blob} title={r.data.title} />
                     ) : (
-                      <div className="w-14 h-14 rounded-lg bg-warm-100 flex items-center justify-center text-warm-300 shrink-0">
+                      <div className="w-14 h-14 rounded-lg bg-warm-100 dark:bg-warm-800 flex items-center justify-center text-warm-300 shrink-0">
                         <svg
                           className="w-6 h-6"
                           fill="none"
@@ -119,7 +119,7 @@ export default function OfflinePage() {
                         {r.data.title}
                       </h3>
                       {r.data.category && (
-                        <p className="text-xs text-warm-500">
+                        <p className="text-xs text-warm-500 dark:text-warm-400">
                           {r.data.category}
                         </p>
                       )}
@@ -152,7 +152,7 @@ export default function OfflinePage() {
 
 // ── Helper: render blob as img ────────────────────────────────────────────────
 
-function ThumbnailFromBlob({ blob }: { blob: Blob }) {
+function ThumbnailFromBlob({ blob, title }: { blob: Blob; title: string }) {
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
@@ -164,7 +164,7 @@ function ThumbnailFromBlob({ blob }: { blob: Blob }) {
 
   if (!src) {
     return (
-      <div className="w-14 h-14 rounded-lg bg-warm-100 shrink-0" />
+      <div className="w-14 h-14 rounded-lg bg-warm-100 dark:bg-warm-800 shrink-0" />
     );
   }
 
@@ -172,7 +172,8 @@ function ThumbnailFromBlob({ blob }: { blob: Blob }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt=""
+      alt={title}
+      loading="lazy"
       className="w-14 h-14 rounded-lg object-cover shrink-0"
     />
   );

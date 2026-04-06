@@ -178,7 +178,7 @@ export default function RezeptListePage() {
               className={[
                 "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors duration-150",
                 nurFavoriten
-                  ? "bg-terra-50 border-terra-300 text-terra-700"
+                  ? "bg-terra-50 dark:bg-terra-950/30 border-terra-300 text-terra-700"
                   : "border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]",
               ].join(" ")}
             >
@@ -282,7 +282,7 @@ function FilterSelect({
       className={[
         "px-3 py-2 rounded-xl text-sm",
         "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
-        value ? "text-terra-700 border-terra-300 bg-terra-50" : "text-[var(--text-secondary)]",
+        value ? "text-terra-700 border-terra-300 bg-terra-50 dark:bg-terra-950/30" : "text-[var(--text-secondary)]",
         "focus:outline-none focus:ring-2 focus:ring-terra-400",
       ].join(" ")}
     >
@@ -299,7 +299,7 @@ function FilterSelect({
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-20 h-20 rounded-full bg-terra-50 flex items-center justify-center mb-4">
+      <div className="w-20 h-20 rounded-full bg-terra-50 dark:bg-terra-950/30 flex items-center justify-center mb-4">
         <svg
           className="w-10 h-10 text-terra-300"
           fill="none"

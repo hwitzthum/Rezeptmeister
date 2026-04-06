@@ -64,7 +64,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               icon && iconPosition === "left" ? "pl-10" : "",
               icon && iconPosition === "right" ? "pr-10" : "",
               action ? "pr-20" : "",
-              props.disabled ? "opacity-60 cursor-not-allowed bg-[var(--bg-subtle)]" : "",
+              props.disabled ? "opacity-60 cursor-not-allowed bg-[var(--bg-subtle)] dark:bg-warm-800/50" : "",
               className,
             ]
               .filter(Boolean)
@@ -87,12 +87,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {hint && !error && (
-          <p id={hintId} className="text-xs text-warm-500">
+          <p id={hintId} className="text-xs text-warm-500 dark:text-warm-400">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="text-xs text-red-500 flex items-center gap-1" role="alert">
+          <p id={errorId} className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1" role="alert">
             <svg
               className="w-3.5 h-3.5 shrink-0"
               fill="currentColor"
@@ -159,9 +159,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             .join(" ")}
           {...props}
         />
-        {hint && !error && <p id={hintId} className="text-xs text-warm-500">{hint}</p>}
+        {hint && !error && <p id={hintId} className="text-xs text-warm-500 dark:text-warm-400">{hint}</p>}
         {error && (
-          <p id={errorId} className="text-xs text-red-500" role="alert">{error}</p>
+          <p id={errorId} className="text-xs text-red-500 dark:text-red-400" role="alert">{error}</p>
         )}
       </div>
     );
@@ -221,8 +221,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             </svg>
           </span>
         </div>
-        {hint && !error && <p className="text-xs text-warm-500">{hint}</p>}
-        {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
+        {hint && !error && <p className="text-xs text-warm-500 dark:text-warm-400">{hint}</p>}
+        {error && <p className="text-xs text-red-500 dark:text-red-400" role="alert">{error}</p>}
       </div>
     );
   },

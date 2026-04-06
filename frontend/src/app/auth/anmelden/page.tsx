@@ -67,7 +67,7 @@ function LoginForm() {
           >
             Rezeptmeister
           </h1>
-          <p className="text-warm-500 text-sm">
+          <p className="text-warm-500 dark:text-warm-400 text-sm">
             Schweizer Küchenintelligenz
           </p>
         </div>
@@ -84,7 +84,7 @@ function LoginForm() {
           {error && (
             <div
               role="alert"
-              className="mb-5 flex items-start gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+              className="mb-5 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400"
             >
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0"
@@ -107,7 +107,7 @@ function LoginForm() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="email"
-                className="text-sm font-medium text-warm-700"
+                className="text-sm font-medium text-warm-700 dark:text-warm-300"
               >
                 E-Mail-Adresse{" "}
                 <span className="text-terra-500" aria-label="Pflichtfeld">
@@ -131,7 +131,7 @@ function LoginForm() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="password"
-                className="text-sm font-medium text-warm-700"
+                className="text-sm font-medium text-warm-700 dark:text-warm-300"
               >
                 Passwort{" "}
                 <span className="text-terra-500" aria-label="Pflichtfeld">
@@ -153,7 +153,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 dark:hover:text-warm-300 transition-colors"
                   aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
                 >
                   {showPassword ? (
@@ -205,7 +205,7 @@ function LoginForm() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-warm-500">
+          <p className="mt-6 text-center text-sm text-warm-500 dark:text-warm-400">
             Noch kein Konto?{" "}
             <Link
               href="/auth/registrieren"

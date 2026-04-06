@@ -6,6 +6,7 @@ from starlette.requests import Request
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
+from app.routers import admin as admin_router
 from app.routers import embed as embed_router
 from app.routers import ocr as ocr_router
 from app.routers import search as search_router
@@ -54,6 +55,7 @@ class InternalTokenMiddleware(BaseHTTPMiddleware):
 app.add_middleware(InternalTokenMiddleware)
 
 
+app.include_router(admin_router.router)
 app.include_router(embed_router.router)
 app.include_router(ocr_router.router)
 app.include_router(search_router.router)

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatAmount } from "@/lib/units";
+import { normaliseImageSrc } from "@/lib/images";
 import type { RecipeDetail } from "./RecipeDetailClient";
 
 interface PrintableRecipeProps {
@@ -46,7 +47,7 @@ export default function PrintableRecipe({
       {includeImage && heroImg && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={heroImg.filePath}
+          src={normaliseImageSrc(heroImg.filePath)}
           alt={recipe.title}
           className="print-recipe-image w-full max-h-[200px] object-cover rounded-lg mb-4"
         />

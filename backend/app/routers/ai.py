@@ -214,7 +214,7 @@ async def generate_image(
     # Dateinamen erzeugen
     file_stem = f"ai_{uuid.uuid4().hex}"
     original_filename = f"{file_stem}.webp"
-    thumbnail_filename = f"{file_stem}_thumb.webp"
+    thumbnail_filename = f"{file_stem}.webp"
     original_path = originals_dir / original_filename
     thumbnail_path = thumbnails_dir / thumbnail_filename
 
@@ -247,8 +247,8 @@ async def generate_image(
         raise HTTPException(status_code=400, detail="Ungültige recipe_id oder user_id.")
 
     image_id = uuid.uuid4()
-    # Relative Pfade als file_path speichern (wie der Rest der App)
-    db_file_path = str(original_path.relative_to(upload_dir.resolve().parent))
+    # API-relativer Pfad (konsistent mit dem Upload-Endpunkt: /api/uploads/originals/...)
+    db_file_path = f"/api/uploads/originals/{original_filename}"
 
     # Bild atomisch einfügen und is_primary setzen, wenn noch kein Primary-Image existiert
     async with AsyncSessionLocal() as session:

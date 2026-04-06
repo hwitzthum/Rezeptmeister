@@ -1,4 +1,5 @@
 import * as React from "react";
+import Image from "next/image";
 
 /* ─── Base Card ─── */
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -52,9 +53,9 @@ interface RecipeCardProps {
 }
 
 const difficultyLabel: Record<string, { label: string; color: string }> = {
-  einfach:      { label: "Einfach",      color: "text-emerald-600 bg-emerald-50" },
-  mittel:       { label: "Mittel",       color: "text-gold-700 bg-gold-50" },
-  anspruchsvoll:{ label: "Anspruchsvoll",color: "text-terra-600 bg-terra-50" },
+  einfach:      { label: "Einfach",      color: "text-emerald-600 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/30" },
+  mittel:       { label: "Mittel",       color: "text-gold-700 bg-gold-50 dark:text-gold-300 dark:bg-gold-950/30" },
+  anspruchsvoll:{ label: "Anspruchsvoll",color: "text-terra-600 bg-terra-50 dark:text-terra-300 dark:bg-terra-950/30" },
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -63,7 +64,7 @@ function StarRating({ rating }: { rating: number }) {
       {[1, 2, 3, 4, 5].map((star) => (
         <svg
           key={star}
-          className={`w-3 h-3 ${star <= Math.round(rating) ? "text-gold-500" : "text-warm-300"}`}
+          className={`w-3 h-3 ${star <= Math.round(rating) ? "text-gold-500" : "text-warm-300 dark:text-warm-600"}`}
           fill="currentColor"
           viewBox="0 0 20 20"
           aria-hidden="true"
@@ -97,11 +98,11 @@ function HeartIcon({ filled, className }: { filled: boolean; className?: string 
 
 function ImagePlaceholder() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-cream-200 via-cream-100 to-warm-100">
-      <svg className="w-12 h-12 text-terra-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-cream-200 via-cream-100 to-warm-100 dark:from-warm-800 dark:via-warm-900 dark:to-warm-800">
+      <svg className="w-12 h-12 text-terra-200 dark:text-terra-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
-      <span className="mt-2 text-xs text-terra-300 font-medium tracking-wide uppercase">
+      <span className="mt-2 text-xs text-terra-300 dark:text-terra-700 font-medium tracking-wide uppercase">
         Kein Bild
       </span>
     </div>
@@ -158,13 +159,14 @@ export function RecipeCard({
       aria-label={`Rezept: ${title}`}
     >
       {/* Image area */}
-      <div className="relative h-48 overflow-hidden bg-cream-100 shrink-0">
+      <div className="relative h-48 overflow-hidden bg-cream-100 dark:bg-warm-800 shrink-0">
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={imageUrl}
             alt={title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <ImagePlaceholder />
@@ -175,7 +177,7 @@ export function RecipeCard({
 
         {/* Category badge top-left */}
         {category && (
-          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-terra-600 shadow-warm-xs">
+          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-terra-600 shadow-warm-xs dark:bg-warm-900/90 dark:text-terra-400">
             {category}
           </span>
         )}
@@ -185,9 +187,9 @@ export function RecipeCard({
           className={[
             "absolute top-3 right-3",
             "w-8 h-8 rounded-xl flex items-center justify-center",
-            "bg-white/90 backdrop-blur-sm shadow-warm-xs",
+            "bg-white/90 backdrop-blur-sm shadow-warm-xs dark:bg-warm-900/90",
             "transition-all duration-150",
-            "hover:bg-white hover:scale-110",
+            "hover:bg-white hover:scale-110 dark:hover:bg-warm-800",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500",
           ].join(" ")}
           onClick={handleFavoriteClick}
@@ -212,7 +214,7 @@ export function RecipeCard({
 
       {/* Content */}
       <div className="flex flex-col gap-2.5 p-4">
-        <h3 className="font-display text-base font-semibold leading-snug text-[var(--text-primary)] line-clamp-2 group-hover:text-terra-600 transition-colors duration-150">
+        <h3 className="font-display text-base font-semibold leading-snug text-[var(--text-primary)] line-clamp-2 group-hover:text-terra-600 dark:group-hover:text-terra-400 transition-colors duration-150">
           {title}
         </h3>
 

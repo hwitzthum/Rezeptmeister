@@ -10,6 +10,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import { formatAmount } from "@/lib/units";
+import { normaliseImageSrc } from "@/lib/images";
 import type { RecipeDetail } from "./RecipeDetailClient";
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ function RecipePdfPage({
 
       {includeImage && heroImg?.filePath && (
         /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop */
-        <Image src={heroImg.filePath} style={styles.image} />
+        <Image src={normaliseImageSrc(heroImg.filePath)} style={styles.image} />
       )}
 
       {recipe.description && (

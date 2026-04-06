@@ -80,7 +80,7 @@ export default function RecipePickerDialog({
                     data-testid={`recipe-picker-item-${recipe.id}`}
                     className={[
                       "w-full text-left px-3 py-2.5 rounded-xl text-sm",
-                      "text-[var(--text-primary)] hover:bg-terra-50 hover:text-terra-700",
+                      "text-[var(--text-primary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-700 dark:hover:text-terra-300",
                       "transition-colors duration-100",
                     ].join(" ")}
                   >

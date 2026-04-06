@@ -82,9 +82,9 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 };
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  einfach: "bg-green-100 text-green-700",
-  mittel: "bg-amber-100 text-amber-700",
-  anspruchsvoll: "bg-red-100 text-red-700",
+  einfach: "bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400",
+  mittel: "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400",
+  anspruchsvoll: "bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400",
 };
 
 const selectCls =
@@ -258,7 +258,7 @@ export default function RecipeSuggestions() {
               {form.ingredients.map((ing) => (
                 <span
                   key={ing}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-terra-50 text-terra-700 border border-terra-200"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-terra-50 dark:bg-terra-950/30 text-terra-700 dark:text-terra-300 border border-terra-200 dark:border-terra-800"
                 >
                   {ing}
                   <button
@@ -400,7 +400,7 @@ export default function RecipeSuggestions() {
       {/* ── Right: Suggestion cards ──────────────────────────────────────────── */}
       <div className="flex-1 min-w-0">
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
+          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400" role="alert">
             {error}
           </div>
         )}
@@ -467,7 +467,7 @@ export default function RecipeSuggestions() {
                   {suggestion.difficulty && (
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        DIFFICULTY_COLORS[suggestion.difficulty] ?? "bg-warm-100 text-warm-700"
+                        DIFFICULTY_COLORS[suggestion.difficulty] ?? "bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300"
                       }`}
                     >
                       {DIFFICULTY_LABELS[suggestion.difficulty] ?? suggestion.difficulty}

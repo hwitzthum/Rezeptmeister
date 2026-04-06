@@ -377,7 +377,7 @@ export default function MealPlanClient({
           <button
             onClick={goToToday}
             data-testid="meal-plan-today-button"
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium text-terra-600 bg-terra-50 hover:bg-terra-100 border border-terra-200 transition-colors"
+            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium text-terra-600 dark:text-terra-400 bg-terra-50 dark:bg-terra-950/30 hover:bg-terra-100 dark:hover:bg-terra-900/30 border border-terra-200 dark:border-terra-800 transition-colors"
           >
             Heute
           </button>
@@ -431,7 +431,7 @@ export default function MealPlanClient({
                       className={[
                         "text-center py-2 rounded-xl text-xs font-medium",
                         isToday
-                          ? "bg-terra-50 text-terra-700 border border-terra-200"
+                          ? "bg-terra-50 dark:bg-terra-950/30 text-terra-700 dark:text-terra-300 border border-terra-200 dark:border-terra-800"
                           : "text-[var(--text-secondary)]",
                       ].join(" ")}
                     >
@@ -484,7 +484,7 @@ export default function MealPlanClient({
                     className={[
                       "rounded-2xl border p-3",
                       isToday
-                        ? "border-terra-300 bg-terra-50/30"
+                        ? "border-terra-300 dark:border-terra-700 bg-terra-50/30 dark:bg-terra-950/20"
                         : "border-[var(--border-base)] bg-[var(--bg-surface)]",
                     ].join(" ")}
                   >

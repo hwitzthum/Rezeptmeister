@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   DndContext,
   closestCenter,
@@ -65,15 +66,16 @@ function SortableImageCard({
     >
       {/* Thumbnail */}
       <div
-        className="w-full aspect-square bg-warm-100 cursor-grab active:cursor-grabbing"
+        className="relative w-full aspect-square bg-warm-100 dark:bg-warm-800 cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={image.thumbnailUrl}
           alt={image.altText ?? image.fileName ?? "Bild"}
-          className="w-full h-full object-cover"
+          fill
+          sizes="150px"
+          className="object-cover"
           draggable={false}
         />
       </div>

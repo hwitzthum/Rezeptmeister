@@ -130,7 +130,7 @@ export default function WebSearchResults({
                   <p className="text-sm font-semibold text-terra-600 hover:text-terra-700 leading-snug truncate">
                     {result.title}
                   </p>
-                  <span className="inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-warm-100 text-warm-600">
+                  <span className="inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-warm-100 dark:bg-warm-800 text-warm-600 dark:text-warm-400">
                     {extractDomain(result.url)}
                   </span>
                 </div>

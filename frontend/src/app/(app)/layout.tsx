@@ -15,8 +15,11 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen flex bg-[var(--bg-base)]">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-terra-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium">
+        Zum Hauptinhalt springen
+      </a>
       <Sidebar isAdmin={isAdmin} userName={userName} />
-      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0 overflow-x-hidden">
+      <div id="main-content" className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0 overflow-x-hidden">
         <OfflineIndicator />
         {children}
       </div>

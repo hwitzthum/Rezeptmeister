@@ -229,7 +229,7 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
                       isActive
                         ? "bg-terra-500 text-white shadow-warm-sm"
                         : isDone
-                          ? "bg-terra-100 text-terra-600"
+                          ? "bg-terra-100 dark:bg-terra-900/40 text-terra-600 dark:text-terra-400"
                           : "bg-[var(--bg-subtle)] text-[var(--text-muted)]",
                     ].join(" ")}
                     aria-current={isActive ? "step" : undefined}
@@ -324,7 +324,7 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
       {/* API-Fehler */}
       {apiError && (
         <div
-          className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700"
+          className="mb-4 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400"
           role="alert"
         >
           {apiError}

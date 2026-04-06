@@ -97,7 +97,7 @@ export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: P
   return (
     <div className="space-y-5">
       {/* Hinweis-Banner */}
-      <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+      <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
         KI-extrahierte Daten. Bitte vor dem Speichern prüfen und bei Bedarf anpassen.
       </div>
 
@@ -213,7 +213,7 @@ export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: P
             {result.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full text-xs font-medium bg-terra-50 text-terra-700 border border-terra-200"
+                className="px-2 py-0.5 rounded-full text-xs font-medium bg-terra-50 dark:bg-terra-950/30 text-terra-700 dark:text-terra-300 border border-terra-200 dark:border-terra-800"
               >
                 {tag}
               </span>

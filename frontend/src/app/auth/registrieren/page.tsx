@@ -98,7 +98,7 @@ export default function RegistrierenPage() {
           >
             Rezeptmeister
           </h1>
-          <p className="text-warm-500 text-sm">Schweizer Küchenintelligenz</p>
+          <p className="text-warm-500 dark:text-warm-400 text-sm">Schweizer Küchenintelligenz</p>
         </div>
 
         <div className="bg-[var(--bg-surface)] rounded-2xl shadow-warm-lg border border-[var(--border-subtle)] p-8">
@@ -108,14 +108,14 @@ export default function RegistrierenPage() {
           >
             Konto erstellen
           </h2>
-          <p className="text-sm text-warm-500 mb-6">
+          <p className="text-sm text-warm-500 dark:text-warm-400 mb-6">
             Nach der Registrierung wird Ihr Konto von einem Administrator freigegeben.
           </p>
 
           {serverError && (
             <div
               role="alert"
-              className="mb-5 flex items-start gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+              className="mb-5 flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400"
             >
               <svg className="mt-0.5 h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -127,7 +127,7 @@ export default function RegistrierenPage() {
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {/* Name */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="name" className="text-sm font-medium text-warm-700">
+              <label htmlFor="name" className="text-sm font-medium text-warm-700 dark:text-warm-300">
                 Name <span className="text-terra-500">*</span>
               </label>
               <input
@@ -148,7 +148,7 @@ export default function RegistrierenPage() {
 
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="reg-email" className="text-sm font-medium text-warm-700">
+              <label htmlFor="reg-email" className="text-sm font-medium text-warm-700 dark:text-warm-300">
                 E-Mail-Adresse <span className="text-terra-500">*</span>
               </label>
               <input
@@ -169,7 +169,7 @@ export default function RegistrierenPage() {
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="reg-password" className="text-sm font-medium text-warm-700">
+              <label htmlFor="reg-password" className="text-sm font-medium text-warm-700 dark:text-warm-300">
                 Passwort <span className="text-terra-500">*</span>
               </label>
               <div className="relative">
@@ -187,7 +187,7 @@ export default function RegistrierenPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 dark:hover:text-warm-300 transition-colors"
                   aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
                 >
                   {showPassword ? (
@@ -209,7 +209,7 @@ export default function RegistrierenPage() {
 
             {/* Password confirm */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="password-confirm" className="text-sm font-medium text-warm-700">
+              <label htmlFor="password-confirm" className="text-sm font-medium text-warm-700 dark:text-warm-300">
                 Passwort bestätigen <span className="text-terra-500">*</span>
               </label>
               <input
@@ -247,7 +247,7 @@ export default function RegistrierenPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-warm-500">
+          <p className="mt-6 text-center text-sm text-warm-500 dark:text-warm-400">
             Bereits ein Konto?{" "}
             <Link
               href="/auth/anmelden"

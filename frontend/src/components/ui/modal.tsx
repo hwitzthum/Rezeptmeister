@@ -102,7 +102,7 @@ export function Modal({
       {/* Backdrop */}
       <div
         className={[
-          "absolute inset-0 bg-warm-900/40 backdrop-blur-[2px]",
+          "absolute inset-0 bg-warm-900/40 dark:bg-black/60 backdrop-blur-[2px]",
           "transition-opacity duration-200",
           open ? "opacity-100" : "opacity-0",
         ].join(" ")}
@@ -147,7 +147,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-warm-400 hover:text-warm-700 hover:bg-warm-100 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500"
+              className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-warm-500 hover:text-warm-700 hover:bg-warm-100 dark:text-warm-400 dark:hover:text-warm-200 dark:hover:bg-warm-800 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500"
               aria-label="Schliessen"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@ export function ConfirmDialog({
   loading = false,
 }: ConfirmDialogProps) {
   const iconColor = variant === "danger" ? "text-red-500" : variant === "warning" ? "text-gold-500" : "text-blue-500";
-  const iconBg    = variant === "danger" ? "bg-red-50"   : variant === "warning" ? "bg-gold-50"   : "bg-blue-50";
+  const iconBg    = variant === "danger" ? "bg-red-50 dark:bg-red-950/30"   : variant === "warning" ? "bg-gold-50 dark:bg-gold-950/30"   : "bg-blue-50 dark:bg-blue-950/30";
 
   return (
     <Modal
@@ -209,7 +209,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-warm-700 hover:text-warm-900 hover:bg-warm-100 rounded-lg transition-all duration-150"
+            className="px-4 py-2 text-sm font-medium text-warm-700 hover:text-warm-900 hover:bg-warm-100 dark:text-warm-300 dark:hover:text-warm-100 dark:hover:bg-warm-800 rounded-lg transition-all duration-150"
           >
             {cancelLabel}
           </button>
@@ -219,7 +219,7 @@ export function ConfirmDialog({
             disabled={loading}
             className={[
               "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-warm-900",
               variant === "danger"
                 ? "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
                 : variant === "warning"
