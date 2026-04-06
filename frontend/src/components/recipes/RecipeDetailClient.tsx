@@ -287,20 +287,22 @@ export default function RecipeDetailClient({
                 </div>
               </div>
               <p className="text-sm text-terra-400 dark:text-terra-600 font-medium mb-3">Noch kein Bild</p>
-              {!hasPrimaryImage && (
-                <GenerateImageButton
-                  recipeId={recipe.id}
-                  title={recipe.title}
-                  ingredients={recipe.ingredients.map((i) => i.name)}
-                  category={recipe.category ?? ""}
-                  onImageGenerated={(url) => setGeneratedImageUrl(url)}
-                />
-              )}
             </div>
           );
         })()}
         {/* Gradient overlay — decorative only, must not intercept clicks */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+        {/* Always show generate button — bottom-left on hero */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <GenerateImageButton
+            recipeId={recipe.id}
+            title={recipe.title}
+            ingredients={recipe.ingredients.map((i) => i.name)}
+            category={recipe.category ?? ""}
+            hasExistingImage={hasPrimaryImage}
+            onImageGenerated={(url) => setGeneratedImageUrl(url)}
+          />
+        </div>
 
         {/* Titel im Hero */}
         <div className="absolute bottom-0 left-0 right-0 p-6">

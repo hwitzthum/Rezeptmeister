@@ -332,18 +332,35 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
 
       {/* Navigation-Buttons */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={goBack}
-          disabled={step === 1 || isSubmitting}
-        >
-          ← Zurück
-        </Button>
+        <div className="flex items-center gap-2">
+          {step > 1 && (
+            <Button
+              variant="ghost"
+              onClick={goBack}
+              disabled={isSubmitting}
+            >
+              ← Zurück
+            </Button>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-[var(--text-muted)]">
             Schritt {step} von {STEPS.length}
           </span>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (mode === "edit" && recipeId) {
+                router.push(`/rezepte/${recipeId}`);
+              } else {
+                router.push("/rezepte");
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            Abbrechen
+          </Button>
           {step < 4 ? (
             <Button variant="primary" onClick={goNext}>
               Weiter →

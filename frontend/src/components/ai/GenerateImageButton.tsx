@@ -15,6 +15,7 @@ interface GenerateImageButtonProps {
   title: string;
   ingredients: string[];
   category: string;
+  hasExistingImage?: boolean;
   onImageGenerated: (imageUrl: string) => void;
 }
 
@@ -23,6 +24,7 @@ export default function GenerateImageButton({
   title,
   ingredients,
   category,
+  hasExistingImage = false,
   onImageGenerated,
 }: GenerateImageButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ export default function GenerateImageButton({
           onClick={() => { void handleGenerate(); }}
           className="bg-white/80 hover:bg-white dark:bg-warm-900/80 dark:hover:bg-warm-900"
         >
-          KI-Bild generieren
+          {hasExistingImage ? "Neues Bild generieren" : "KI-Bild generieren"}
         </Button>
       )}
 
