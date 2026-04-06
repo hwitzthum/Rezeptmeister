@@ -22,7 +22,6 @@ export default async function EinstellungenPage() {
           <Link
             href="/"
             className="flex items-center gap-2 font-display text-xl font-bold text-terra-500"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Rezeptmeister
           </Link>
@@ -35,7 +34,6 @@ export default async function EinstellungenPage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1
           className="text-3xl font-bold text-[var(--text-primary)] mb-8"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           Einstellungen
         </h1>
@@ -45,7 +43,6 @@ export default async function EinstellungenPage() {
           <div className="px-6 py-5 border-b border-[var(--border-subtle)]">
             <h2
               className="text-lg font-semibold text-[var(--text-primary)]"
-              style={{ fontFamily: "var(--font-display)" }}
             >
               KI-API-Schlüssel
             </h2>
@@ -61,7 +58,7 @@ export default async function EinstellungenPage() {
 
         {/* Darstellung */}
         <div className="mt-6 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-base)] p-6">
-          <h2 className="font-display text-xl font-bold mb-4" style={{ fontFamily: "var(--font-display)" }}>Darstellung</h2>
+          <h2 className="font-display text-xl font-bold mb-4">Darstellung</h2>
           <p className="text-sm text-[var(--text-secondary)] mb-4">Wähle dein bevorzugtes Farbschema</p>
           <ThemeToggle />
         </div>
@@ -71,7 +68,6 @@ export default async function EinstellungenPage() {
           <div className="px-6 py-5 border-b border-[var(--border-subtle)]">
             <h2
               className="text-lg font-semibold text-[var(--text-primary)]"
-              style={{ fontFamily: "var(--font-display)" }}
             >
               Konto
             </h2>

@@ -28,7 +28,6 @@ export default function WartenPage() {
 
         <h1
           className="text-3xl font-bold text-[var(--text-primary)] mb-3"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           Registrierung wird geprüft
         </h1>

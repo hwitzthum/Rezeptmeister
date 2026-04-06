@@ -23,10 +23,10 @@ export default function AddToShoppingListButton({ recipeId, recipeTitle }: Props
       if (!res.ok) throw new Error();
       const data: { added: number; merged: number; total: number } = await res.json();
       toast.success(
-        `${data.added} Zutat(en) hinzugefuegt, ${data.merged} zusammengefuehrt.`,
+        `${data.added} Zutat(en) hinzugefügt, ${data.merged} zusammengeführt.`,
       );
     } catch {
-      toast.error(`Zutaten von "${recipeTitle}" konnten nicht hinzugefuegt werden.`);
+      toast.error(`Zutaten von "${recipeTitle}" konnten nicht hinzugefügt werden.`);
     } finally {
       setLoading(false);
     }

@@ -77,7 +77,6 @@ function ConfirmDialog({
         <h2
           id="confirm-title"
           className="text-lg font-semibold text-[var(--text-primary)] mb-2"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           {title}
         </h2>
@@ -251,7 +250,7 @@ export default function AdminDashboard({
   } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Aufraeum-Effekt fuer Polling
+  // Aufräum-Effekt für Polling
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -266,9 +265,9 @@ export default function AdminDashboard({
       const json = await res.json();
       if (!res.ok) {
         const errMsg = json.error ?? "Re-Embedding fehlgeschlagen.";
-        if (res.status === 400 && errMsg.includes("Schluessel")) {
+        if (res.status === 400 && errMsg.includes("Schlüssel")) {
           showToast(
-            "Kein Gemini API-Schluessel konfiguriert. Bitte unter Einstellungen hinterlegen.",
+            "Kein Gemini API-Schlüssel konfiguriert. Bitte unter Einstellungen hinterlegen.",
             "error",
           );
         } else {
@@ -285,7 +284,7 @@ export default function AdminDashboard({
 
       if (skippedUsers > 0) {
         showToast(
-          `${skippedUsers} Benutzer uebersprungen (fehlerhafter Schluessel).`,
+          `${skippedUsers} Benutzer übersprungen (fehlerhafter Schlüssel).`,
           "error",
         );
       }
@@ -338,7 +337,7 @@ export default function AdminDashboard({
             );
           }
         } catch {
-          // Polling-Fehler ignorieren, naechster Versuch in 2s
+          // Polling-Fehler ignorieren, nächster Versuch in 2s
         }
       }, 2000);
     } catch {
@@ -357,7 +356,6 @@ export default function AdminDashboard({
       <div className="mb-10">
         <h2
           className="text-xl font-bold text-[var(--text-primary)] mb-4"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           KI-Verwaltung
         </h2>
@@ -369,7 +367,7 @@ export default function AdminDashboard({
               </h3>
               <p className="text-xs text-warm-500 dark:text-warm-400 mt-1">
                 Berechnet die Embeddings aller Rezepte neu (pro Benutzer mit
-                eigenem API-Schluessel). Nuetzlich nach einem Modell-Upgrade
+                eigenem API-Schlüssel). Nützlich nach einem Modell-Upgrade
                 oder wenn die Suche nicht korrekt funktioniert.
               </p>
             </div>
@@ -472,7 +470,6 @@ export default function AdminDashboard({
         <div>
           <h1
             className="text-3xl font-bold text-[var(--text-primary)]"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Benutzerverwaltung
           </h1>

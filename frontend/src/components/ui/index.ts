@@ -10,3 +10,5 @@ export { Badge, DifficultyBadge, SourceBadge } from "./badge";
 export { Modal, ConfirmDialog } from "./modal";
 
 export { IngredientTagInput } from "./IngredientTagInput";
+
+export { PageHeader } from "./PageHeader";

@@ -12,6 +12,12 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  cta?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
 }
 
 const ChefHatIcon = () => (
@@ -87,19 +93,48 @@ const ShieldIcon = () => (
   </svg>
 );
 
-const navItems: NavItem[] = [
+const navGroups: NavGroup[] = [
+  {
+    label: "Rezepte",
+    items: [
+      { href: "/",            label: "Dashboard",        icon: <HomeIcon /> },
+      { href: "/rezepte",     label: "Meine Rezepte",    icon: <BookOpenIcon /> },
+      { href: "/rezepte/neu", label: "Rezept erstellen", icon: <PlusIcon />, cta: true },
+    ],
+  },
+  {
+    label: "Planen",
+    items: [
+      { href: "/einkaufsliste", label: "Einkaufsliste", icon: <ShoppingCartIcon /> },
+      { href: "/wochenplan",    label: "Wochenplan",     icon: <CalendarIcon /> },
+    ],
+  },
+  {
+    label: "Entdecken",
+    items: [
+      { href: "/suche",       label: "Suche",         icon: <SearchIcon /> },
+      { href: "/bilder",      label: "Bildergalerie", icon: <PhotoIcon /> },
+      { href: "/vorschlaege", label: "Vorschläge",    icon: <Sparkles className="w-5 h-5" /> },
+    ],
+  },
+  {
+    label: "Mehr",
+    items: [
+      { href: "/sammlungen",    label: "Sammlungen",    icon: <FolderIcon /> },
+      { href: "/werkzeuge",     label: "Werkzeuge",     icon: <WrenchIcon /> },
+      { href: "/einstellungen", label: "Einstellungen", icon: <SettingsIcon /> },
+      { href: "/admin",         label: "Admin",         icon: <ShieldIcon />, adminOnly: true },
+    ],
+  },
+];
+
+// Flat list for mobile bottom nav (first 5 meaningful items)
+const mobileNavItems: NavItem[] = [
   { href: "/",              label: "Dashboard",        icon: <HomeIcon /> },
   { href: "/rezepte",       label: "Meine Rezepte",    icon: <BookOpenIcon /> },
-  { href: "/rezepte/neu",   label: "Rezept erstellen", icon: <PlusIcon /> },
-  { href: "/suche",         label: "Suche & Entdecken",icon: <SearchIcon /> },
+  { href: "/rezepte/neu",   label: "Erstellen",        icon: <PlusIcon />, cta: true },
+  { href: "/suche",         label: "Suche",            icon: <SearchIcon /> },
   { href: "/einkaufsliste", label: "Einkaufsliste",    icon: <ShoppingCartIcon /> },
-  { href: "/wochenplan",    label: "Wochenplan",       icon: <CalendarIcon /> },
-  { href: "/bilder",        label: "Bildergalerie",    icon: <PhotoIcon /> },
-  { href: "/sammlungen",    label: "Sammlungen",       icon: <FolderIcon /> },
-  { href: "/werkzeuge",     label: "Werkzeuge",        icon: <WrenchIcon /> },
-  { href: "/einstellungen", label: "Einstellungen",    icon: <SettingsIcon /> },
-  { href: "/vorschlaege",   label: "Vorschläge",       icon: <Sparkles className="w-5 h-5" /> },
-  { href: "/admin",         label: "Admin",            icon: <ShieldIcon />, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -110,8 +145,6 @@ interface SidebarProps {
 export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
   const pathname = usePathname();
   const [showUrlImport, setShowUrlImport] = useState(false);
-
-  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -141,56 +174,77 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
-        <ul role="list" className="space-y-0.5">
-          {visibleItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={[
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
-                    "transition-all duration-150 group",
-                    active
-                      ? "bg-terra-50 text-terra-700 shadow-warm-xs dark:bg-terra-950/30 dark:text-terra-300"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
-                  ].join(" ")}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span
-                    className={[
-                      "shrink-0 transition-colors duration-150",
-                      active ? "text-terra-500 dark:text-terra-400" : "text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300",
-                    ].join(" ")}
-                    aria-hidden="true"
-                  >
-                    {item.icon}
-                  </span>
-                  {item.label}
-                  {item.adminOnly && (
-                    <span className="ml-auto text-xs bg-terra-100 text-terra-600 px-1.5 py-0.5 rounded-md font-medium dark:bg-terra-900/30 dark:text-terra-400">
-                      Admin
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-
-          {/* URL importieren — opens dialog instead of navigating */}
-          <li>
-            <button
-              type="button"
-              onClick={() => setShowUrlImport(true)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        {navGroups.map((group, groupIdx) => {
+          const visibleItems = group.items.filter((item) => !item.adminOnly || isAdmin);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div
+              key={group.label}
+              className={groupIdx > 0 ? "mt-4 pt-3 border-t border-[var(--border-subtle)]" : ""}
             >
-              <span className="shrink-0 text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300 transition-colors duration-150" aria-hidden="true">
-                <LucideLink className="w-5 h-5" />
-              </span>
-              URL importieren
-            </button>
-          </li>
-        </ul>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)] px-3 mb-1.5">
+                {group.label}
+              </p>
+              <ul role="list" className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const active = isActive(item.href);
+                  const isCta = item.cta && !active;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={[
+                          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
+                          "transition-all duration-150 group",
+                          active
+                            ? "bg-terra-50 text-terra-700 shadow-warm-xs dark:bg-terra-950/30 dark:text-terra-300"
+                            : isCta
+                              ? "bg-terra-500 text-white hover:bg-terra-600 shadow-sm"
+                              : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
+                        ].join(" ")}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <span
+                          className={[
+                            "shrink-0 transition-colors duration-150",
+                            active
+                              ? "text-terra-500 dark:text-terra-400"
+                              : isCta
+                                ? "text-white"
+                                : "text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300",
+                          ].join(" ")}
+                          aria-hidden="true"
+                        >
+                          {item.icon}
+                        </span>
+                        {item.label}
+                        {item.adminOnly && (
+                          <span className="ml-auto text-xs bg-terra-100 text-terra-600 px-1.5 py-0.5 rounded-md font-medium dark:bg-terra-900/30 dark:text-terra-400">
+                            Admin
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+
+        {/* URL importieren — opens dialog instead of navigating */}
+        <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
+          <button
+            type="button"
+            onClick={() => setShowUrlImport(true)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+          >
+            <span className="shrink-0 text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300 transition-colors duration-150" aria-hidden="true">
+              <LucideLink className="w-5 h-5" />
+            </span>
+            URL importieren
+          </button>
+        </div>
       </nav>
 
       <UrlImportDialog
@@ -224,7 +278,6 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
 }
 
 /* ─── Mobile Bottom Navigation ─── */
-const mobileNavItems = navItems.slice(0, 5); // Dashboard, Rezepte, Erstellen, Suche, Einkaufsliste
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -242,19 +295,36 @@ export function BottomNav() {
       <ul role="list" className="flex items-stretch h-16">
         {mobileNavItems.map((item) => {
           const active = isActive(item.href);
+          const isCta = item.cta && !active;
           return (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
                 className={[
-                  "flex flex-col items-center justify-center gap-1 h-full w-full px-1",
+                  "relative flex flex-col items-center justify-center gap-1 h-full w-full px-1",
                   "transition-colors duration-150",
-                  active ? "text-terra-500" : "text-warm-500 hover:text-warm-700 dark:text-warm-400 dark:hover:text-warm-300",
+                  active
+                    ? "text-terra-500"
+                    : isCta
+                      ? "text-white"
+                      : "text-warm-500 hover:text-warm-700 dark:text-warm-400 dark:hover:text-warm-300",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >
-                <span aria-hidden="true">{item.icon}</span>
-                <span className="text-[10px] font-medium leading-none truncate max-w-full px-1">
+                {active && (
+                  <span className="absolute top-0 inset-x-2 h-0.5 rounded-full bg-terra-500" />
+                )}
+                {isCta ? (
+                  <span className="flex items-center justify-center w-10 h-10 -mt-3 rounded-full bg-terra-500 text-white shadow-md" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                ) : (
+                  <span aria-hidden="true">{item.icon}</span>
+                )}
+                <span className={[
+                  "text-[10px] font-medium leading-none truncate max-w-full px-1",
+                  isCta ? "text-terra-500" : "",
+                ].join(" ")}>
                   {item.label.split(" ")[0]}
                 </span>
               </Link>

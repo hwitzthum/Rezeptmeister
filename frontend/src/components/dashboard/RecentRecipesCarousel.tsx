@@ -53,10 +53,17 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
         <h2 className="font-display text-xl font-semibold text-[var(--text-primary)] mb-4">
           Zuletzt bearbeitet
         </h2>
-        <div className="rounded-xl border border-dashed border-[var(--border-base)] p-8 text-center text-[var(--text-muted)]">
-          Noch keine Rezepte erstellt.{" "}
-          <Link href="/rezepte/neu" className="text-terra-500 hover:text-terra-600 font-medium">
-            Jetzt starten
+        <div className="rounded-2xl border border-dashed border-[var(--border-base)] bg-[var(--bg-surface)]/50 p-8 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-xl bg-terra-50 dark:bg-terra-950/30 flex items-center justify-center mb-3">
+            <svg className="w-6 h-6 text-terra-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+          </div>
+          <p className="text-sm text-[var(--text-secondary)] mb-3">
+            Ihre Rezeptsammlung ist noch leer.
+          </p>
+          <Link href="/rezepte/neu" className="text-sm text-terra-500 hover:text-terra-600 font-medium transition-colors">
+            Erstes Rezept erstellen &rarr;
           </Link>
         </div>
       </div>

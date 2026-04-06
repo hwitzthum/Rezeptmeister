@@ -63,7 +63,6 @@ function LoginForm() {
         <div className="text-center mb-8">
           <h1
             className="font-display text-4xl font-bold text-terra-500 mb-1"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Rezeptmeister
           </h1>
@@ -76,7 +75,6 @@ function LoginForm() {
         <div className="bg-[var(--bg-surface)] rounded-2xl shadow-warm-lg border border-[var(--border-subtle)] p-8">
           <h2
             className="text-2xl font-semibold text-[var(--text-primary)] mb-6"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Anmelden
           </h2>

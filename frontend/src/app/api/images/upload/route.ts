@@ -110,7 +110,7 @@ export async function POST(request: Request) {
   const allowedFormats = ["jpeg", "png", "webp"];
   if (!meta.format || !allowedFormats.includes(meta.format)) {
     return NextResponse.json(
-      { error: "Ungueltiges Bildformat." },
+      { error: "Ungültiges Bildformat." },
       { status: 415 },
     );
   }

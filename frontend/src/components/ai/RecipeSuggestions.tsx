@@ -411,14 +411,14 @@ export default function RecipeSuggestions() {
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="animate-pulse bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-3"
+                className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-3"
               >
-                <div className="h-5 w-2/3 rounded-lg bg-[var(--bg-subtle)]" />
-                <div className="h-3 w-full rounded bg-[var(--bg-subtle)]" />
-                <div className="h-3 w-4/5 rounded bg-[var(--bg-subtle)]" />
+                <div className="skeleton h-5 w-2/3 rounded-lg" />
+                <div className="skeleton h-3 w-full rounded" />
+                <div className="skeleton h-3 w-4/5 rounded" />
                 <div className="flex gap-2 mt-2">
-                  <div className="h-5 w-16 rounded-full bg-[var(--bg-subtle)]" />
-                  <div className="h-5 w-20 rounded-full bg-[var(--bg-subtle)]" />
+                  <div className="skeleton h-5 w-16 rounded-full" />
+                  <div className="skeleton h-5 w-20 rounded-full" />
                 </div>
               </div>
             ))}
@@ -452,7 +452,6 @@ export default function RecipeSuggestions() {
                 className="text-left bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 hover:border-terra-300 hover:shadow-warm transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500"
               >
                 <h3 className="font-semibold text-[var(--text-primary)] group-hover:text-terra-700 transition-colors mb-1.5"
-                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   {suggestion.title}
                 </h3>

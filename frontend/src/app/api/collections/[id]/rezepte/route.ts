@@ -67,7 +67,7 @@ export async function POST(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Ungueltiger JSON-Body." },
+      { error: "Ungültiger JSON-Body." },
       { status: 400 },
     );
   }
@@ -116,7 +116,7 @@ export async function POST(
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {
-    console.error("Fehler beim Hinzufuegen des Rezepts zur Sammlung:", err);
+    console.error("Fehler beim Hinzufügen des Rezepts zur Sammlung:", err);
     return NextResponse.json(
       { error: "Interner Serverfehler." },
       { status: 500 },
@@ -156,7 +156,7 @@ export async function DELETE(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Ungueltiger JSON-Body." },
+      { error: "Ungültiger JSON-Body." },
       { status: 400 },
     );
   }
@@ -223,7 +223,7 @@ export async function PATCH(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Ungueltiger JSON-Body." },
+      { error: "Ungültiger JSON-Body." },
       { status: 400 },
     );
   }

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Alle Benutzer mit Gemini-API-Schluessel laden
+  // Alle Benutzer mit Gemini-API-Schlüssel laden
   const geminiUsers = await db
     .select({
       id: users.id,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Keine Benutzer mit Gemini API-Schluessel gefunden. Bitte mindestens einen Schluessel unter Einstellungen hinterlegen.",
+          "Keine Benutzer mit Gemini API-Schlüssel gefunden. Bitte mindestens einen Schlüssel unter Einstellungen hinterlegen.",
       },
       { status: 400 },
     );
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   const jobs: JobResult[] = [];
   let skippedUsers = 0;
 
-  // Pro Benutzer: Schluessel entschluesseln und Backend-Job starten
+  // Pro Benutzer: Schlüssel entschlüsseln und Backend-Job starten
   for (const user of geminiUsers) {
     let geminiKey: string;
     try {

@@ -9,8 +9,8 @@ export type GeminiKeyResult =
   | { ok: false; response: NextResponse };
 
 /**
- * Laedt den Gemini API-Schluessel des Benutzers aus der DB und entschluesselt ihn.
- * Gibt bei Fehler eine fertige NextResponse zurueck (400 oder 500).
+ * Lädt den Gemini API-Schlüssel des Benutzers aus der DB und entschlüsselt ihn.
+ * Gibt bei Fehler eine fertige NextResponse zurück (400 oder 500).
  */
 export async function resolveGeminiKey(
   userId: string,

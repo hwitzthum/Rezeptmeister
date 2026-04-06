@@ -231,7 +231,7 @@ export async function DELETE(
   try {
     await db.delete(recipes).where(eq(recipes.id, id));
   } catch (err) {
-    console.error("Fehler beim Loeschen des Rezepts:", err);
+    console.error("Fehler beim Löschen des Rezepts:", err);
     return NextResponse.json(
       { error: "Interner Serverfehler." },
       { status: 500 },

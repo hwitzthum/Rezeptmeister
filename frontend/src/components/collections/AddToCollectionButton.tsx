@@ -99,9 +99,9 @@ export default function AddToCollectionButton({
       });
       if (!res.ok) throw new Error();
       setAddedIds((prev) => new Set([...prev, collectionId]));
-      toast.success(`Rezept zu '${collectionName}' hinzugefuegt.`);
+      toast.success(`Rezept zu '${collectionName}' hinzugefügt.`);
     } catch {
-      toast.error("Rezept konnte nicht hinzugefuegt werden.");
+      toast.error("Rezept konnte nicht hinzugefügt werden.");
     }
   }
 
@@ -141,7 +141,7 @@ export default function AddToCollectionButton({
       setAddedIds((prev) => new Set([...prev, created.id]));
       setNewName("");
       setShowInlineCreate(false);
-      toast.success(`Rezept zu '${created.name}' hinzugefuegt.`);
+      toast.success(`Rezept zu '${created.name}' hinzugefügt.`);
     } catch {
       toast.error("Sammlung konnte nicht erstellt werden.");
     } finally {

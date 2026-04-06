@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import ImageUploadZone, { type UploadedImage } from "@/components/images/ImageUploadZone";
-import { ConfirmDialog, Button, Modal } from "@/components/ui";
+import { ConfirmDialog, Button, Modal, PageHeader } from "@/components/ui";
 import { formatDate, formatBytes } from "@/lib/format";
 import OcrPreviewPanel, { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
 import { normaliseImageSrc } from "@/lib/images";
@@ -158,19 +158,15 @@ export default function BilderPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <h1
-            className="text-lg font-semibold text-[var(--text-primary)]"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Bildergalerie
-          </h1>
+      <PageHeader
+        subtitle="Medien"
+        title="Bildergalerie"
+        action={
           <Button variant="primary" size="sm" onClick={() => setShowUploadModal(true)}>
             Bild hochladen
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Filter-Tabs */}
@@ -195,14 +191,26 @@ export default function BilderPage() {
         {loading && images.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-xl bg-warm-100 dark:bg-warm-800 animate-pulse" />
+              <div key={i} className="aspect-square rounded-xl overflow-hidden border border-[var(--border-subtle)]">
+                <div className="skeleton w-full h-full" />
+              </div>
             ))}
           </div>
         ) : images.length === 0 ? (
-          <div className="text-center py-20">
-            <PhotoIcon className="w-16 h-16 text-terra-200 mx-auto mb-4" />
-            <p className="text-[var(--text-muted)]">Noch keine Bilder vorhanden.</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowUploadModal(true)}>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="relative w-28 h-28 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-terra-50 to-cream-200 dark:from-terra-950/30 dark:to-warm-800 rotate-[-4deg]" />
+              <div className="absolute inset-0 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-base)] shadow-[var(--shadow-warm-sm)] flex items-center justify-center rotate-[2deg]">
+                <PhotoIcon className="w-10 h-10 text-terra-300 dark:text-terra-700" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+              Ihre Galerie ist leer
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto mb-6 leading-relaxed">
+              Laden Sie Fotos Ihrer Gerichte hoch oder lassen Sie die KI Bilder generieren.
+            </p>
+            <Button variant="primary" size="sm" onClick={() => setShowUploadModal(true)}>
               Erstes Bild hochladen
             </Button>
           </div>

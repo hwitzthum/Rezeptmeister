@@ -730,7 +730,7 @@ export default function SuchePage() {
           ) : loading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+                <div key={i} className="skeleton h-20 rounded-xl" />
               ))}
             </div>
           ) : items.length === 0 ? (
@@ -793,7 +793,7 @@ function KiResults({ results, loading, error, searched, onReset }: KiResultsProp
           KI analysiert Ihre Anfrage…
         </p>
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-20 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+          <div key={i} className="skeleton h-20 rounded-xl" />
         ))}
       </div>
     );
@@ -1265,7 +1265,7 @@ function ZutatenSection({
             Rezepte werden abgeglichen…
           </p>
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+            <div key={i} className="skeleton h-24 rounded-xl" />
           ))}
         </div>
       ) : !searched ? (

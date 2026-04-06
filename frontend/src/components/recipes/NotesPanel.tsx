@@ -287,15 +287,15 @@ function NoteCard({
 
 function NotesSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
+    <div className="space-y-3">
       {[1, 2, 3].map((n) => (
         <div key={n} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
           <div className="flex justify-between mb-3">
-            <div className="h-5 w-20 bg-warm-100 dark:bg-warm-800 rounded-md" />
-            <div className="h-4 w-14 bg-warm-100 dark:bg-warm-800 rounded" />
+            <div className="skeleton h-5 w-20 rounded-md" />
+            <div className="skeleton h-4 w-14 rounded" />
           </div>
-          <div className="h-4 bg-warm-100 dark:bg-warm-800 rounded mb-2 w-full" />
-          <div className="h-4 bg-warm-100 dark:bg-warm-800 rounded w-3/4" />
+          <div className="skeleton h-4 rounded mb-2 w-full" />
+          <div className="skeleton h-4 rounded w-3/4" />
         </div>
       ))}
     </div>
@@ -385,7 +385,6 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
           <BookmarkIcon className="w-5 h-5 text-terra-500" />
           <h2
             className="text-lg font-semibold text-[var(--text-primary)]"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Notizen & Bewertungen
           </h2>

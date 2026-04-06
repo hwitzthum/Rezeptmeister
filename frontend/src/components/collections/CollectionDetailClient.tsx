@@ -289,10 +289,10 @@ export default function CollectionDetailClient({
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
-      toast.success("Sammlung geloescht.");
+      toast.success("Sammlung gelöscht.");
       router.push("/sammlungen");
     } catch {
-      toast.error("Sammlung konnte nicht geloescht werden.");
+      toast.error("Sammlung konnte nicht gelöscht werden.");
     }
   }
 
@@ -372,7 +372,7 @@ export default function CollectionDetailClient({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Zurueck zu Sammlungen
+        Zurück zu Sammlungen
       </Link>
 
       {/* Header */}
@@ -381,7 +381,6 @@ export default function CollectionDetailClient({
           <h1
             data-testid="collection-detail-name"
             className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] break-words"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             {collection.name}
           </h1>
@@ -421,7 +420,7 @@ export default function CollectionDetailClient({
             onClick={() => setShowDeleteConfirm(true)}
             icon={<TrashIcon />}
           >
-            Loeschen
+            Löschen
           </Button>
         </div>
       </div>
@@ -431,7 +430,7 @@ export default function CollectionDetailClient({
         <div className="text-center py-16">
           <RecipeIcon className="w-16 h-16 mx-auto text-warm-300 mb-4" />
           <p className="text-[var(--text-secondary)]">
-            Diese Sammlung enthaelt noch keine Rezepte.
+            Diese Sammlung enthält noch keine Rezepte.
           </p>
         </div>
       ) : (
@@ -523,9 +522,9 @@ export default function CollectionDetailClient({
       {/* Delete Confirm */}
       <ConfirmDialog
         open={showDeleteConfirm}
-        title="Sammlung loeschen"
-        message={`Moechten Sie die Sammlung "${collection.name}" wirklich loeschen? Die Rezepte werden nicht geloescht.`}
-        confirmLabel="Loeschen"
+        title="Sammlung löschen"
+        message={`Möchten Sie die Sammlung "${collection.name}" wirklich löschen? Die Rezepte werden nicht gelöscht.`}
+        confirmLabel="Löschen"
         cancelLabel="Abbrechen"
         variant="danger"
         onConfirm={() => {

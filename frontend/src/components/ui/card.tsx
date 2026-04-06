@@ -124,6 +124,7 @@ export function RecipeCard({
   className = "",
 }: RecipeCardProps) {
   const [favorite, setFavorite] = React.useState(isFavorite);
+  React.useEffect(() => { setFavorite(isFavorite); }, [isFavorite]);
   const diff = difficulty ? difficultyLabel[difficulty] : null;
 
   function handleFavoriteClick(e: React.MouseEvent) {
