@@ -54,8 +54,19 @@ except ImportError:
 
 # ── Gemeinsame Test-Fixtures ───────────────────────────────────────────────────
 
+import os
 import pathlib
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _set_internal_secret(monkeypatch):
+    """Setzt INTERNAL_SECRET fuer alle Tests, da die Middleware jetzt fail-closed ist."""
+    monkeypatch.setenv("INTERNAL_SECRET", "test-secret")
+    from app.config import get_settings
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

@@ -35,7 +35,7 @@ class TestEmbedTextEndpoint:
                     json={"recipe_id": recipe_id, "text": "Schnitzel mit Pommes"},
                     headers={
                         "X-Gemini-API-Key": "fake-key",
-                        "X-Internal-Token": "",
+                        "X-Internal-Token": "test-secret",
                     },
                 )
         assert res.status_code == 204
@@ -51,7 +51,7 @@ class TestEmbedTextEndpoint:
                 res = await client.post(
                     "/embed/text",
                     json={"recipe_id": recipe_id, "text": "test"},
-                    headers={"X-Internal-Token": ""},
+                    headers={"X-Internal-Token": "test-secret"},
                 )
         assert res.status_code == 204
         mock_add.assert_not_called()
@@ -63,7 +63,7 @@ class TestEmbedTextEndpoint:
             res = await client.post(
                 "/embed/text",
                 json={"recipe_id": "not-a-uuid", "text": "test"},
-                headers={"X-Internal-Token": "", "X-Gemini-API-Key": "fake-key"},
+                headers={"X-Internal-Token": "test-secret", "X-Gemini-API-Key": "fake-key"},
             )
         assert res.status_code == 422
 
@@ -80,7 +80,7 @@ class TestEmbedImageEndpoint:
                     json={"image_id": image_id},
                     headers={
                         "X-Gemini-API-Key": "fake-key",
-                        "X-Internal-Token": "",
+                        "X-Internal-Token": "test-secret",
                     },
                 )
         assert res.status_code == 204
@@ -95,7 +95,7 @@ class TestEmbedImageEndpoint:
                 res = await client.post(
                     "/embed/image",
                     json={"image_id": image_id},
-                    headers={"X-Internal-Token": ""},
+                    headers={"X-Internal-Token": "test-secret"},
                 )
         assert res.status_code == 204
         mock_add.assert_not_called()
@@ -114,7 +114,7 @@ class TestEmbedMultimodalEndpoint:
                     json={"recipe_id": recipe_id, "text": "Lasagne", "image_id": image_id},
                     headers={
                         "X-Gemini-API-Key": "fake-key",
-                        "X-Internal-Token": "",
+                        "X-Internal-Token": "test-secret",
                     },
                 )
         assert res.status_code == 204
@@ -131,7 +131,7 @@ class TestEmbedMultimodalEndpoint:
                     json={"recipe_id": recipe_id, "text": "Lasagne"},
                     headers={
                         "X-Gemini-API-Key": "fake-key",
-                        "X-Internal-Token": "",
+                        "X-Internal-Token": "test-secret",
                     },
                 )
         assert res.status_code == 204

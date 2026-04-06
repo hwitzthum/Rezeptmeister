@@ -67,45 +67,32 @@ export async function POST(request: Request) {
 
   const entryIds = entries.map((e) => e.id);
 
-  // ── Step 1: Delete previously generated items for these meal plan entries ──
-  await db
-    .delete(shoppingListItems)
-    .where(
-      and(
-        eq(shoppingListItems.userId, session.user.id),
-        inArray(shoppingListItems.mealPlanEntryId, entryIds),
-      ),
-    );
-
-  // Collect all unique recipe IDs and fetch their ingredients + servings
+  // Collect all unique recipe IDs and batch-fetch servings + ingredients
   const recipeIds = [...new Set(entries.map((e) => e.recipeId))];
 
-  // Fetch recipe servings
-  const recipeServingsMap = new Map<string, number>();
-  for (const rid of recipeIds) {
-    const r = await db.query.recipes.findFirst({
-      where: eq(recipes.id, rid),
-      columns: { id: true, servings: true },
-    });
-    if (r) recipeServingsMap.set(r.id, r.servings);
+  const [recipeRows, allIngs] = await Promise.all([
+    db
+      .select({ id: recipes.id, servings: recipes.servings })
+      .from(recipes)
+      .where(inArray(recipes.id, recipeIds)),
+    db
+      .select()
+      .from(ingredients)
+      .where(inArray(ingredients.recipeId, recipeIds)),
+  ]);
+
+  const recipeServingsMap = new Map(recipeRows.map((r) => [r.id, r.servings]));
+  const ingredientsByRecipe = new Map<string, (typeof allIngs)[number][]>();
+  for (const ing of allIngs) {
+    const list = ingredientsByRecipe.get(ing.recipeId) ?? [];
+    list.push(ing);
+    ingredientsByRecipe.set(ing.recipeId, list);
   }
 
-  // Fetch ingredients for all recipes
-  const allIngredients = new Map<string, typeof ingredients.$inferSelect[]>();
-  for (const rid of recipeIds) {
-    const ings = await db.query.ingredients.findMany({
-      where: eq(ingredients.recipeId, rid),
-    });
-    allIngredients.set(rid, ings);
-  }
-
-  let added = 0;
-
-  // ── Step 2: Rebuild generated items from scratch ──
-  // Always create separate generated items (tagged with mealPlanEntryId).
-  // Never merge into manually-added items — that would be irreversible on regeneration.
+  // Build all rows to insert
+  const allRows: (typeof shoppingListItems.$inferInsert)[] = [];
   for (const entry of entries) {
-    const ings = allIngredients.get(entry.recipeId) ?? [];
+    const ings = ingredientsByRecipe.get(entry.recipeId) ?? [];
     const baseServings = recipeServingsMap.get(entry.recipeId) ?? 1;
     const scaleFactor = entry.servingsOverride
       ? entry.servingsOverride / baseServings
@@ -116,20 +103,33 @@ export async function POST(request: Request) {
         ? parseFloat(ing.amount) * scaleFactor
         : null;
 
-      await db
-        .insert(shoppingListItems)
-        .values({
-          userId: session.user.id,
-          ingredientName: ing.name,
-          amount: scaledAmount != null ? String(scaledAmount) : undefined,
-          unit: ing.unit ?? undefined,
-          aisleCategory: getAisleCategory(ing.name),
-          mealPlanEntryId: entry.id,
-        });
-
-      added++;
+      allRows.push({
+        userId: session.user.id,
+        ingredientName: ing.name,
+        amount: scaledAmount != null ? String(scaledAmount) : undefined,
+        unit: ing.unit ?? undefined,
+        aisleCategory: getAisleCategory(ing.name),
+        mealPlanEntryId: entry.id,
+      });
     }
   }
+
+  // Atomic: delete old generated items + bulk insert new ones
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(shoppingListItems)
+      .where(
+        and(
+          eq(shoppingListItems.userId, session.user.id),
+          inArray(shoppingListItems.mealPlanEntryId, entryIds),
+        ),
+      );
+    if (allRows.length > 0) {
+      await tx.insert(shoppingListItems).values(allRows);
+    }
+  });
+
+  const added = allRows.length;
 
   const totalResult = await db
     .select({ count: sql<number>`count(*)::int` })
