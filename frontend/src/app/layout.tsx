@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistration from "@/components/layout/ServiceWorkerRegistration";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -17,6 +18,10 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#C24D2C",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "Rezeptmeister",
@@ -25,6 +30,14 @@ export const metadata: Metadata = {
   description:
     "KI-gestützte Rezeptverwaltung für die Schweizer Küche. Rezepte erfassen, verwalten und entdecken.",
   keywords: ["Rezepte", "Kochen", "Schweiz", "Küche", "KI", "Rezeptverwaltung"],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Rezeptmeister",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -38,7 +51,10 @@ export default function RootLayout({
       className={`${playfair.variable} ${dmSans.variable} h-full`}
       suppressHydrationWarning
     >
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }

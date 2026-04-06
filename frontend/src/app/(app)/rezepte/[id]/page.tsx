@@ -58,5 +58,5 @@ export default async function RecipeDetailPage({ params }: PageProps) {
     }),
   );
 
-  return <RecipeDetailClient recipe={serialized} />;
+  return <RecipeDetailClient recipe={serialized} userId={session.user.id} />;
 }

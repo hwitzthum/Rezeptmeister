@@ -343,11 +343,14 @@
 
 ## Phase 17 – PWA & Offline-Zugang
 
-- [ ] next-pwa oder Service Worker konfigurieren
-- [ ] Rezepte für Offline-Zugang markieren
-- [ ] Offline-Caching-Strategie (ausgewählte Rezepte)
-- [ ] App Manifest (Icons, Splash Screen, Farben)
-- [ ] **E2E-Test:** App-Installation, offline markiertes Rezept abrufbar ohne Netz
+- [x] Hand-written Service Worker (`public/sw.js`) mit CacheFirst/NetworkFirst-Strategien + Offline-Fallback
+- [x] Rezepte für Offline-Zugang markieren (OfflineToggleButton in Rezeptdetail, IndexedDB via `idb`)
+- [x] Offline-Caching-Strategie (ausgewählte Rezepte in IndexedDB, Thumbnails als Blobs)
+- [x] App Manifest (`manifest.ts`, PWA Icons 192/384/512/maskable, theme_color #C24D2C, Viewport meta)
+- [x] Offline-Seiten (`/offline` Rezeptliste + `/offline/rezept` Detailansicht aus IDB)
+- [x] useOnlineStatus Hook + OfflineIndicator Banner
+- [x] ServiceWorkerRegistration Komponente
+- [x] **E2E-Test:** 7/7 Tests grün ✅ (Manifest, SW, Toggle, Cache, Liste, Viewer, Uncache)
 
 ---
 

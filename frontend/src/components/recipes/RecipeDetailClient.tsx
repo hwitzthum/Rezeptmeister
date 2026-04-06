@@ -15,6 +15,7 @@ import NotesPanel from "@/components/recipes/NotesPanel";
 import AddToShoppingListButton from "@/components/shopping/AddToShoppingListButton";
 import AddToCollectionButton from "@/components/collections/AddToCollectionButton";
 import PrintOptionsModal from "@/components/recipes/PrintOptionsModal";
+import OfflineToggleButton from "@/components/recipes/OfflineToggleButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,8 +66,10 @@ export interface RecipeDetail {
 
 export default function RecipeDetailClient({
   recipe,
+  userId,
 }: {
   recipe: RecipeDetail;
+  userId: string;
 }) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(recipe.isFavorite);
@@ -172,6 +175,7 @@ export default function RecipeDetailClient({
 
             <AddToShoppingListButton recipeId={recipe.id} recipeTitle={recipe.title} />
             <AddToCollectionButton recipeId={recipe.id} />
+            <OfflineToggleButton recipe={recipe} userId={userId} />
 
             <Link
               href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}

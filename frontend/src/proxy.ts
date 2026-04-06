@@ -9,6 +9,9 @@ const PUBLIC_ROUTES = [
   "/auth/fehler",
 ];
 
+// Routen die öffentlich UND für eingeloggte Benutzer zugänglich sind
+const OPEN_ROUTES = ["/offline"];
+
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
@@ -21,7 +24,8 @@ export default auth((req) => {
   // Statische Assets und Next.js-interne Routen durchlassen
   if (
     nextUrl.pathname.startsWith("/_next") ||
-    nextUrl.pathname.startsWith("/favicon")
+    nextUrl.pathname.startsWith("/favicon") ||
+    nextUrl.pathname === "/manifest.webmanifest"
   ) {
     return NextResponse.next();
   }
@@ -29,6 +33,14 @@ export default auth((req) => {
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     nextUrl.pathname.startsWith(route),
   );
+  const isOpenRoute = OPEN_ROUTES.some((route) =>
+    nextUrl.pathname.startsWith(route),
+  );
+
+  // Offene Routen sind immer zugänglich (eingeloggt oder nicht)
+  if (isOpenRoute) {
+    return NextResponse.next();
+  }
 
   // Nicht angemeldet → zum Login umleiten
   if (!isLoggedIn && !isPublicRoute) {
@@ -48,6 +60,6 @@ export default auth((req) => {
 export const config = {
   // Alle Routen ausser statischen Assets
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|workbox-.*\\.js|icons/.*|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
   ],
 };
