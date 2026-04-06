@@ -22,6 +22,7 @@ export interface OcrResult {
   ingredients: OcrIngredient[];
   instructions: string;
   tags: string[];
+  image_url?: string | null;
   source_type: string;
 }
 

@@ -42,6 +42,7 @@ class OcrResult(BaseModel):
     ingredients: list[OcrIngredient] = Field(default_factory=list, description="Liste aller Zutaten")
     instructions: str = Field(..., description="Zubereitungsanleitung auf Deutsch")
     tags: list[str] = Field(default_factory=list, description="Passende Tags auf Deutsch (z.B. 'Vegetarisch', 'Schnell')")
+    image_url: Optional[str] = Field(None, description="Optionale Bild-URL aus JSON-LD")
     source_type: str = Field(default="image_ocr")
 
 

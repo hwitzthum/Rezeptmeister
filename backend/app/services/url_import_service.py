@@ -225,6 +225,27 @@ def _extract_instruction_text(instructions) -> str:
     return "\n".join(steps)
 
 
+def _extract_image_url(value: object) -> Optional[str]:
+    """Extrahiert die erste HTTPS-Bild-URL aus dem JSON-LD image-Feld.
+    Unterstützt: String, Liste, ImageObject, Liste von ImageObjects."""
+    if isinstance(value, str):
+        candidates = [value]
+    elif isinstance(value, list):
+        candidates = [
+            (v if isinstance(v, str) else v.get("url") or v.get("contentUrl") or "")
+            for v in value
+            if isinstance(v, (str, dict))
+        ]
+    elif isinstance(value, dict):
+        candidates = [value.get("url") or value.get("contentUrl") or ""]
+    else:
+        return None
+    for url in candidates:
+        if isinstance(url, str) and url.startswith("https://"):
+            return url
+    return None
+
+
 def _map_jsonld_to_recipe(data: dict) -> OcrResult:
     """Mappt schema.org/Recipe JSON-LD auf OcrResult."""
     raw_ingredients = data.get("recipeIngredient") or []
@@ -253,6 +274,7 @@ def _map_jsonld_to_recipe(data: dict) -> OcrResult:
         ingredients=ingredients,
         instructions=instructions,
         tags=[t for t in [cuisine, category] if t],
+        image_url=_extract_image_url(data.get("image")),
         source_type="web_import",
     )
 

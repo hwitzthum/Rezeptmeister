@@ -18,8 +18,8 @@ services:
 
   backend:
     build: ./backend
-    # Port 8000 is NOT published externally — access via Next.js proxy only.
-    # For local direct access during development, add: ports: ["8000:8000"]
+    ports:
+      - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://rezeptmeister:${DB_PASSWORD:-localdev}@db:5432/rezeptmeister
       UPLOAD_DIR: /app/uploads

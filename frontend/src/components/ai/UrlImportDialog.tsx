@@ -31,6 +31,7 @@ export default function UrlImportDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedData, setImportedData] = useState<OcrResult | null>(null);
+  const [importedImageId, setImportedImageId] = useState<string | null>(null);
 
   // Sync initialUrl when dialog opens with a pre-filled URL
   // (handled via key reset in parent or direct prop — just keep url in sync)
@@ -58,7 +59,8 @@ export default function UrlImportDialog({
           data.error ?? "Import fehlgeschlagen. Bitte überprüfen Sie die URL.",
         );
       }
-      const data = (await res.json()) as OcrResult;
+      const data = (await res.json()) as OcrResult & { imageId?: string | null };
+      setImportedImageId(data.imageId ?? null);
       setImportedData(data);
       setStep("preview");
     } catch (err) {
@@ -77,6 +79,7 @@ export default function UrlImportDialog({
     setUrl(initialUrl);
     setError(null);
     setImportedData(null);
+    setImportedImageId(null);
     onClose();
   }
 
@@ -161,9 +164,21 @@ export default function UrlImportDialog({
             </svg>
             Zurück
           </button>
+          {importedData.image_url && (
+            <div className="relative w-full h-48 rounded-xl overflow-hidden bg-warm-100 dark:bg-warm-800">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={importedData.image_url}
+                alt={importedData.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </div>
+          )}
           <OcrPreviewPanel
             result={{ ...importedData, source_type: "url_import" }}
-            imageId=""
+            imageId={importedImageId ?? ""}
             onSaved={handleSaved}
             onClose={handleClose}
           />
