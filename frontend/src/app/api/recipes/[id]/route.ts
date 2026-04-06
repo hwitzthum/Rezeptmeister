@@ -228,7 +228,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }
 
-  await db.delete(recipes).where(eq(recipes.id, id));
+  try {
+    await db.delete(recipes).where(eq(recipes.id, id));
+  } catch (err) {
+    console.error("Fehler beim Loeschen des Rezepts:", err);
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 },
+    );
+  }
 
   return new Response(null, { status: 204 });
 }

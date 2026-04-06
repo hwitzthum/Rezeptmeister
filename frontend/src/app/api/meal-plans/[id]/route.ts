@@ -117,7 +117,7 @@ export async function PUT(
     }
   }
 
-  const updates: Record<string, unknown> = {};
+  const updates: Partial<typeof mealPlans.$inferInsert> = {};
   if (parsed.data.date !== undefined) updates.date = parsed.data.date;
   if (parsed.data.mealType !== undefined) updates.mealType = parsed.data.mealType;
   if (parsed.data.recipeId !== undefined) updates.recipeId = parsed.data.recipeId;
