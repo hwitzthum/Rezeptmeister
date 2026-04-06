@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
     debug: bool = False
 
+    # Supabase Storage – public URL for downloading images
+    supabase_url: str = ""
+    supabase_storage_bucket: str = "recipe-images"
+
     # CORS – stored as str to avoid pydantic-settings JSON-decode issues.
     # Accepts: JSON array, comma-separated, or empty (uses default).
     cors_origins_raw: str = "http://localhost:3000"

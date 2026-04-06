@@ -5,7 +5,6 @@ ruft den OCR-Service auf. Der API-Schlüssel kommt vom Next.js-Proxy als Header.
 """
 
 import logging
-import os
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException
@@ -52,11 +51,10 @@ async def ocr_extract(
         raise HTTPException(status_code=403, detail="Nicht autorisiert.")
 
     try:
-        image_path = _utils.safe_image_path(image.file_path, get_settings().upload_dir)
+        image_path = await _utils.resolve_image_path(image.file_path, get_settings().upload_dir)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiger Dateipfad.")
-
-    if not os.path.exists(image_path):
+    except FileNotFoundError:
         raise HTTPException(
             status_code=422,
             detail="Bilddatei nicht gefunden. Das Bild wurde möglicherweise gelöscht.",

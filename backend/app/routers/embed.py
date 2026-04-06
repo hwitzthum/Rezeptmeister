@@ -74,7 +74,7 @@ async def _bg_embed_image(image_id: UUID, api_key: str) -> None:
             file_path = image.file_path
 
         upload_dir = get_settings().upload_dir
-        image_path = _utils.safe_image_path(file_path, upload_dir)
+        image_path = await _utils.resolve_image_path(file_path, upload_dir)
         embedding = await embed_image(image_path, api_key)
 
         async with AsyncSessionLocal() as session:
@@ -113,7 +113,7 @@ async def _bg_embed_multimodal(
             return
 
         upload_dir = get_settings().upload_dir
-        image_path = _utils.safe_image_path(file_path, upload_dir)
+        image_path = await _utils.resolve_image_path(file_path, upload_dir)
         embedding = await embed_multimodal(text, image_path, api_key)
 
         async with AsyncSessionLocal() as session:
