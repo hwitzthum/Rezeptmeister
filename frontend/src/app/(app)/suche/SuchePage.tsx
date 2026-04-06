@@ -6,9 +6,28 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { formatTime } from "@/lib/format";
-import { Input, Select } from "@/components/ui";
+import { Input, Select, IngredientTagInput } from "@/components/ui";
 import WebSearchResults from "@/components/ai/WebSearchResults";
 import UrlImportDialog from "@/components/ai/UrlImportDialog";
+
+// ── Zutaten match types ──────────────────────────────────────────────────────
+
+interface ZutatenMatchResult {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  cuisine: string | null;
+  difficulty: "einfach" | "mittel" | "anspruchsvoll" | null;
+  totalTimeMinutes: number | null;
+  servings: number;
+  isFavorite: boolean;
+  totalIngredients: number;
+  matchedCount: number;
+  matchPercentage: number;
+  matchedIngredients: string[];
+  missingIngredients: { name: string; amount: string | null; unit: string | null }[];
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -105,7 +124,7 @@ export default function SuchePage() {
   const pathname = usePathname();
 
   // ── Search mode ───────────────────────────────────────────────────────────
-  const [searchMode, setSearchMode] = useState<"volltext" | "ki" | "web">("volltext");
+  const [searchMode, setSearchMode] = useState<"volltext" | "ki" | "web" | "zutaten">("volltext");
 
   // ── URL import state (triggered from web search results) ─────────────────
   const [importUrl, setImportUrl] = useState("");
@@ -138,6 +157,15 @@ export default function SuchePage() {
   const [kiImage, setKiImage] = useState<File | null>(null);
   const [kiSearched, setKiSearched] = useState(false);
   const kiImageInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Zutaten-Suche state ───────────────────────────────────────────────────
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [zutatenResults, setZutatenResults] = useState<ZutatenMatchResult[]>([]);
+  const [zutatenTotal, setZutatenTotal] = useState(0);
+  const [zutatenHasMore, setZutatenHasMore] = useState(false);
+  const [zutatenLoading, setZutatenLoading] = useState(false);
+  const [zutatenSearched, setZutatenSearched] = useState(false);
+  const zutatenAbortRef = useRef<AbortController | null>(null);
 
   // ── Debounced text inputs ─────────────────────────────────────────────────
   const debouncedQ = useDebounce(q, 400);
@@ -283,6 +311,60 @@ export default function SuchePage() {
     }
   }, [q, kiImage]);
 
+  // ── Zutaten fetch ─────────────────────────────────────────────────────────
+  const fetchZutatenResults = useCallback(async (ings: string[]) => {
+    // Abort any in-flight request before starting a new one
+    zutatenAbortRef.current?.abort();
+
+    if (ings.length === 0) {
+      setZutatenResults([]);
+      setZutatenTotal(0);
+      setZutatenHasMore(false);
+      setZutatenSearched(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    zutatenAbortRef.current = controller;
+
+    setZutatenLoading(true);
+    setZutatenSearched(true);
+    try {
+      const res = await fetch("/api/recipes/ingredient-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: ings, limit: 20, offset: 0 }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error("Fehler beim Suchen.");
+      const data = await res.json();
+      // Only apply results if this request was not superseded
+      if (!controller.signal.aborted) {
+        setZutatenResults(data.recipes);
+        setZutatenTotal(data.total);
+        setZutatenHasMore(data.hasMore);
+      }
+    } catch (err) {
+      // Silently ignore aborted requests — a newer one is already in flight
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setZutatenResults([]);
+      setZutatenTotal(0);
+      setZutatenHasMore(false);
+      toast.error("Zutaten-Suche fehlgeschlagen.");
+    } finally {
+      if (!controller.signal.aborted) {
+        setZutatenLoading(false);
+      }
+    }
+  }, []);
+
+  // Re-fetch when ingredients change
+  useEffect(() => {
+    if (searchMode === "zutaten") {
+      void fetchZutatenResults(selectedIngredients);
+    }
+  }, [selectedIngredients, searchMode, fetchZutatenResults]);
+
   // ── Active filter chips (Volltext) ────────────────────────────────────────
   const activeFilters: { label: string; clear: () => void }[] = [];
   if (kategorie) activeFilters.push({ label: kategorie, clear: () => setKategorie("") });
@@ -320,6 +402,7 @@ export default function SuchePage() {
   const isKiMode = searchMode === "ki";
   const isWebMode = searchMode === "web";
   const isVolltextMode = searchMode === "volltext";
+  const isZutatenMode = searchMode === "zutaten";
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -342,7 +425,7 @@ export default function SuchePage() {
                 type="button"
                 onClick={() => setSearchMode("volltext")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  !isKiMode
+                  isVolltextMode
                     ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
@@ -375,6 +458,18 @@ export default function SuchePage() {
                 Web
                 <span className="text-xs leading-none" aria-hidden>🌐</span>
               </button>
+              <button
+                type="button"
+                data-testid="zutaten-suche-toggle"
+                onClick={() => setSearchMode("zutaten")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  isZutatenMode
+                    ? "bg-terra-500 text-white shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                }`}
+              >
+                Zutaten
+              </button>
             </div>
 
             {isVolltextMode && (
@@ -385,7 +480,8 @@ export default function SuchePage() {
           </div>
         </div>
 
-        {/* Search bar */}
+        {/* Search bar (not shown in Zutaten mode — ingredient input is in results) */}
+        {!isZutatenMode && (
         <div className="flex gap-2">
           <div className="relative flex-1">
             <svg
@@ -468,6 +564,7 @@ export default function SuchePage() {
             </button>
           )}
         </div>
+        )}
 
         {/* KI: image upload area */}
         {isKiMode && (
@@ -604,7 +701,16 @@ export default function SuchePage() {
 
         {/* Results */}
         <main className="flex-1 px-6 lg:px-8 py-6 min-w-0">
-          {isWebMode ? (
+          {isZutatenMode ? (
+            <ZutatenSection
+              selectedIngredients={selectedIngredients}
+              onIngredientsChange={setSelectedIngredients}
+              results={zutatenResults}
+              total={zutatenTotal}
+              loading={zutatenLoading}
+              searched={zutatenSearched}
+            />
+          ) : isWebMode ? (
             <WebSearchResults
               query={q}
               onImport={(url) => {
@@ -1090,5 +1196,293 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
         </Link>
       )}
     </div>
+  );
+}
+
+// ── Zutaten Section ──────────────────────────────────────────────────────────
+
+interface ZutatenSectionProps {
+  selectedIngredients: string[];
+  onIngredientsChange: (ingredients: string[]) => void;
+  results: ZutatenMatchResult[];
+  total: number;
+  loading: boolean;
+  searched: boolean;
+}
+
+function ZutatenSection({
+  selectedIngredients,
+  onIngredientsChange,
+  results,
+  total,
+  loading,
+  searched,
+}: ZutatenSectionProps) {
+  const [addingToList, setAddingToList] = useState<string | null>(null);
+
+  async function handleAddMissing(recipe: ZutatenMatchResult) {
+    setAddingToList(recipe.id);
+    try {
+      const res = await fetch("/api/shopping-list/batch-missing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipeId: recipe.id,
+          availableIngredients: selectedIngredients,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.success(
+        `${data.added} Zutat${data.added !== 1 ? "en" : ""} zur Einkaufsliste hinzugefügt${data.merged > 0 ? `, ${data.merged} zusammengeführt` : ""}`,
+      );
+    } catch {
+      toast.error("Fehler beim Hinzufügen zur Einkaufsliste.");
+    } finally {
+      setAddingToList(null);
+    }
+  }
+
+  return (
+    <div>
+      {/* Ingredient input */}
+      <div className="mb-6">
+        <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-3">
+          Was kann ich kochen?
+        </h2>
+        <IngredientTagInput
+          selectedIngredients={selectedIngredients}
+          onIngredientsChange={onIngredientsChange}
+          placeholder="Zutaten eingeben, die Sie zu Hause haben…"
+        />
+      </div>
+
+      {/* Results */}
+      {loading ? (
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--text-muted)] flex items-center gap-2">
+            <span className="inline-block w-4 h-4 border-2 border-terra-400 border-t-transparent rounded-full animate-spin" />
+            Rezepte werden abgeglichen…
+          </p>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+          ))}
+        </div>
+      ) : !searched ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-terra-50 flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-terra-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>
+          <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">
+            Was haben Sie im Kühlschrank?
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] max-w-sm">
+            Geben Sie die Zutaten ein, die Sie zu Hause haben. Wir finden Rezepte, die Sie damit kochen können.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 text-sm text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-2">
+              <span className="text-terra-400">→</span>
+              Kartoffeln, Zwiebeln, Käse
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="text-terra-400">→</span>
+              Poulet, Reis, Kokosmilch
+            </span>
+          </div>
+        </div>
+      ) : results.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="zutaten-empty">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-1">
+            Keine passenden Rezepte
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] max-w-xs">
+            Keines Ihrer Rezepte enthält diese Zutaten. Versuchen Sie andere Zutaten oder erstellen Sie neue Rezepte.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-[var(--text-muted)] mb-3">
+            {total} passende{total !== 1 ? " Rezepte" : "s Rezept"} gefunden
+          </p>
+          <ul data-testid="zutaten-result-list" className="space-y-3">
+            {results.map((recipe) => (
+              <ZutatenResultItem
+                key={recipe.id}
+                recipe={recipe}
+                onAddMissing={() => handleAddMissing(recipe)}
+                addingToList={addingToList === recipe.id}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Zutaten result item ──────────────────────────────────────────────────────
+
+function ZutatenResultItem({
+  recipe,
+  onAddMissing,
+  addingToList,
+}: {
+  recipe: ZutatenMatchResult;
+  onAddMissing: () => void;
+  addingToList: boolean;
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+  const timeLabel =
+    recipe.totalTimeMinutes != null ? formatTime(recipe.totalTimeMinutes) : null;
+
+  return (
+    <li className="rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-terra-300 hover:shadow-warm transition-all overflow-hidden">
+      <div className="flex items-start gap-4 p-4">
+        {/* Match percentage bar */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-1">
+          <div className="w-1.5 h-12 rounded-full bg-[var(--bg-subtle)] overflow-hidden relative">
+            <div
+              className={`w-full absolute bottom-0 rounded-full transition-all ${
+                recipe.matchPercentage >= 80
+                  ? "bg-green-500"
+                  : recipe.matchPercentage >= 50
+                    ? "bg-amber-500"
+                    : "bg-terra-400"
+              }`}
+              style={{ height: `${recipe.matchPercentage}%` }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-[var(--text-muted)]">
+            {recipe.matchPercentage}%
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <Link
+            href={`/rezepte/${recipe.id}`}
+            className="font-semibold text-[var(--text-primary)] truncate block hover:text-terra-700 transition-colors"
+          >
+            {recipe.title}
+          </Link>
+          {recipe.description && (
+            <p className="text-sm text-[var(--text-secondary)] mt-0.5 line-clamp-1">
+              {recipe.description}
+            </p>
+          )}
+
+          {/* Match info */}
+          <p className="text-sm mt-1.5" data-testid="match-info">
+            <span className="font-medium text-[var(--text-primary)]">
+              {recipe.matchedCount} von {recipe.totalIngredients}
+            </span>{" "}
+            <span className="text-[var(--text-muted)]">Zutaten vorhanden</span>
+          </p>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+            {recipe.category && (
+              <span className="text-xs text-[var(--text-muted)]">{recipe.category}</span>
+            )}
+            {recipe.cuisine && (
+              <span className="text-xs text-[var(--text-muted)]">{recipe.cuisine}</span>
+            )}
+            {timeLabel && (
+              <span className="text-xs text-[var(--text-muted)]">⏱ {timeLabel}</span>
+            )}
+            {recipe.difficulty && (
+              <span className="text-xs text-[var(--text-muted)]">
+                {DIFFICULTY_LABELS[recipe.difficulty]}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+          {recipe.isFavorite && (
+            <span className="text-terra-500" aria-label="Favorit">♥</span>
+          )}
+          {recipe.missingIngredients.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDetails((v) => !v)}
+              className="text-xs text-terra-600 hover:text-terra-700 underline transition-colors"
+            >
+              {showDetails ? "Weniger" : "Details"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable details: matched + missing ingredients */}
+      {showDetails && (
+        <div className="border-t border-[var(--border-subtle)] px-4 py-3 bg-[var(--bg-subtle)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Matched */}
+            {recipe.matchedIngredients.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1.5">
+                  Vorhanden ({recipe.matchedIngredients.length})
+                </p>
+                <ul className="space-y-0.5">
+                  {recipe.matchedIngredients.map((name) => (
+                    <li key={name} className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
+                      <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Missing */}
+            {recipe.missingIngredients.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-red-500 mb-1.5">
+                  Fehlt ({recipe.missingIngredients.length})
+                </p>
+                <ul className="space-y-0.5">
+                  {recipe.missingIngredients.map((ing) => (
+                    <li key={ing.name} className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+                      <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {ing.amount && ing.unit
+                        ? `${ing.amount} ${ing.unit} ${ing.name}`
+                        : ing.amount
+                          ? `${ing.amount} ${ing.name}`
+                          : ing.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Add missing to shopping list */}
+          {recipe.missingIngredients.length > 0 && (
+            <button
+              type="button"
+              data-testid="add-missing-to-list"
+              onClick={onAddMissing}
+              disabled={addingToList}
+              className="mt-3 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-terra-500 text-white hover:bg-terra-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 justify-center"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              </svg>
+              {addingToList ? "Wird hinzugefügt…" : `Fehlende zur Einkaufsliste (${recipe.missingIngredients.length})`}
+            </button>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
