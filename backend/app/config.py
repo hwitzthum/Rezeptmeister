@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
 from functools import lru_cache
+import json
 
 
 class Settings(BaseSettings):
@@ -25,19 +25,18 @@ class Settings(BaseSettings):
     # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
     debug: bool = False
 
-    # CORS – accepts a JSON array or a comma-separated string
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # CORS – stored as str to avoid pydantic-settings JSON-decode issues.
+    # Accepts: JSON array, comma-separated, or empty (uses default).
+    cors_origins_raw: str = "http://localhost:3000"
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v: object) -> object:
-        if isinstance(v, str):
-            v = v.strip()
-            if not v:
-                return ["http://localhost:3000"]
-            if not v.startswith("["):
-                return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+    @property
+    def cors_origins(self) -> list[str]:
+        v = self.cors_origins_raw.strip()
+        if not v:
+            return ["http://localhost:3000"]
+        if v.startswith("["):
+            return json.loads(v)
+        return [o.strip() for o in v.split(",") if o.strip()]
 
 
 @lru_cache
