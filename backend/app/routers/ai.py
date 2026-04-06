@@ -177,32 +177,53 @@ async def generate_image(
         "Hochwertige Food-Fotografie, kein Text im Bild."
     )
 
-    # Gemini Image Generation aufrufen
+    # Gemini Image Generation aufrufen (mit Retry bei fehlendem Bild)
     client = get_gemini_client(x_gemini_api_key)
-    try:
-        response = await client.aio.models.generate_content(
-            model=settings.gemini_image_gen_model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
-        )
-    except Exception as e:
-        logger.error(f"Bildgenerierungs-Fehler: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=502, detail="KI-Bildgenerierung fehlgeschlagen.")
-
-    # Bild-Part aus Antwort extrahieren
     image_bytes: Optional[bytes] = None
     mime_type: str = "image/webp"
-    if response.candidates:
-        for part in response.candidates[0].content.parts:
-            if part.inline_data and part.inline_data.data:
-                image_bytes = part.inline_data.data
-                mime_type = part.inline_data.mime_type or "image/webp"
-                break
+    max_attempts = 3
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = await client.aio.models.generate_content(
+                model=settings.gemini_image_gen_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE", "TEXT"],
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Bildgenerierungs-Fehler (Versuch {attempt}): {type(e).__name__}: {e}")
+            if attempt == max_attempts:
+                raise HTTPException(status_code=502, detail="KI-Bildgenerierung fehlgeschlagen.")
+            continue
+
+        # Bild-Part aus Antwort extrahieren
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data and part.inline_data.data:
+                    image_bytes = part.inline_data.data
+                    mime_type = part.inline_data.mime_type or "image/webp"
+                    break
+
+        if image_bytes:
+            logger.info(f"Bild generiert nach {attempt} Versuch(en), {len(image_bytes)} Bytes")
+            break
+
+        # Log what we got instead
+        parts_info = []
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.text:
+                    parts_info.append(f"text({len(part.text)} chars)")
+                elif part.inline_data:
+                    parts_info.append(f"inline_data(mime={part.inline_data.mime_type}, size={len(part.inline_data.data) if part.inline_data.data else 0})")
+                else:
+                    parts_info.append("unknown_part")
+        logger.warning(f"Kein Bild in Versuch {attempt}/{max_attempts}. Response parts: {parts_info}")
 
     if not image_bytes:
-        raise HTTPException(status_code=502, detail="Kein Bild in der KI-Antwort enthalten.")
+        raise HTTPException(status_code=502, detail="Kein Bild in der KI-Antwort enthalten (nach 3 Versuchen).")
 
     # Dateinamen erzeugen
     file_stem = f"ai_{uuid.uuid4().hex}"
