@@ -351,25 +351,74 @@ open http://localhost:8000/docs
 
 ## Environment Variables
 
-### Frontend (`frontend/.env.local`)
+### Why three separate files?
 
-| Variable | Description | Example / How to generate |
+There are three `.env` locations, each for a different runtime. Merging them into one root file would not work cleanly — the three runtimes have different loading mechanisms, different path roots, and even different `DATABASE_URL` formats for the same database.
+
+| File | Read by | Why it lives here |
+|------|---------|-------------------|
+| `frontend/.env.local` | Next.js (Node.js process) | Next.js's native convention. `.env.local` is auto-excluded from git by Next.js's default `.gitignore` — a security feature you get for free. |
+| `backend/.env` | FastAPI / Python (`python-dotenv`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
+| `.env` (project root) | `docker-compose.yml` | Docker Compose reads the root `.env` automatically to interpolate `${VAR}` placeholders in `docker-compose.yml` (e.g. DB password, port mappings). Not read by Next.js or FastAPI. |
+
+> **Production:** None of these files travel to production. Secrets are set via the deployment platform (Vercel dashboard, Railway secrets, Fly.io `flyctl secrets set`). See [Production Deployment](#production-deployment).
+
+---
+
+### `frontend/.env.local`
+
+> Copy from `.env.example` and fill in the three generated secrets before first run.
+
+| Variable | Description | How to generate / Example |
 |----------|-------------|--------------------------|
-| `DATABASE_URL` | PostgreSQL connection | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` |
-| `NEXTAUTH_SECRET` | JWT signing key | `openssl rand -base64 48` |
-| `NEXTAUTH_URL` | App base URL | `http://localhost:3001` |
-| `BACKEND_URL` | FastAPI URL | `http://localhost:8000` |
-| `UPLOAD_DIR` | Image storage directory | `./uploads` |
-| `ENCRYPTION_KEY` | AES-256 key for API keys (**64 hex chars**) | `openssl rand -hex 32` |
-| `INTERNAL_SECRET` | Shared Next.js ↔ FastAPI secret | `openssl rand -hex 32` |
+| `DATABASE_URL` | PostgreSQL connection string for Drizzle ORM (postgres.js driver) | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` — note port **5434** (host-mapped from Docker's 5432) |
+| `NEXTAUTH_SECRET` | Signs and verifies JWT session tokens | `openssl rand -base64 48` |
+| `NEXTAUTH_URL` | Canonical app URL — must match the browser origin exactly | `http://localhost:3001` |
+| `BACKEND_URL` | Internal URL for Next.js → FastAPI proxy calls (server-side only, never reaches the browser) | `http://localhost:8000` |
+| `UPLOAD_DIR` | Where uploaded images are stored, relative to `frontend/` | `./uploads` |
+| `ENCRYPTION_KEY` | AES-256-GCM key used to encrypt user API keys at rest. **Must be exactly 64 hex characters (32 bytes).** | `openssl rand -hex 32` |
+| `INTERNAL_SECRET` | Shared secret that Next.js sends to FastAPI on every AI request, so FastAPI can reject unauthenticated calls. Must match `backend/.env`. | `openssl rand -hex 32` |
+| `GEMINI_TEST_KEY` | *(Optional)* Gemini API key used only during live E2E tests. Never used in the running app. | Gemini API key from Google AI Studio |
+| `TEST_ADMIN_EMAIL` | *(Optional)* Admin email injected into Playwright tests | `test-admin@example.com` |
+| `TEST_ADMIN_PASSWORD` | *(Optional)* Admin password injected into Playwright tests | A strong test password — never a real production credential |
 
-### Backend (via Docker Compose or `backend/.env`)
+---
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | asyncpg connection (Docker-internal) | `postgresql+asyncpg://rezeptmeister:localdev@db:5432/rezeptmeister` |
-| `UPLOAD_DIR` | Image storage inside container | `/app/uploads` |
-| `INTERNAL_SECRET` | Must match the frontend value | *(same as frontend)* |
+### `backend/.env`
+
+Used when running FastAPI locally outside Docker (`uv run uvicorn ...`). When FastAPI runs inside Docker, `docker-compose.yml` provides these variables directly and this file is ignored.
+
+| Variable | Description | Local value | Docker value (set in compose) |
+|----------|-------------|-------------|-------------------------------|
+| `DATABASE_URL` | asyncpg connection string — note the `+asyncpg` driver prefix required by SQLAlchemy 2 async | `postgresql+asyncpg://rezeptmeister:localdev@localhost:5434/rezeptmeister` | `postgresql+asyncpg://rezeptmeister:localdev@db:5432/rezeptmeister` (uses Docker service name `db`) |
+| `UPLOAD_DIR` | Image storage path from FastAPI's working directory | `../uploads` (one level up from `backend/`) | `/app/uploads` (inside the container) |
+| `INTERNAL_SECRET` | Must match the value in `frontend/.env.local` exactly | *(same as frontend)* | *(injected by docker-compose)* |
+| `DEBUG` | Enables `/docs`, `/redoc`, `/openapi.json` on the FastAPI server | `true` | `false` |
+| `GEMINI_EMBEDDING_MODEL` | Which Gemini model to use for embeddings | `gemini-embedding-2-preview` | *(same)* |
+| `GEMINI_OCR_MODEL` | Which Gemini model to use for OCR | `gemini-3.1-pro-preview` | *(same)* |
+
+---
+
+### `.env` (project root)
+
+Read exclusively by `docker-compose.yml` for variable interpolation. Not read by Next.js or FastAPI.
+
+| Variable | Used for |
+|----------|----------|
+| `DB_PASSWORD` | Interpolated into the `POSTGRES_PASSWORD` env var and the `DATABASE_URL` inside the compose file |
+
+---
+
+### Why `DATABASE_URL` appears in both runtimes with different formats
+
+Both Next.js and FastAPI connect to the same PostgreSQL instance, but use different drivers that require different URL prefixes:
+
+| Runtime | Driver | URL format |
+|---------|--------|------------|
+| Next.js (Drizzle) | `postgres` (postgres.js) | `postgresql://user:pass@host:port/db` |
+| FastAPI (SQLAlchemy async) | `asyncpg` | `postgresql+asyncpg://user:pass@host:port/db` |
+
+The host also differs: `localhost:5434` from the host machine vs. `db:5432` from inside the Docker network.
 
 ---
 
