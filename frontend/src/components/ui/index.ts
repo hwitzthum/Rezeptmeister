@@ -8,3 +8,5 @@ export { Card, RecipeCard } from "./card";
 export { Badge, DifficultyBadge, SourceBadge } from "./badge";
 
 export { Modal, ConfirmDialog } from "./modal";
+
+export { IngredientTagInput } from "./IngredientTagInput";

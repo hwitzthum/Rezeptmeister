@@ -333,11 +333,11 @@
 
 ## Phase 16 – "Was kann ich kochen?" (F-SEARCH-04)
 
-- [ ] Zutaten-Eingabe mit Autocomplete
-- [ ] Matching-Algorithmus: Rezepte mit höchstem Übereinstimmungsgrad
-- [ ] Ergebnisse zeigen: "4 von 6 Zutaten vorhanden"
-- [ ] Fehlende Zutaten direkt zur Einkaufsliste
-- [ ] **E2E-Test:** Zutaten eingeben, Ergebnisse nach Übereinstimmung sortiert
+- [x] Zutaten-Eingabe mit Autocomplete
+- [x] Matching-Algorithmus: Rezepte mit höchstem Übereinstimmungsgrad
+- [x] Ergebnisse zeigen: "4 von 6 Zutaten vorhanden"
+- [x] Fehlende Zutaten direkt zur Einkaufsliste
+- [x] **E2E-Test:** Zutaten eingeben, Ergebnisse nach Übereinstimmung sortiert ✅ 10/10 Tests grün
 
 ---
 
