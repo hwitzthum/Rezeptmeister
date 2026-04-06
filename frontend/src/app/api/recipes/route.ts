@@ -145,6 +145,7 @@ export async function POST(request: Request) {
             .filter(Boolean)
             .join(" "),
         }),
+        signal: AbortSignal.timeout(60_000),
       }).catch((err) => {
         console.error("Embedding-Berechnung fehlgeschlagen:", err);
       });

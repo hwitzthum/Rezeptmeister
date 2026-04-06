@@ -27,6 +27,9 @@ app = FastAPI(
     description="KI-Pipeline für Rezeptmeister – Embeddings, OCR, KI-Funktionen",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
 )
 
 app.add_middleware(
@@ -38,14 +41,19 @@ app.add_middleware(
 )
 
 
-_TOKEN_EXEMPT = {"/health", "/docs", "/redoc", "/openapi.json"}
+_TOKEN_EXEMPT = {"/health"}
 
 
 class InternalTokenMiddleware(BaseHTTPMiddleware):
-    """Require X-Internal-Token on all routes except health/docs when internal_secret is set."""
+    """Require X-Internal-Token on all non-exempt routes. Returns 503 if secret is unconfigured."""
 
     async def dispatch(self, request: Request, call_next):
-        if settings.internal_secret and request.url.path not in _TOKEN_EXEMPT:
+        if request.url.path not in _TOKEN_EXEMPT:
+            if not settings.internal_secret:
+                return JSONResponse(
+                    {"detail": "Server nicht konfiguriert (INTERNAL_SECRET fehlt)."},
+                    status_code=503,
+                )
             token = request.headers.get("X-Internal-Token")
             if token != settings.internal_secret:
                 return JSONResponse({"detail": "Unauthorized"}, status_code=401)

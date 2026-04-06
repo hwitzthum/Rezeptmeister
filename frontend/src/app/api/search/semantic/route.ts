@@ -108,6 +108,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: buildAiHeaders(geminiKey),
       body: JSON.stringify(backendBody),
+      signal: AbortSignal.timeout(15_000),
     });
   } catch {
     return NextResponse.json(

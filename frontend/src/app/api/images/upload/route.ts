@@ -106,6 +106,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Defense-in-depth: reject unexpected formats detected by Sharp
+  const allowedFormats = ["jpeg", "png", "webp"];
+  if (!meta.format || !allowedFormats.includes(meta.format)) {
+    return NextResponse.json(
+      { error: "Ungueltiges Bildformat." },
+      { status: 415 },
+    );
+  }
+
   // Ensure upload directories exist, then write files in parallel
   await Promise.all([
     fs.promises.mkdir(originalsDir, { recursive: true }),
@@ -172,6 +181,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers,
       body: JSON.stringify({ image_id: imageId }),
+      signal: AbortSignal.timeout(60_000),
     }).catch((err) => {
       console.error("Bild-Embedding-Berechnung fehlgeschlagen:", err);
     });

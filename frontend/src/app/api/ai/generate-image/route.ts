@@ -99,6 +99,7 @@ export async function POST(request: Request) {
         ...parsed.data,
         user_id: session.user.id,
       }),
+      signal: AbortSignal.timeout(30_000),
     });
   } catch {
     return NextResponse.json(

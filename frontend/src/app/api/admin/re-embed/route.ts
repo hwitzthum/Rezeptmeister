@@ -80,6 +80,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: buildAiHeaders(geminiKey),
         body: JSON.stringify({ user_id: user.id }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       if (!res.ok) {

@@ -172,6 +172,7 @@ export async function PUT(
             .filter(Boolean)
             .join(" "),
         }),
+        signal: AbortSignal.timeout(60_000),
       }).catch((err) => {
         console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
       });

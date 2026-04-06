@@ -65,6 +65,9 @@ export function checkRateLimit(
 ): RateLimitResult {
   // Disable rate limiting in test/development when explicitly opted out
   if (process.env.DISABLE_RATE_LIMIT === "true") {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DISABLE_RATE_LIMIT=true ist in Produktion nicht erlaubt.");
+    }
     return { allowed: true, remaining: config.max };
   }
 
@@ -87,12 +90,25 @@ export function checkRateLimit(
 
 /** Extract client IP from Next.js request headers.
  * Uses the rightmost entry of x-forwarded-for, which is set by the trusted
- * reverse proxy closest to the application (not spoofable by the client). */
+ * reverse proxy closest to the application (not spoofable by the client).
+ * Falls back to a URL+User-Agent hash when no IP header is present,
+ * to avoid all unknown clients sharing a single rate-limit bucket. */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
-    return ips[ips.length - 1] ?? "unknown";
+    const ip = ips[ips.length - 1];
+    if (ip) return ip;
   }
-  return request.headers.get("x-real-ip") ?? "unknown";
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp;
+
+  // Fallback: hash URL + User-Agent to avoid a shared "unknown" bucket
+  const ua = request.headers.get("user-agent") ?? "";
+  const url = new URL(request.url);
+  let hash = 0;
+  for (const ch of ua) {
+    hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+  }
+  return `unknown:${url.pathname}:${hash}`;
 }

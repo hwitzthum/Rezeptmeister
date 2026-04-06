@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     thumbnail_size: tuple[int, int] = (300, 300)
 
     # Internal token – Next.js proxy must send this in X-Internal-Token header.
-    # Leave empty in development to disable the check.
+    # Required in all environments. Generate with: openssl rand -hex 32
     internal_secret: str = ""
 
     # Gemini model names (configurable for future upgrades)
@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     gemini_ocr_model: str = "gemini-3.1-pro-preview"
     gemini_flash_model: str = "gemini-2.5-flash"
     gemini_image_gen_model: str = "gemini-2.5-flash-image"
+
+    # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
+    debug: bool = False
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
