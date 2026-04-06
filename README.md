@@ -593,79 +593,151 @@ jobs:
 
 ## Production Deployment
 
-### Step 1 — Frontend (Vercel)
+Rezeptmeister is deployed on three free-tier services. Every push to `main` auto-deploys to both Vercel and Render.
 
-1. Connect the GitHub repo to Vercel
-2. Set **Root Directory:** `frontend`, **Framework:** Next.js
-3. Add environment variables in the Vercel dashboard:
+### Live URLs
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Frontend** | [rezeptmeister.vercel.app](https://rezeptmeister.vercel.app) | Next.js app (Vercel, free) |
+| **Backend** | [rezeptmeister-api.onrender.com](https://rezeptmeister-api.onrender.com) | FastAPI AI pipeline (Render, free, Frankfurt) |
+| **Database** | Supabase (eu-west-1) | PostgreSQL 17 + pgvector 0.8 |
+| **Image Storage** | Supabase Storage | `recipe-images` bucket (1 GB free) |
+
+### Architecture (Production)
 
 ```
-DATABASE_URL        postgresql://...
-NEXTAUTH_SECRET     <generated>
-NEXTAUTH_URL        https://yourdomain.com
-BACKEND_URL         https://api.yourdomain.com
-ENCRYPTION_KEY      <64 hex chars>
-INTERNAL_SECRET     <generated>
-UPLOAD_DIR          /tmp/uploads   # or remove if using S3/R2
+┌──────────────────┐     ┌───────────────────────┐     ┌──────────────────────┐
+│ Vercel (Free)    │     │ Render (Free, FFM)    │     │ Supabase (Free, EU)  │
+│                  │     │                       │     │                      │
+│ Next.js Frontend │────▶│ FastAPI Backend        │────▶│ PostgreSQL 17        │
+│ + NextAuth       │     │ AI pipeline, OCR,     │     │ + pgvector 0.8       │
+│ + Drizzle ORM ───│─────│─ embeddings, search   │────▶│ + Storage (images)   │
+│ + API Routes     │     │                       │     │                      │
+└──────────────────┘     └───────────────────────┘     └──────────────────────┘
 ```
 
-4. Every push to `main` auto-deploys. PRs get preview deployments.
+### Image Storage: Supabase Storage
 
-### Step 2 — Backend (Railway or Fly.io)
+Production uses **Supabase Storage** instead of local filesystem. Both Vercel and Render have ephemeral filesystems — uploaded files would be lost on redeploy.
 
-**Railway:**
-1. New project → Docker service → connect repo, select `backend/` directory
-2. Set `DATABASE_URL` (asyncpg format) and `INTERNAL_SECRET`
+| Operation | How it works |
+|-----------|-------------|
+| **Upload** (frontend) | Next.js API route → `@supabase/supabase-js` → Supabase Storage bucket |
+| **Serving** | `/api/uploads/*` → 302 redirect to Supabase CDN public URL |
+| **AI image generation** (backend) | FastAPI → Gemini API → upload bytes to Supabase Storage REST API |
+| **OCR / Embedding** (backend) | Downloads image from Supabase public URL → temp file → process → cleanup |
+| **Delete** | Removes from both DB and Supabase Storage |
 
-**Fly.io:**
+In local development, the backend falls back to local filesystem (`uploads/`) when `SUPABASE_URL` is not set.
+
+### Free Tier Limitations
+
+| Platform | Limitation | Impact |
+|----------|-----------|--------|
+| **Render** | Free services sleep after 15 min inactivity | First AI request after sleep = ~30-60s cold start |
+| **Supabase** | DB pauses after 1 week of zero activity | Auto-resumes on first request (~5s delay) |
+| **Vercel** | Serverless function timeout = 10s (free) | Fine — heavy AI work goes through FastAPI |
+
+### Environment Variables (Production)
+
+**Vercel Dashboard** (`frontend`):
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | `postgresql://postgres.<ref>:<password>@aws-1-eu-west-1.pooler.supabase.com:6543/postgres` |
+| `NEXTAUTH_SECRET` | Generated with `openssl rand -base64 48` |
+| `BACKEND_URL` | `https://rezeptmeister-api.onrender.com` |
+| `ENCRYPTION_KEY` | Generated with `openssl rand -hex 32` |
+| `INTERNAL_SECRET` | Generated with `openssl rand -hex 32` (must match Render) |
+| `SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API |
+
+**Render Dashboard** (`backend`):
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | `postgresql+asyncpg://postgres.<ref>:<password>@aws-1-eu-west-1.pooler.supabase.com:6543/postgres` |
+| `INTERNAL_SECRET` | Same value as Vercel |
+| `SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Same value as Vercel |
+| `UPLOAD_DIR` | `/tmp/uploads` |
+| `CORS_ORIGINS_RAW` | `https://rezeptmeister.vercel.app` |
+| `DEBUG` | `false` |
+
+> **Note:** The `DATABASE_URL` format differs between frontend (`postgresql://`) and backend (`postgresql+asyncpg://`). Both use the Supabase **connection pooler** (port 6543), which requires `statement_cache_size=0` for asyncpg (already configured in `database.py`).
+
+### Deploying Changes
+
+Every push to `main` triggers automatic deployments on both platforms:
+
+1. **Vercel** detects the push, builds the Next.js frontend (~2 min)
+2. **Render** detects the push, builds the Docker image, runs Alembic migrations, starts uvicorn (~3-4 min)
+
+No manual steps needed. To verify:
+- Vercel: check [vercel.com/rautaki/rezeptmeister](https://vercel.com/rautaki/rezeptmeister) for deployment status
+- Render: check [dashboard.render.com](https://dashboard.render.com) for `rezeptmeister-api` status
+
+### Security Checklist
+
+- [x] HTTPS enforced (Vercel auto-provisions SSL)
+- [x] `ENCRYPTION_KEY` is exactly 64 hex chars (32 bytes)
+- [x] `NEXTAUTH_SECRET` unique to production
+- [x] No secrets committed to git (`.env.local` in `.gitignore`)
+- [x] CORS in FastAPI restricted to the Vercel origin only
+- [x] `INTERNAL_SECRET` shared between frontend and backend
+- [x] API keys encrypted at rest (AES-256)
+- [x] Rate limiting on all API endpoints
+- [ ] Daily automated database backups (Supabase free tier: weekly point-in-time)
+
+---
+
+## Development → Production Workflow
+
+### How Local Dev and Production Coexist
+
+The same codebase runs in both environments. The only difference is environment variables and storage backend:
+
+| Aspect | Local Development | Production |
+|--------|-------------------|------------|
+| **Frontend** | `npm run dev` on port 3001 | Vercel serverless |
+| **Backend** | Docker or `uv run uvicorn` on port 8000 | Render Docker container |
+| **Database** | Local Docker PostgreSQL on port 5434 | Supabase pooler on port 6543 |
+| **Image storage** | Local `uploads/` directory | Supabase Storage bucket |
+| **Image serving** | Next.js reads from filesystem | 302 redirect to Supabase CDN |
+| **Backend image access** | Reads from local disk | Downloads from Supabase public URL |
+
+### Developing a New Feature
+
 ```bash
-cd backend
-flyctl launch   # generates fly.toml
-flyctl secrets set DATABASE_URL="postgresql+asyncpg://..." INTERNAL_SECRET="..."
-flyctl deploy
+# 1. Start local services
+docker compose up -d          # PostgreSQL + pgvector + FastAPI
+cd frontend && npm run dev    # Next.js on http://localhost:3001
+
+# 2. Make your changes (frontend and/or backend)
+# 3. Test locally
+npm run build                 # TypeScript + Next.js build check
+npm run test                  # Vitest unit tests
+npx playwright test           # E2E tests (port 3002)
+cd ../backend && uv run pytest  # Backend integration tests
+
+# 4. Commit and push — auto-deploys to production
+git add -A && git commit -m "feat: your feature"
+git push origin main
 ```
 
-### Step 3 — Database (Supabase or Railway)
+### Key Differences to Be Aware Of
 
-Supabase is recommended because pgvector is enabled by default.
+1. **Database URL format:** Local uses `localhost:5434`, production uses `aws-1-eu-west-1.pooler.supabase.com:6543`. The pooler requires `statement_cache_size=0` for asyncpg — this is already handled in `backend/app/database.py`.
 
-```sql
--- If using a bare PostgreSQL instance, enable pgvector first:
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+2. **Image storage:** Local dev writes to `uploads/` on disk. Production uses Supabase Storage. The code handles both paths automatically:
+   - Frontend: `supabase-storage.ts` handles uploads; `SUPABASE_URL` env var presence controls the path
+   - Backend: `resolve_image_path()` tries local disk first, falls back to Supabase download
+   - Backend AI image gen: checks `settings.supabase_url` — if set, uploads to Supabase; otherwise writes locally
 
-Then run the schema:
-```bash
-# Via Alembic (from backend/)
-uv run alembic upgrade head
+3. **CORS:** Local backend allows `localhost:3000`. Production restricts to `https://rezeptmeister.vercel.app` via `CORS_ORIGINS_RAW`.
 
-# Or apply db/init.sql directly via psql
-psql $DATABASE_URL < db/init.sql
-```
-
-### Step 4 — Image Storage (Production)
-
-Replace local `uploads/` with S3 or Cloudflare R2. Update `next.config.ts`:
-
-```typescript
-images: {
-  remotePatterns: [
-    { protocol: 'https', hostname: 'your-bucket.s3.amazonaws.com' },
-    // or: { protocol: 'https', hostname: 'your-account.r2.cloudflarestorage.com' }
-  ],
-},
-```
-
-### Step 5 — Security Checklist
-
-- [ ] `HTTPS` enforced (Vercel auto-provisions SSL)
-- [ ] `ENCRYPTION_KEY` is exactly 64 hex chars (32 bytes)
-- [ ] `NEXTAUTH_SECRET` rotated from defaults
-- [ ] Database reachable only from app servers (firewall)
-- [ ] No secrets committed to git (`.env.local` in `.gitignore`)
-- [ ] CORS in FastAPI configured to allow only the Next.js origin
-- [ ] Daily automated database backups enabled (Supabase / Railway)
-- [ ] Rate limits reviewed for production traffic levels
+4. **Debug mode:** Local backend has `DEBUG=true` (enables `/docs`). Production has `DEBUG=false`.
 
 ### Production Deployment Checklist
 
@@ -723,12 +795,31 @@ psql postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister -c "SELECT
 - Gemini key is missing or expired
 - Confirm `INTERNAL_SECRET` matches between frontend and backend
 
-### "Images not showing"
+### "Images not showing" (Production)
 
-- Confirm `UPLOAD_DIR` exists and is writable
-- List thumbnails: `ls uploads/thumbnails/`
-- For S3/R2: verify public read bucket policy
+- Images are served via 302 redirect to Supabase Storage CDN
+- Check that `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in both Vercel and Render
+- Verify the `recipe-images` bucket exists in Supabase Dashboard → Storage
+- Check `next.config.ts` has the Supabase hostname in `images.remotePatterns`
 - Hard-refresh browser: `Cmd+Shift+R`
+
+### "Images not showing" (Local Dev)
+
+- Confirm `uploads/` directory exists at the project root
+- List thumbnails: `ls uploads/thumbnails/`
+
+### "Render backend returns 502 on AI image generation"
+
+- Gemini image generation is non-deterministic — the model sometimes returns text-only responses
+- The backend retries up to 3 times automatically
+- Check Render logs: Dashboard → `rezeptmeister-api` → Logs
+- Verify Gemini API key is valid and has image generation quota
+
+### "Render backend is slow (30-60s response)"
+
+- Render free tier sleeps after 15 minutes of inactivity
+- First request after sleep triggers a cold start (~30-60s)
+- Subsequent requests are fast until the next sleep cycle
 
 ### "E2E tests time out"
 
@@ -796,4 +887,4 @@ docker compose exec backend uv run alembic history
 - **Playwright** — Comprehensive E2E testing
 
 Built for Swiss home cooks.  
-*Last updated: 2026-04-06*
+*Last updated: 2026-04-07*
