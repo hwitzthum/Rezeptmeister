@@ -1,5 +1,3 @@
-import path from "path";
-import fs from "fs";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { z } from "zod";
@@ -14,11 +12,11 @@ import {
   ALLOWED_IMAGE_MIME,
   MAX_IMAGE_BYTES,
   MIME_TO_EXT,
-  UPLOAD_BASE,
   UPLOAD_API_PREFIX,
   thumbnailUrl,
   stripImageColumns,
 } from "@/lib/images";
+import { uploadToStorage, deleteFromStorage } from "@/lib/supabase-storage";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -82,10 +80,8 @@ export async function POST(request: Request) {
   const originalFileName = `${imageId}${ext}`;
   const thumbFileName = `${imageId}.webp`;
 
-  const originalsDir = path.join(UPLOAD_BASE, "originals");
-  const thumbsDir = path.join(UPLOAD_BASE, "thumbnails");
-  const originalPath = path.join(originalsDir, originalFileName);
-  const thumbPath = path.join(thumbsDir, thumbFileName);
+  const originalStoragePath = `originals/${originalFileName}`;
+  const thumbStoragePath = `thumbnails/${thumbFileName}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -115,23 +111,18 @@ export async function POST(request: Request) {
     );
   }
 
-  // Ensure upload directories exist, then write files in parallel
-  await Promise.all([
-    fs.promises.mkdir(originalsDir, { recursive: true }),
-    fs.promises.mkdir(thumbsDir, { recursive: true }),
-  ]);
-
+  // Upload original + thumbnail to Supabase Storage in parallel
   try {
     await Promise.all([
-      fs.promises.writeFile(originalPath, buffer),
-      fs.promises.writeFile(thumbPath, thumbBuffer),
+      uploadToStorage(originalStoragePath, buffer, file.type),
+      uploadToStorage(thumbStoragePath, thumbBuffer, "image/webp"),
     ]);
   } catch (err) {
     await Promise.allSettled([
-      fs.promises.unlink(originalPath),
-      fs.promises.unlink(thumbPath),
+      deleteFromStorage(originalStoragePath),
+      deleteFromStorage(thumbStoragePath),
     ]);
-    console.error("Fehler beim Schreiben der Bilddateien:", err);
+    console.error("Fehler beim Hochladen in Supabase Storage:", err);
     return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
   }
 
@@ -158,8 +149,8 @@ export async function POST(request: Request) {
     image = inserted;
   } catch (err) {
     await Promise.allSettled([
-      fs.promises.unlink(originalPath),
-      fs.promises.unlink(thumbPath),
+      deleteFromStorage(originalStoragePath),
+      deleteFromStorage(thumbStoragePath),
     ]);
     console.error("Fehler beim Speichern des Bildes in der Datenbank:", err);
     return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });

@@ -1,5 +1,3 @@
-import path from "path";
-import fs from "fs";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { auth } from "@/auth";
@@ -15,11 +13,10 @@ import {
   ALLOWED_IMAGE_MIME,
   MAX_IMAGE_BYTES,
   MIME_TO_EXT,
-  UPLOAD_BASE,
   UPLOAD_API_PREFIX,
-  thumbnailUrl,
   type AllowedImageMime,
 } from "@/lib/images";
+import { uploadToStorage } from "@/lib/supabase-storage";
 
 const bodySchema = z.object({
   url: z.string().url(),
@@ -53,9 +50,6 @@ async function fetchAndStoreImage(
     const originalFileName = `${imageId}${ext}`;
     const thumbFileName = `${imageId}.webp`;
 
-    const originalsDir = path.join(UPLOAD_BASE, "originals");
-    const thumbsDir = path.join(UPLOAD_BASE, "thumbnails");
-
     const s = sharp(buffer);
     const [meta, thumbBuffer] = await Promise.all([
       s.metadata(),
@@ -63,12 +57,8 @@ async function fetchAndStoreImage(
     ]);
 
     await Promise.all([
-      fs.promises.mkdir(originalsDir, { recursive: true }),
-      fs.promises.mkdir(thumbsDir, { recursive: true }),
-    ]);
-    await Promise.all([
-      fs.promises.writeFile(path.join(originalsDir, originalFileName), buffer),
-      fs.promises.writeFile(path.join(thumbsDir, thumbFileName), thumbBuffer),
+      uploadToStorage(`originals/${originalFileName}`, buffer, contentType),
+      uploadToStorage(`thumbnails/${thumbFileName}`, thumbBuffer, "image/webp"),
     ]);
 
     const filePath = `${UPLOAD_API_PREFIX}/originals/${originalFileName}`;

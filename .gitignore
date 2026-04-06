@@ -3,6 +3,9 @@
 Thumbs.db
 *.pem
 .idea/
+
+# ── MCP config (contains access tokens) ─────────────────────────────────────
+.mcp.json
 .vscode/
 *.swp
 *.swo

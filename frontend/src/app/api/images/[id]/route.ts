@@ -6,8 +6,8 @@ import { images, recipes } from "@/lib/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { thumbnailUrl, fileSystemPath, stripImageColumns } from "@/lib/images";
-import fs from "fs";
+import { thumbnailUrl, stripImageColumns, UPLOAD_API_PREFIX } from "@/lib/images";
+import { deleteFromStorage } from "@/lib/supabase-storage";
 
 const patchSchema = z.object({
   recipeId: z.string().uuid().nullable().optional(),
@@ -157,13 +157,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Keine Berechtigung." }, { status: 403 });
   }
 
-  // Delete DB record first (rollbackable); then remove files (a storage leak is
-  // preferable to a broken DB record pointing at a missing file)
+  // Delete DB record first (rollbackable); then remove files from storage
   await db.delete(images).where(eq(images.id, id));
 
+  // Convert API path to storage path: /api/uploads/originals/uuid.jpg → originals/uuid.jpg
+  const storagePath = existing.filePath.replace(`${UPLOAD_API_PREFIX}/`, "");
+  const thumbStoragePath = thumbnailUrl(existing.filePath).replace(`${UPLOAD_API_PREFIX}/`, "");
   await Promise.allSettled([
-    fs.promises.unlink(fileSystemPath(existing.filePath)),
-    fs.promises.unlink(fileSystemPath(thumbnailUrl(existing.filePath))),
+    deleteFromStorage(storagePath),
+    deleteFromStorage(thumbStoragePath),
   ]);
 
   return new Response(null, { status: 204 });
