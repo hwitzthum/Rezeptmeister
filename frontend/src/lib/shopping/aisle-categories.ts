@@ -4,13 +4,13 @@
  */
 
 export const AISLE_CATEGORIES = [
-  "Obst & Gemuese",
+  "Obst & Gemüse",
   "Milchprodukte",
   "Backwaren",
   "Fleisch & Fisch",
-  "Gewuerze & Oele",
-  "Getraenke",
-  "Tiefkuehl",
+  "Gewürze & Öle",
+  "Getränke",
+  "Tiefkühl",
   "Konserven & Saucen",
   "Sonstiges",
 ] as const;
@@ -28,17 +28,17 @@ const KEYWORD_MAP: [string[], AisleCategory][] = [
       "aubergine", "brokkoli", "blumenkohl", "spinat", "lauch", "sellerie",
       "fenchel", "radieschen", "champignon", "pilz", "petersilie", "basilikum",
       "schnittlauch", "dill", "koriander", "rosmarin", "thymian", "minze",
-      "rucola", "avocado", "mango", "ananas", "peperoni", "kuerbis",
+      "rucola", "avocado", "mango", "ananas", "peperoni", "kürbis",
       "randen", "kohlrabi", "rettich", "ingwer",
     ],
-    "Obst & Gemuese",
+    "Obst & Gemüse",
   ],
   // Milchprodukte
   [
     [
-      "milch", "butter", "rahm", "sahne", "joghurt", "quark", "kaese",
+      "milch", "butter", "rahm", "sahne", "joghurt", "quark", "käse",
       "mozzarella", "parmesan", "gruyere", "emmentaler", "appenzeller",
-      "mascarpone", "ricotta", "frischkaese", "schmand", "creme fraiche",
+      "mascarpone", "ricotta", "frischkäse", "schmand", "creme fraiche",
       "ei", "eier",
     ],
     "Milchprodukte",
@@ -46,7 +46,7 @@ const KEYWORD_MAP: [string[], AisleCategory][] = [
   // Backwaren
   [
     [
-      "brot", "broetchen", "toast", "weggli", "zopf", "gipfeli", "croissant",
+      "brot", "brötchen", "toast", "weggli", "zopf", "gipfeli", "croissant",
       "mehl", "hefe", "backpulver", "paniermehl", "semmelbrösel",
     ],
     "Backwaren",
@@ -54,7 +54,7 @@ const KEYWORD_MAP: [string[], AisleCategory][] = [
   // Fleisch & Fisch
   [
     [
-      "poulet", "huhn", "haehnchen", "rind", "schwein", "lamm", "kalb",
+      "poulet", "huhn", "hähnchen", "rind", "schwein", "lamm", "kalb",
       "hackfleisch", "speck", "schinken", "salami", "wurst", "bratwurst",
       "cervelat", "lachs", "forelle", "thunfisch", "crevetten", "garnele",
       "pangasius", "kabeljau", "fleisch", "fisch", "pouletbrust",
@@ -66,11 +66,11 @@ const KEYWORD_MAP: [string[], AisleCategory][] = [
     [
       "salz", "pfeffer", "paprikapulver", "kurkuma", "zimt", "muskat",
       "oregano", "curry", "chili", "nelke", "lorbeer", "safran",
-      "olivenoel", "sonnenblumenoel", "rapsoel", "essig", "balsamico",
-      "sesamoel", "kokosoel", "oel", "vanille", "zucker", "honig",
+      "olivenöl", "sonnenblumenöl", "rapsöl", "essig", "balsamico",
+      "sesamöl", "kokosöl", "öl", "vanille", "zucker", "honig",
       "ahornsirup", "sojasauce", "worcestersauce",
     ],
-    "Gewuerze & Oele",
+    "Gewürze & Öle",
   ],
   // Getränke
   [
@@ -78,21 +78,21 @@ const KEYWORD_MAP: [string[], AisleCategory][] = [
       "wasser", "mineralwasser", "saft", "orangensaft", "apfelsaft",
       "limonade", "bier", "wein", "prosecco", "kaffee", "tee",
     ],
-    "Getraenke",
+    "Getränke",
   ],
   // Tiefkühl
   [
     [
-      "tiefkuehl", "tiefgekuehlt", "erbsen", "blaetterteig", "pizzateig",
-      "glacestk.", "eiswuerfel",
+      "tiefkühl", "tiefgekühlt", "erbsen", "blätterteig", "pizzateig",
+      "glacestk.", "eiswürfel",
     ],
-    "Tiefkuehl",
+    "Tiefkühl",
   ],
   // Konserven & Saucen
   [
     [
       "dose", "konserve", "passata", "tomatensauce", "ketchup", "senf",
-      "mayonnaise", "pesto", "bouillon", "bruehe", "kokosmilch",
+      "mayonnaise", "pesto", "bouillon", "brühe", "kokosmilch",
       "kichererbsen", "bohnen", "linsen", "mais", "tomatenmark",
       "sauerkraut",
     ],

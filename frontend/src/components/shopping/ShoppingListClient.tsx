@@ -72,9 +72,9 @@ export default function ShoppingListClient({ initialItems }: Props) {
         setIngredientName("");
         setAmount("");
         setUnit("");
-        toast.success("Zutat hinzugefuegt.");
+        toast.success("Zutat hinzugefügt.");
       } catch {
-        toast.error("Zutat konnte nicht hinzugefuegt werden.");
+        toast.error("Zutat konnte nicht hinzugefügt werden.");
       } finally {
         setAdding(false);
       }
@@ -99,7 +99,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
       setItems((prev) =>
         prev.map((i) => (i.id === id ? { ...i, isChecked: !checked } : i)),
       );
-      toast.error("Status konnte nicht geaendert werden.");
+      toast.error("Status konnte nicht geändert werden.");
     }
   }, []);
 
@@ -111,7 +111,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
       if (!res.ok) throw new Error();
     } catch {
       setItems(prev);
-      toast.error("Eintrag konnte nicht geloescht werden.");
+      toast.error("Eintrag konnte nicht gelöscht werden.");
     }
   }, [items]);
 
@@ -151,7 +151,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
     try {
       const res = await fetch("/api/shopping-list/batch", { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success("Erledigte Eintraege geloescht.");
+      toast.success("Erledigte Einträge gelöscht.");
     } catch {
       setItems(prev);
       toast.error("Aktion fehlgeschlagen.");
@@ -177,7 +177,6 @@ export default function ShoppingListClient({ initialItems }: Props) {
           <div className="flex items-center gap-3">
             <h1
               className="text-xl font-bold text-[var(--text-primary)]"
-              style={{ fontFamily: "var(--font-display)" }}
             >
               Einkaufsliste
             </h1>
@@ -237,7 +236,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
               disabled={adding || !ingredientName.trim()}
               data-testid="shopping-list-add-button"
             >
-              {adding ? "..." : "Hinzufuegen"}
+              {adding ? "..." : "Hinzufügen"}
             </Button>
           </div>
         </form>
@@ -249,7 +248,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
               Alle abhaken
             </Button>
             <Button variant="outline" size="sm" onClick={handleUncheckAll}>
-              Zuruecksetzen
+              Zurücksetzen
             </Button>
             <Button
               variant="outline"
@@ -257,7 +256,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
               onClick={handleClearChecked}
               disabled={!items.some((i) => i.isChecked)}
             >
-              Erledigte loeschen
+              Erledigte löschen
             </Button>
           </div>
         )}
@@ -298,8 +297,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--bg-base)]/50 transition-colors"
             >
               <span
-                className="text-sm font-semibold text-[var(--text-primary)]"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-sm font-semibold text-[var(--text-primary)] font-display"
               >
                 {aisle}
               </span>
@@ -372,7 +370,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
                       data-testid={`shopping-list-delete-${item.id}`}
                       onClick={() => handleDelete(item.id)}
                       className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      aria-label={`${item.ingredientName} loeschen`}
+                      aria-label={`${item.ingredientName} löschen`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path

@@ -37,7 +37,7 @@ export async function PUT(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungueltiger JSON-Body." }, { status: 400 });
+    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
   }
 
   const parsed = updateItemSchema.safeParse(body);
@@ -116,7 +116,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Fehler beim Loeschen des Einkaufslisten-Eintrags:", err);
+    console.error("Fehler beim Löschen des Einkaufslisten-Eintrags:", err);
     return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
   }
 }

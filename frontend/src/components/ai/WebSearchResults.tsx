@@ -96,16 +96,16 @@ export default function WebSearchResults({
 
       {/* Skeleton while loading */}
       {loading && (
-        <div className="space-y-3 animate-pulse">
+        <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
               className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-2"
             >
-              <div className="h-4 w-3/5 rounded bg-[var(--bg-subtle)]" />
-              <div className="h-3 w-1/4 rounded bg-[var(--bg-subtle)]" />
-              <div className="h-3 w-full rounded bg-[var(--bg-subtle)]" />
-              <div className="h-3 w-4/5 rounded bg-[var(--bg-subtle)]" />
+              <div className="skeleton h-4 w-3/5 rounded" />
+              <div className="skeleton h-3 w-1/4 rounded" />
+              <div className="skeleton h-3 w-full rounded" />
+              <div className="skeleton h-3 w-4/5 rounded" />
             </div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 /**
- * Sicherheitspruefung fuer Umgebungsvariablen.
- * Wird beim Serverstart importiert und prueft kritische Werte.
+ * Sicherheitsprüfung für Umgebungsvariablen.
+ * Wird beim Serverstart importiert und prüft kritische Werte.
  * Langfristig besser in instrumentation.ts verschieben.
  */
 
@@ -11,7 +11,7 @@ const isProduction = process.env.NODE_ENV === "production" && !isBuildPhase;
 
 if (isProduction && process.env.NEXTAUTH_SECRET?.includes("dev-secret")) {
   throw new Error(
-    "NEXTAUTH_SECRET enthaelt 'dev-secret' – in Produktion nicht erlaubt. " +
+    "NEXTAUTH_SECRET enthält 'dev-secret' – in Produktion nicht erlaubt. " +
       "Generieren: openssl rand -base64 48",
   );
 }

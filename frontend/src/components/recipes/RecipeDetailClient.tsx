@@ -79,6 +79,7 @@ export default function RecipeDetailClient({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showOverflow, setShowOverflow] = useState(false);
   // Track generated image URL so we can show it without a full page reload
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
@@ -160,6 +161,7 @@ export default function RecipeDetailClient({
 
           {/* Aktionsleiste */}
           <div className="flex items-center gap-2">
+            {/* Primary — always visible */}
             <button
               onClick={toggleFavorite}
               aria-label={isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}
@@ -176,8 +178,6 @@ export default function RecipeDetailClient({
             </button>
 
             <AddToShoppingListButton recipeId={recipe.id} recipeTitle={recipe.title} />
-            <AddToCollectionButton recipeId={recipe.id} />
-            <OfflineToggleButton recipe={recipe} userId={userId} />
 
             <Link
               href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}
@@ -188,28 +188,75 @@ export default function RecipeDetailClient({
               </Button>
             </Link>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPrintModal(true)}
-              data-testid="print-button"
-            >
-              Drucken
-            </Button>
+            {/* Secondary — desktop only */}
+            <div className="hidden sm:flex items-center gap-2">
+              <AddToCollectionButton recipeId={recipe.id} />
+              <OfflineToggleButton recipe={recipe} userId={userId} />
 
-            <Link href={`/rezepte/${recipe.id}/bearbeiten`}>
-              <Button variant="outline" size="sm">
-                Bearbeiten
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPrintModal(true)}
+                data-testid="print-button"
+              >
+                Drucken
               </Button>
-            </Link>
 
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              Löschen
-            </Button>
+              <Link href={`/rezepte/${recipe.id}/bearbeiten`}>
+                <Button variant="outline" size="sm">
+                  Bearbeiten
+                </Button>
+              </Link>
+
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                Löschen
+              </Button>
+            </div>
+
+            {/* Mobile overflow menu */}
+            <div className="sm:hidden relative">
+              <button
+                onClick={() => setShowOverflow((v) => !v)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                aria-label="Weitere Aktionen"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                </svg>
+              </button>
+              {showOverflow && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowOverflow(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--bg-surface)] border border-[var(--border-base)] rounded-xl shadow-[var(--shadow-warm-lg)] z-50 py-1 animate-scale-in">
+                    <div onClick={() => setShowOverflow(false)} className="[&>button]:w-full [&>button]:justify-start [&>button]:rounded-none [&>button]:border-0 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-normal hover:bg-[var(--bg-subtle)]">
+                      <AddToCollectionButton recipeId={recipe.id} />
+                    </div>
+                    <button
+                      onClick={() => { setShowOverflow(false); setShowPrintModal(true); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                    >
+                      Drucken
+                    </button>
+                    <Link
+                      href={`/rezepte/${recipe.id}/bearbeiten`}
+                      className="block px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                    >
+                      Bearbeiten
+                    </Link>
+                    <button
+                      onClick={() => { setShowOverflow(false); setShowDeleteDialog(true); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[var(--bg-subtle)]"
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -231,19 +278,15 @@ export default function RecipeDetailClient({
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <svg
-                className="w-16 h-16 text-terra-200"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              <div className="relative w-24 h-24 mb-4">
+                <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-terra-200 dark:border-terra-800" />
+                <div className="absolute inset-3 rounded-full bg-cream-50 dark:bg-warm-800 flex items-center justify-center shadow-inner">
+                  <svg className="w-8 h-8 text-terra-300 dark:text-terra-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-sm text-terra-400 dark:text-terra-600 font-medium mb-3">Noch kein Bild</p>
               {!hasPrimaryImage && (
                 <GenerateImageButton
                   recipeId={recipe.id}
@@ -262,8 +305,7 @@ export default function RecipeDetailClient({
         {/* Titel im Hero */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <h1
-            className="text-2xl sm:text-3xl font-bold text-white drop-shadow-sm"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="text-2xl sm:text-3xl font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5),0_1px_3px_rgba(0,0,0,0.4)]"
           >
             {recipe.title}
           </h1>
@@ -320,7 +362,6 @@ export default function RecipeDetailClient({
           <section className="flex-1 min-w-0">
             <h2
               className="text-xl font-semibold text-[var(--text-primary)] mb-4"
-              style={{ fontFamily: "var(--font-display)" }}
             >
               Zubereitung
             </h2>
@@ -344,7 +385,6 @@ export default function RecipeDetailClient({
             <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)] shadow-warm p-5 lg:sticky lg:top-20">
               <h2
                 className="text-lg font-semibold text-[var(--text-primary)] mb-4"
-                style={{ fontFamily: "var(--font-display)" }}
               >
                 Zutaten
               </h2>
@@ -477,7 +517,6 @@ export default function RecipeDetailClient({
         <section className="mt-10 pt-6 border-t border-[var(--border-subtle)]">
           <h2
             className="text-xl font-semibold text-[var(--text-primary)] mb-4"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Bilder
           </h2>

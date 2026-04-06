@@ -61,7 +61,7 @@ function buildInitialFormData(init?: RecipeFormInitialData): RecipeFormData {
     difficulty: init?.difficulty ?? "",
     ingredients:
       init?.ingredients?.map((ing) => ({
-        id: ing.id ?? Math.random().toString(36).slice(2),
+        id: ing.id ?? crypto.randomUUID(),
         name: ing.name,
         amount: ing.amount ?? "",
         unit: ing.unit ?? "g",
@@ -273,7 +273,6 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
       <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)] shadow-warm p-6 mb-6">
         <h2
           className="text-lg font-semibold text-[var(--text-primary)] mb-5"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           {step === 1 && "Grunddaten"}
           {step === 2 && "Zutaten"}

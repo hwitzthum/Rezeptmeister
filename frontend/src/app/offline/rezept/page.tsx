@@ -110,7 +110,6 @@ function OfflineRecipeContent() {
           <h1
             data-testid="offline-recipe-title"
             className="text-2xl font-bold mt-1"
-            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
           >
             {recipe.title}
           </h1>

@@ -16,22 +16,22 @@ const mkIng = (
 });
 
 describe("filterMissingIngredients", () => {
-  it("gibt alle nicht-optionalen zurueck wenn nichts verfuegbar", () => {
+  it("gibt alle nicht-optionalen zurück wenn nichts verfügbar", () => {
     const recipe = [mkIng("Reis"), mkIng("Poulet"), mkIng("Salz")];
     expect(filterMissingIngredients(recipe, [])).toHaveLength(3);
   });
 
-  it("schliesst verfuegbare Zutaten aus (case-insensitive)", () => {
+  it("schliesst verfügbare Zutaten aus (case-insensitive)", () => {
     const recipe = [mkIng("Reis"), mkIng("Poulet"), mkIng("Salz")];
     const result = filterMissingIngredients(recipe, ["reis", "SALZ"]);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("Poulet");
   });
 
-  it("'ei' unterdrueckt NICHT 'Reis' (kein Substring-Match)", () => {
+  it("'ei' unterdrückt NICHT 'Reis' (kein Substring-Match)", () => {
     const recipe = [mkIng("Reis"), mkIng("Eier")];
     const result = filterMissingIngredients(recipe, ["ei"]);
-    // "ei" ist kein exakter Match fuer "Reis" oder "Eier"
+    // "ei" ist kein exakter Match für "Reis" oder "Eier"
     expect(result.map((r) => r.name)).toEqual(["Reis", "Eier"]);
   });
 
@@ -41,7 +41,7 @@ describe("filterMissingIngredients", () => {
     expect(result.map((r) => r.name)).toEqual(["Reis"]);
   });
 
-  it("ueberspringt optionale Zutaten", () => {
+  it("überspringt optionale Zutaten", () => {
     const recipe = [
       mkIng("Reis"),
       mkIng("Petersilie", { isOptional: true }),
@@ -57,7 +57,7 @@ describe("filterMissingIngredients", () => {
     expect(result).toHaveLength(0);
   });
 
-  it("gibt leeres Array wenn alles verfuegbar", () => {
+  it("gibt leeres Array wenn alles verfügbar", () => {
     const recipe = [mkIng("Reis"), mkIng("Salz")];
     expect(filterMissingIngredients(recipe, ["Reis", "Salz"])).toHaveLength(0);
   });

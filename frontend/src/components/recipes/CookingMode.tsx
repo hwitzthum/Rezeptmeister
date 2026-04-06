@@ -299,7 +299,6 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <h1
             className="text-base sm:text-lg font-semibold text-[var(--text-primary)] truncate flex-1 mr-4"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             {recipe.title}
           </h1>
@@ -361,8 +360,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
         <div className="max-w-2xl w-full">
           <div className="mb-4">
             <span
-              className="text-4xl sm:text-5xl font-bold text-terra-200"
-              style={{ fontFamily: "var(--font-display)" }}
+              className="text-4xl sm:text-5xl font-bold text-terra-200 font-display"
             >
               {currentStep + 1}
             </span>
@@ -441,7 +439,6 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
               <div className="flex items-center justify-between mb-4">
                 <h2
                   className="text-lg font-semibold text-[var(--text-primary)]"
-                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   Zutaten
                 </h2>

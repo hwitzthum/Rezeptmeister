@@ -30,7 +30,6 @@ export default function OfflinePage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <h1
             className="text-2xl font-bold"
-            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
           >
             Rezeptmeister
           </h1>

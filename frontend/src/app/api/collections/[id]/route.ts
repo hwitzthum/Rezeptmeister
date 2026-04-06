@@ -154,7 +154,7 @@ export async function PUT(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Ungueltiger JSON-Body." },
+      { error: "Ungültiger JSON-Body." },
       { status: 400 },
     );
   }
@@ -237,7 +237,7 @@ export async function DELETE(
     await db.delete(collections).where(eq(collections.id, id));
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Fehler beim Loeschen der Sammlung:", err);
+    console.error("Fehler beim Löschen der Sammlung:", err);
     return NextResponse.json(
       { error: "Interner Serverfehler." },
       { status: 500 },

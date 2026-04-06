@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { RecipeCard, Button } from "@/components/ui";
+import { RecipeCard, Button, PageHeader } from "@/components/ui";
 import toast from "react-hot-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -110,26 +110,18 @@ export default function RezeptListePage() {
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <h1
-            className="text-lg font-semibold text-[var(--text-primary)]"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Meine Rezepte
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">
-                ({total})
-              </span>
-            )}
-          </h1>
+      <PageHeader
+        subtitle="Rezepte"
+        title="Meine Rezepte"
+        count={total}
+        action={
           <Link href="/rezepte/neu">
             <Button variant="primary" size="sm" icon={<PlusIcon />}>
               Neues Rezept
             </Button>
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       {/* Filter-Leiste */}
       <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -210,10 +202,16 @@ export default function RezeptListePage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div
-                key={n}
-                className="h-72 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-base)] animate-pulse"
-              />
+              <div key={n} className="rounded-2xl overflow-hidden border border-[var(--border-base)]">
+                <div className="skeleton h-48" />
+                <div className="p-4 space-y-3">
+                  <div className="skeleton h-5 w-3/4 rounded" />
+                  <div className="flex gap-3">
+                    <div className="skeleton h-3 w-16 rounded" />
+                    <div className="skeleton h-3 w-20 rounded" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : error ? (
@@ -297,41 +295,48 @@ function FilterSelect({
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  if (hasFilters) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-warm-100 to-cream-200 dark:from-warm-800 dark:to-warm-900 flex items-center justify-center">
+          <svg className="w-10 h-10 text-warm-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+          Keine Treffer
+        </h3>
+        <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto">
+          Versuchen Sie andere Filter oder einen anderen Suchbegriff.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-20 h-20 rounded-full bg-terra-50 dark:bg-terra-950/30 flex items-center justify-center mb-4">
-        <svg
-          className="w-10 h-10 text-terra-300"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1}
-            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-          />
-        </svg>
+      {/* CSS illustration: overlapping recipe card silhouettes */}
+      <div className="relative w-32 h-28 mx-auto mb-8">
+        <div className="absolute top-2 left-3 w-20 h-24 rounded-xl bg-cream-200 dark:bg-warm-800 rotate-[-6deg] border border-[var(--border-base)]" />
+        <div className="absolute top-0 left-6 w-20 h-24 rounded-xl bg-[var(--bg-surface)] rotate-[3deg] border border-[var(--border-base)] shadow-[var(--shadow-warm-sm)]" />
+        <div className="absolute top-1 left-10 w-20 h-24 rounded-xl bg-[var(--bg-elevated)] rotate-[0deg] border border-[var(--border-base)] shadow-[var(--shadow-warm)] flex items-center justify-center">
+          <svg className="w-8 h-8 text-terra-300 dark:text-terra-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          </svg>
+        </div>
       </div>
-      <h3
-        className="text-lg font-semibold text-[var(--text-primary)] mb-2"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        {hasFilters ? "Keine Rezepte gefunden" : "Noch keine Rezepte"}
+      <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
+        Willkommen in Ihrer Küche
       </h3>
-      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-sm">
-        {hasFilters
-          ? "Versuchen Sie es mit anderen Filtern oder einer anderen Suche."
-          : "Erstellen Sie Ihr erstes Rezept und beginnen Sie Ihre digitale Rezeptsammlung."}
+      <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto mb-8 leading-relaxed">
+        Beginnen Sie Ihre digitale Rezeptsammlung. Erstellen, importieren oder fotografieren Sie Ihr erstes Rezept.
       </p>
-      {!hasFilters && (
+      <div className="flex flex-wrap justify-center gap-3">
         <Link href="/rezepte/neu">
           <Button variant="primary" icon={<PlusIcon />}>
-            Erstes Rezept erstellen
+            Rezept erstellen
           </Button>
         </Link>
-      )}
+      </div>
     </div>
   );
 }

@@ -332,7 +332,7 @@ export default function UnitConverter() {
       {/* ── Quick Reference Table ──────────────────────────────────── */}
       <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--bg-surface)] shadow-warm-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-[var(--border-base)] bg-[var(--bg-subtle)]">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">
             Schnellreferenz
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">

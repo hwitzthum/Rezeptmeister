@@ -39,7 +39,7 @@ interface Props {
 
 function newIngredient(): IngredientItem {
   return {
-    id: Math.random().toString(36).slice(2),
+    id: crypto.randomUUID(),
     name: "",
     amount: "",
     unit: "g",

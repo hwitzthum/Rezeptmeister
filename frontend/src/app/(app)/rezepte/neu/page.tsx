@@ -41,7 +41,6 @@ export default function NeuesRezeptPage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1
           className="text-2xl font-bold text-[var(--text-primary)] mb-8"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           Neues Rezept erstellen
         </h1>

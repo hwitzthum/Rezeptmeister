@@ -344,7 +344,6 @@ export default function MealPlanClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <h1
             className="text-lg font-semibold text-[var(--text-primary)]"
-            style={{ fontFamily: "var(--font-display)" }}
           >
             Wochenplan
           </h1>
@@ -408,8 +407,14 @@ export default function MealPlanClient({
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <div
                 key={n}
-                className="h-48 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-base)] animate-pulse"
-              />
+                className="rounded-2xl border border-[var(--border-base)] overflow-hidden"
+              >
+                <div className="skeleton h-6 w-24 m-3 rounded" />
+                <div className="space-y-2 px-3 pb-3">
+                  <div className="skeleton h-10 w-full rounded-lg" />
+                  <div className="skeleton h-10 w-full rounded-lg" />
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -495,12 +500,11 @@ export default function MealPlanClient({
                   >
                     <div
                       className={[
-                        "text-sm font-semibold mb-2",
+                        "text-sm font-semibold mb-2 font-display",
                         isToday
                           ? "text-terra-700"
                           : "text-[var(--text-primary)]",
                       ].join(" ")}
-                      style={{ fontFamily: "var(--font-display)" }}
                     >
                       {format(day, "EEEE, dd. MMMM", { locale: de })}
                     </div>

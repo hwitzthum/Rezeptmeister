@@ -144,9 +144,9 @@ export default function CollectionsClient({
         prev.filter((c) => c.id !== deletingCollection.id),
       );
       setDeletingCollection(null);
-      toast.success("Sammlung geloescht.");
+      toast.success("Sammlung gelöscht.");
     } catch {
-      toast.error("Sammlung konnte nicht geloescht werden.");
+      toast.error("Sammlung konnte nicht gelöscht werden.");
     }
   }
 
@@ -158,7 +158,6 @@ export default function CollectionsClient({
       <div className="flex items-center justify-between mb-6">
         <h1
           className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           Sammlungen
         </h1>
@@ -217,7 +216,6 @@ export default function CollectionsClient({
                 <Link href={`/sammlungen/${collection.id}`}>
                   <h2
                     className="text-lg font-semibold text-[var(--text-primary)] hover:text-terra-500 transition-colors line-clamp-1"
-                    style={{ fontFamily: "var(--font-display)" }}
                   >
                     {collection.name}
                   </h2>
@@ -252,8 +250,8 @@ export default function CollectionsClient({
                     setDeletingCollection(collection);
                   }}
                   className="w-8 h-8 rounded-lg bg-[var(--bg-surface)]/80 backdrop-blur-sm flex items-center justify-center text-warm-500 hover:text-red-500 hover:bg-[var(--bg-surface)] transition-all shadow-sm"
-                  title="Loeschen"
-                  aria-label="Loeschen"
+                  title="Löschen"
+                  aria-label="Löschen"
                 >
                   <TrashIcon />
                 </button>
@@ -387,9 +385,9 @@ export default function CollectionsClient({
       {/* Delete Confirm */}
       <ConfirmDialog
         open={deletingCollection !== null}
-        title="Sammlung loeschen"
-        message={`Moechten Sie die Sammlung "${deletingCollection?.name ?? ""}" wirklich loeschen? Die Rezepte werden nicht geloescht.`}
-        confirmLabel="Loeschen"
+        title="Sammlung löschen"
+        message={`Möchten Sie die Sammlung "${deletingCollection?.name ?? ""}" wirklich löschen? Die Rezepte werden nicht gelöscht.`}
+        confirmLabel="Löschen"
         cancelLabel="Abbrechen"
         variant="danger"
         onConfirm={() => {

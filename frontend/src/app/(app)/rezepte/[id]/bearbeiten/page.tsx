@@ -69,7 +69,6 @@ export default async function BearbeitenPage({ params }: PageProps) {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1
           className="text-2xl font-bold text-[var(--text-primary)] mb-8"
-          style={{ fontFamily: "var(--font-display)" }}
         >
           Rezept bearbeiten
         </h1>

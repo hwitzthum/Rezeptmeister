@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungueltiger JSON-Body." }, { status: 400 });
+    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
   }
 
   const parsed = batchAddSchema.safeParse(body);
@@ -140,7 +140,7 @@ export async function PATCH(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungueltiger JSON-Body." }, { status: 400 });
+    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
   }
 
   const parsed = batchActionSchema.safeParse(body);
