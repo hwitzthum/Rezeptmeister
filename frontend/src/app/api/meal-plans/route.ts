@@ -40,6 +40,14 @@ export async function GET(request: Request) {
     );
   }
 
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(start) || !datePattern.test(end)) {
+    return NextResponse.json(
+      { error: "Ungueltiges Datumsformat. Erwartet: YYYY-MM-DD." },
+      { status: 400 },
+    );
+  }
+
   try {
     const entries = await db
       .select({

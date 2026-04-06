@@ -117,7 +117,8 @@ export const images = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    // recipeId: FK kommt nach recipes-Definition
+    // FK to recipes exists in DB (ON DELETE SET NULL) — not declared here
+    // to avoid circular type inference with recipes.sourceImageId.
     recipeId: uuid("recipe_id"),
     filePath: text("file_path").notNull(),
     fileName: varchar("file_name", { length: 255 }),

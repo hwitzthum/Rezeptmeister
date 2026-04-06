@@ -65,76 +65,61 @@ export async function POST(request: Request) {
     return NextResponse.json({ added: 0, merged: 0, total: 0 });
   }
 
-  // Fetch existing shopping list items for this user
-  const existingItems = await db.query.shoppingListItems.findMany({
-    where: eq(shoppingListItems.userId, session.user.id),
+  // Transactional upsert: each item is queried fresh inside the tx to
+  // prevent stale-snapshot duplicates under concurrent requests.
+  const result = await db.transaction(async (tx) => {
+    let txAdded = 0;
+    let txMerged = 0;
+
+    for (const ing of recipeIngredients) {
+      const ingNameLower = ing.name.toLowerCase().trim();
+      const ingUnit = (ing.unit ?? "").toLowerCase().trim();
+
+      const [existing] = await tx
+        .select()
+        .from(shoppingListItems)
+        .where(
+          and(
+            eq(shoppingListItems.userId, session.user.id),
+            sql`lower(trim(${shoppingListItems.ingredientName})) = ${ingNameLower}`,
+            sql`lower(trim(coalesce(${shoppingListItems.unit}, ''))) = ${ingUnit}`,
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        const existingAmount = existing.amount ? parseFloat(existing.amount) : null;
+        const newAmount = ing.amount ? parseFloat(ing.amount) : null;
+
+        if (existingAmount != null && newAmount != null) {
+          await tx
+            .update(shoppingListItems)
+            .set({ amount: String(existingAmount + newAmount) })
+            .where(eq(shoppingListItems.id, existing.id));
+        }
+        txMerged++;
+      } else {
+        await tx.insert(shoppingListItems).values({
+          userId: session.user.id,
+          recipeId,
+          ingredientName: ing.name,
+          amount: ing.amount ?? undefined,
+          unit: ing.unit ?? undefined,
+          aisleCategory: getAisleCategory(ing.name),
+        });
+        txAdded++;
+      }
+    }
+
+    const [countRow] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(shoppingListItems)
+      .where(eq(shoppingListItems.userId, session.user.id));
+
+    return { added: txAdded, merged: txMerged, total: countRow?.count ?? 0 };
   });
 
-  let added = 0;
-  let merged = 0;
-
-  for (const ing of recipeIngredients) {
-    const ingNameLower = ing.name.toLowerCase().trim();
-    const ingUnit = (ing.unit ?? "").toLowerCase().trim();
-
-    // Find existing item with matching name + unit (case-insensitive)
-    const existing = existingItems.find(
-      (item) =>
-        item.ingredientName.toLowerCase().trim() === ingNameLower &&
-        (item.unit ?? "").toLowerCase().trim() === ingUnit,
-    );
-
-    if (existing) {
-      // Merge: sum amounts if both are numeric
-      const existingAmount = existing.amount ? parseFloat(existing.amount) : null;
-      const newAmount = ing.amount ? parseFloat(ing.amount) : null;
-
-      if (existingAmount != null && newAmount != null) {
-        const summed = existingAmount + newAmount;
-        await db
-          .update(shoppingListItems)
-          .set({ amount: String(summed) })
-          .where(eq(shoppingListItems.id, existing.id));
-        // Update local copy for subsequent iterations
-        existing.amount = String(summed);
-        merged++;
-      } else {
-        // No numeric amounts to merge; skip (already in list)
-        merged++;
-      }
-    } else {
-      // Insert new item
-      const newItem = {
-        userId: session.user.id,
-        recipeId,
-        ingredientName: ing.name,
-        amount: ing.amount ?? undefined,
-        unit: ing.unit ?? undefined,
-        aisleCategory: getAisleCategory(ing.name),
-      };
-
-      const [inserted] = await db
-        .insert(shoppingListItems)
-        .values(newItem)
-        .returning();
-
-      // Add to local cache for subsequent duplicate detection
-      if (inserted) {
-        existingItems.push(inserted);
-      }
-      added++;
-    }
-  }
-
-  // Count total items after batch operation
-  const totalResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(shoppingListItems)
-    .where(eq(shoppingListItems.userId, session.user.id));
-
-  const total = totalResult[0]?.count ?? 0;
-
-  return NextResponse.json({ added, merged, total });
+  return NextResponse.json(result);
 }
 
 // -- PATCH /api/shopping-list/batch  (check-all / uncheck-all) -------------

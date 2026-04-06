@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { decrypt } from "@/lib/crypto";
 import { buildAiHeaders } from "@/lib/backend";
+import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
@@ -50,40 +48,20 @@ export async function POST(request: Request) {
   }
 
   // Rezept-Eigentümerschaft + API-Schlüssel parallel laden
-  const [recipe, userRecord] = await Promise.all([
+  const [recipe, keyResult] = await Promise.all([
     db.query.recipes.findFirst({
       where: recipeOwnerCondition(parsed.data.recipe_id, session.user.id, session.user.role ?? "user"),
       columns: { id: true },
     }),
-    db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
-      columns: { apiKeyEncrypted: true, apiProvider: true },
-    }),
+    resolveGeminiKey(session.user.id),
   ]);
 
   if (!recipe) {
     return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
   }
 
-  if (!userRecord?.apiKeyEncrypted || userRecord.apiProvider !== "gemini") {
-    return NextResponse.json(
-      {
-        error:
-          "Kein Gemini API-Schlüssel hinterlegt. Bitte in den Einstellungen einen Gemini API-Schlüssel eingeben.",
-      },
-      { status: 400 },
-    );
-  }
-
-  let geminiKey: string;
-  try {
-    geminiKey = decrypt(userRecord.apiKeyEncrypted);
-  } catch {
-    return NextResponse.json(
-      { error: "API-Schlüssel konnte nicht entschlüsselt werden." },
-      { status: 500 },
-    );
-  }
+  if (!keyResult.ok) return keyResult.response;
+  const geminiKey = keyResult.key;
 
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) {

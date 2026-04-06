@@ -73,26 +73,29 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2) Collections without cover image: get first recipe's primary image
+    // 2) Collections without cover image: batch-fetch first recipe's primary image
     const withoutCoverImage = userCollections.filter(
       (c) => !c.coverImageId && !coverImageMap.has(c.id),
     );
     if (withoutCoverImage.length > 0) {
-      for (const col of withoutCoverImage) {
-        const firstRecipeImage = await db
-          .select({ filePath: images.filePath })
-          .from(collectionRecipes)
-          .innerJoin(
-            images,
-            sql`${images.recipeId} = ${collectionRecipes.recipeId} AND ${images.isPrimary} = true`,
-          )
-          .where(eq(collectionRecipes.collectionId, col.id))
-          .orderBy(collectionRecipes.sortOrder)
-          .limit(1);
+      const colIds = withoutCoverImage.map((c) => c.id);
+      const fallbackCovers = await db.execute<{
+        collection_id: string;
+        file_path: string;
+      }>(
+        sql`
+          SELECT DISTINCT ON (cr.collection_id)
+            cr.collection_id,
+            i.file_path
+          FROM collection_recipes cr
+          JOIN images i ON i.recipe_id = cr.recipe_id AND i.is_primary = true
+          WHERE cr.collection_id = ANY(${colIds})
+          ORDER BY cr.collection_id, cr.sort_order
+        `,
+      );
 
-        if (firstRecipeImage.length > 0) {
-          coverImageMap.set(col.id, firstRecipeImage[0].filePath);
-        }
+      for (const row of fallbackCovers) {
+        coverImageMap.set(row.collection_id, row.file_path);
       }
     }
 

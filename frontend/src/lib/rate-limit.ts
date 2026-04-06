@@ -10,6 +10,7 @@ interface RateLimitEntry {
 }
 
 const store = new Map<string, RateLimitEntry>();
+const MAX_STORE_SIZE = 10_000;
 
 // Purge stale entries every 5 minutes to prevent memory leaks
 if (typeof setInterval !== "undefined") {
@@ -76,6 +77,10 @@ export function checkRateLimit(
 
   if (!entry || now - entry.windowStart >= config.windowMs) {
     store.set(key, { count: 1, windowStart: now });
+    if (store.size > MAX_STORE_SIZE) {
+      const oldest = store.keys().next().value;
+      if (oldest !== undefined) store.delete(oldest);
+    }
     return { allowed: true, remaining: config.max - 1 };
   }
 
