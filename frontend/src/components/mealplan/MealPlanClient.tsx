@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useId, useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -82,6 +82,7 @@ export default function MealPlanClient({
     mealType: string;
   } | null>(null);
   const [generatingList, setGeneratingList] = useState(false);
+  const dndId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -419,6 +420,7 @@ export default function MealPlanClient({
           </div>
         ) : (
           <DndContext
+            id={dndId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}

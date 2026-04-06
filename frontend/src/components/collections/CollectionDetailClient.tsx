@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useId, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -183,6 +183,7 @@ export default function CollectionDetailClient({
   );
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const dndId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -435,6 +436,7 @@ export default function CollectionDetailClient({
         </div>
       ) : (
         <DndContext
+          id={dndId}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={(e) => {

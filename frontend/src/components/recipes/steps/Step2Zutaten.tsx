@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -200,6 +200,7 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
 
 export default function Step2Zutaten({ data, onChange }: Props) {
   const [showGroupName, setShowGroupName] = useState(false);
+  const dndId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -260,6 +261,7 @@ export default function Step2Zutaten({ data, onChange }: Props) {
 
       {/* Sortierbare Liste */}
       <DndContext
+        id={dndId}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}

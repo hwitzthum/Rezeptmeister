@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -131,6 +131,7 @@ export default function RecipeImageManager({
   recipeId,
   initialImages,
 }: RecipeImageManagerProps) {
+  const dndId = useId();
   const [imageList, setImageList] = useState<UploadedImage[]>(initialImages);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [imageToDelete, setImageToDelete] = useState<UploadedImage | null>(null);
@@ -304,6 +305,7 @@ export default function RecipeImageManager({
 
           {/* Bild-Raster mit Drag-and-Drop */}
           <DndContext
+            id={dndId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
