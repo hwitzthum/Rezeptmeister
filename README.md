@@ -359,7 +359,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 |------|---------|-------------------|
 | `frontend/.env.local` | Next.js (Node.js process) | Next.js's native convention. `.env.local` is auto-excluded from git by Next.js's default `.gitignore` — a security feature you get for free. |
 | `backend/.env` | FastAPI / Python (`python-dotenv`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
-| `.env` (project root) | `docker-compose.yml` | Docker Compose reads the root `.env` automatically to interpolate `${VAR}` placeholders in `docker-compose.yml` (e.g. DB password, port mappings). Not read by Next.js or FastAPI. |
+| `.env` (project root) | `docker-compose.yml` + test suites | Docker Compose reads it for `DB_PASSWORD` and `INTERNAL_SECRET`. Playwright and Pytest tests read it for `GEMINI_TEST_KEY` and admin credentials. Not read by Next.js or FastAPI at runtime. |
 
 > **Production:** None of these files travel to production. Secrets are set via the deployment platform (Vercel dashboard, Railway secrets, Fly.io `flyctl secrets set`). See [Production Deployment](#production-deployment).
 
@@ -401,11 +401,17 @@ Used when running FastAPI locally outside Docker (`uv run uvicorn ...`). When Fa
 
 ### `.env` (project root)
 
-Read exclusively by `docker-compose.yml` for variable interpolation. Not read by Next.js or FastAPI.
+Read by **three consumers** — docker-compose, Playwright tests, and Pytest tests. Not read by Next.js or FastAPI at runtime.
 
-| Variable | Used for |
-|----------|----------|
-| `DB_PASSWORD` | Interpolated into the `POSTGRES_PASSWORD` env var and the `DATABASE_URL` inside the compose file |
+| Variable | Consumer | Purpose |
+|----------|----------|---------|
+| `DB_PASSWORD` | `docker-compose.yml` | Interpolated into `POSTGRES_PASSWORD` (db service) and `DATABASE_URL` (backend service) |
+| `INTERNAL_SECRET` | `docker-compose.yml` | Injected into the FastAPI container; must match `frontend/.env.local` |
+| `GEMINI_TEST_KEY` | Playwright (`phase-6/7/8.spec.ts`) + Pytest (`test_live_gemini.py`) | Real Gemini API key for live AI tests; tests skip automatically when not set |
+| `TEST_ADMIN_EMAIL` | Playwright (all phases with admin flows) | Admin login credentials for E2E tests |
+| `TEST_ADMIN_PASSWORD` | Playwright (all phases with admin flows) | Admin login credentials for E2E tests |
+
+Both test suites resolve this file via `../../.env` relative to their `tests/` directory — making the project root the single shared location both can reach.
 
 ---
 
