@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { USER_ROLE } from "@/lib/auth";
 import { Sidebar, BottomNav } from "@/components/layout/sidebar";
 import { Toaster } from "react-hot-toast";
+import OfflineIndicator from "@/components/layout/OfflineIndicator";
 
 export default async function AppLayout({
   children,
@@ -16,6 +17,7 @@ export default async function AppLayout({
     <div className="min-h-screen flex bg-[var(--bg-base)]">
       <Sidebar isAdmin={isAdmin} userName={userName} />
       <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0 overflow-x-hidden">
+        <OfflineIndicator />
         {children}
       </div>
       <BottomNav />
