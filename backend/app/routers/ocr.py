@@ -15,7 +15,7 @@ from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.models.image import Image
 from app.services import _utils
-from app.services.ocr_service import OcrResult, extract_recipe_from_image
+from app.services.ocr_service import OcrResults, extract_recipes_from_image
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ocr", tags=["OCR"])
@@ -26,11 +26,11 @@ class OcrExtractRequest(BaseModel):
     user_id: UUID
 
 
-@router.post("/extract", response_model=OcrResult)
+@router.post("/extract", response_model=OcrResults)
 async def ocr_extract(
     body: OcrExtractRequest,
     x_gemini_api_key: str | None = Header(None),
-) -> OcrResult:
+) -> OcrResults:
     """
     Extrahiert strukturierte Rezeptdaten aus einem bereits hochgeladenen Bild.
     - image_id muss dem user_id gehören (wird in der DB geprüft).
@@ -63,7 +63,7 @@ async def ocr_extract(
         )
 
     try:
-        result = await extract_recipe_from_image(image_path, x_gemini_api_key)
+        result = await extract_recipes_from_image(image_path, x_gemini_api_key)
     except FileNotFoundError:
         raise HTTPException(
             status_code=422,

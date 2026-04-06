@@ -7,7 +7,8 @@ import toast from "react-hot-toast";
 import ImageUploadZone, { type UploadedImage } from "@/components/images/ImageUploadZone";
 import { ConfirmDialog, Button, Modal, PageHeader } from "@/components/ui";
 import { formatDate, formatBytes } from "@/lib/format";
-import OcrPreviewPanel, { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
+import { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
+import OcrMultiPreview from "@/components/ocr/OcrMultiPreview";
 import { normaliseImageSrc } from "@/lib/images";
 
 type FilterMode = "alle" | "zugeordnet" | "unzugeordnet";
@@ -34,7 +35,7 @@ export default function BilderPage() {
 
   // OCR-Status
   const [ocrState, setOcrState] = useState<OcrState>("idle");
-  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [ocrResults, setOcrResults] = useState<OcrResult[] | null>(null);
   const [showOcrModal, setShowOcrModal] = useState(false);
 
   // Defer recipes fetch until the detail panel opens for the first time
@@ -125,7 +126,7 @@ export default function BilderPage() {
 
   async function runOcr(image: UploadedImage) {
     setOcrState("running");
-    setOcrResult(null);
+    setOcrResults(null);
     setShowOcrModal(true);
     try {
       const res = await fetch("/api/ai/ocr", {
@@ -137,8 +138,8 @@ export default function BilderPage() {
         const err = (await res.json()) as { error?: string };
         throw new Error(err.error ?? "OCR fehlgeschlagen.");
       }
-      const data = (await res.json()) as OcrResult;
-      setOcrResult(data);
+      const data = (await res.json()) as { recipes: OcrResult[] };
+      setOcrResults(data.recipes);
       setOcrState("done");
     } catch (err) {
       setOcrState("error");
@@ -147,12 +148,14 @@ export default function BilderPage() {
     }
   }
 
-  function handleOcrSaved(recipeId: string) {
+  function handleOcrAllDone(savedIds: string[]) {
     setShowOcrModal(false);
     setOcrState("idle");
-    setOcrResult(null);
+    setOcrResults(null);
     setSelectedImage(null);
-    router.push(`/rezepte/${recipeId}`);
+    if (savedIds.length > 0) {
+      router.push(`/rezepte/${savedIds[0]}`);
+    }
   }
 
   return (
@@ -336,10 +339,14 @@ export default function BilderPage() {
           if (ocrState !== "running") {
             setShowOcrModal(false);
             setOcrState("idle");
-            setOcrResult(null);
+            setOcrResults(null);
           }
         }}
-        title="Rezept aus Bild extrahiert"
+        title={
+          ocrResults && ocrResults.length > 1
+            ? `${ocrResults.length} Rezepte erkannt`
+            : "Rezept aus Bild extrahiert"
+        }
         size="xl"
       >
         {ocrState === "running" && (
@@ -350,16 +357,12 @@ export default function BilderPage() {
             </p>
           </div>
         )}
-        {ocrState === "done" && ocrResult && selectedImage && (
-          <OcrPreviewPanel
-            result={ocrResult}
+        {ocrState === "done" && ocrResults && ocrResults.length > 0 && selectedImage && (
+          <OcrMultiPreview
+            recipes={ocrResults}
             imageId={selectedImage.id}
-            onSaved={handleOcrSaved}
-            onClose={() => {
-              setShowOcrModal(false);
-              setOcrState("idle");
-              setOcrResult(null);
-            }}
+            onAllDone={handleOcrAllDone}
+            onRecipeSaved={() => {}}
           />
         )}
       </Modal>

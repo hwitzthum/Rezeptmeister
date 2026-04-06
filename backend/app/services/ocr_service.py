@@ -46,6 +46,10 @@ class OcrResult(BaseModel):
     source_type: str = Field(default="image_ocr")
 
 
+class OcrResults(BaseModel):
+    recipes: list[OcrResult] = Field(..., description="Liste aller erkannten Rezepte im Bild")
+
+
 # ── Service-Funktion ───────────────────────────────────────────────────────────
 
 _OCR_PROMPT = """Du bist ein Kochbuch-Digitalisierungs-Assistent für die Schweiz.
@@ -64,8 +68,9 @@ REGELN:
 4. ZUTATEN: Trenne Menge, Einheit und Name klar. Falls keine Mengenangabe, lasse amount=null.
 5. ANLEITUNG: Schreibe die Anleitung als fortlaufenden Text oder nummerierte Schritte.
 6. FALLS kein Rezept erkennbar: Gib title="Kein Rezept erkannt" und leere ingredients zurück.
+7. MEHRERE REZEPTE: Falls das Bild mehrere Rezepte enthält, extrahiere JEDES Rezept als separaten Eintrag in der Liste. Jedes Rezept erhält eigenen Titel, Zutaten und Anleitung.
 
-Extrahiere jetzt alle Rezeptdaten aus dem Bild:"""
+Extrahiere jetzt ALLE Rezepte aus dem Bild. Falls nur ein Rezept vorhanden ist, gib trotzdem eine Liste mit einem Eintrag zurück:"""
 
 
 async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
@@ -104,4 +109,44 @@ async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
 
     except Exception as e:
         logger.error(f"OCR-Fehler für {image_path}: {type(e).__name__}")
+        raise
+
+
+async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResults:
+    """
+    Extrahiert ALLE Rezepte aus einem Bild via Gemini multimodal OCR.
+    Gibt OcrResults mit einer Liste von Rezepten zurück.
+    """
+    try:
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Bilddatei nicht gefunden: {image_path}") from None
+
+    ocr_model = get_settings().gemini_ocr_model
+    mime = _utils.detect_mime(image_path)
+    client = _utils.get_gemini_client(api_key)
+
+    try:
+        response = await client.aio.models.generate_content(
+            model=ocr_model,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime),
+                types.Part(text=_OCR_PROMPT),
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=OcrResults,
+                temperature=0.1,
+            ),
+        )
+
+        text = response.text
+        result = OcrResults.model_validate_json(text)
+        for recipe in result.recipes:
+            recipe.source_type = "image_ocr"
+        return result
+
+    except Exception as e:
+        logger.error(f"OCR-Fehler (multi) für {image_path}: {type(e).__name__}")
         raise

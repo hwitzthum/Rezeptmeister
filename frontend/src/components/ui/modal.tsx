@@ -23,6 +23,8 @@ const sizeStyles = {
   full: "max-w-[95vw] max-h-[95dvh]",
 };
 
+let openModalCount = 0;
+
 export function Modal({
   open,
   onClose,
@@ -51,13 +53,18 @@ export function Modal({
     }
   }, [open]);
 
-  // Lock body scroll
+  // Lock body scroll (counter-based to handle stacked modals)
   React.useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = prev; };
-    }
+    if (!open) return;
+    openModalCount++;
+    document.body.style.overflow = "hidden";
+    return () => {
+      openModalCount--;
+      if (openModalCount <= 0) {
+        openModalCount = 0;
+        document.body.style.overflow = "";
+      }
+    };
   }, [open]);
 
   // Trap focus
