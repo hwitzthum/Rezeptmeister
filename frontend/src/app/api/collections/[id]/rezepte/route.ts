@@ -237,17 +237,19 @@ export async function PATCH(
   }
 
   try {
-    for (const entry of parsed.data.order) {
-      await db
-        .update(collectionRecipes)
-        .set({ sortOrder: entry.sortOrder })
-        .where(
-          and(
-            eq(collectionRecipes.collectionId, id),
-            eq(collectionRecipes.recipeId, entry.recipeId),
-          ),
-        );
-    }
+    await db.transaction(async (tx) => {
+      for (const entry of parsed.data.order) {
+        await tx
+          .update(collectionRecipes)
+          .set({ sortOrder: entry.sortOrder })
+          .where(
+            and(
+              eq(collectionRecipes.collectionId, id),
+              eq(collectionRecipes.recipeId, entry.recipeId),
+            ),
+          );
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

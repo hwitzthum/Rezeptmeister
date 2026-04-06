@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { decrypt } from "@/lib/crypto";
 import { buildAiHeaders } from "@/lib/backend";
+import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
@@ -54,31 +51,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Gemini API-Schlüssel aus DB laden und entschlüsseln
-  const userRecord = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
-    columns: { apiKeyEncrypted: true, apiProvider: true },
-  });
-
-  if (!userRecord?.apiKeyEncrypted || userRecord.apiProvider !== "gemini") {
-    return NextResponse.json(
-      {
-        error:
-          "Kein Gemini API-Schlüssel hinterlegt. Bitte in den Einstellungen einen Gemini API-Schlüssel eingeben.",
-      },
-      { status: 400 },
-    );
-  }
-
-  let geminiKey: string;
-  try {
-    geminiKey = decrypt(userRecord.apiKeyEncrypted);
-  } catch {
-    return NextResponse.json(
-      { error: "API-Schlüssel konnte nicht entschlüsselt werden." },
-      { status: 500 },
-    );
-  }
+  const keyResult = await resolveGeminiKey(session.user.id);
+  if (!keyResult.ok) return keyResult.response;
+  const geminiKey = keyResult.key;
 
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) {

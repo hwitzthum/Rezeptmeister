@@ -127,8 +127,8 @@ async def semantic_search(
     if not body.query.strip() and not body.image_base64:
         raise HTTPException(400, detail="query oder image_base64 muss angegeben werden.")
 
-    # Short-circuit: skip Gemini API call if user has no embedded recipes
     async with AsyncSessionLocal() as session:
+        # Short-circuit: skip Gemini API call if user has no embedded recipes
         has_embeddings = await session.execute(
             text("SELECT 1 FROM recipes WHERE user_id = CAST(:uid AS uuid) AND embedding IS NOT NULL LIMIT 1"),
             {"uid": body.user_id},
@@ -136,56 +136,55 @@ async def semantic_search(
         if has_embeddings.fetchone() is None:
             return []
 
-    try:
-        if body.image_base64:
-            image_bytes = base64.b64decode(body.image_base64)
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-                tmp.write(image_bytes)
-                tmp_path = tmp.name
-            try:
-                query_vector = await embed_image(tmp_path, x_gemini_api_key)
-            finally:
-                os.unlink(tmp_path)
-        else:
-            query_vector = await embed_text(body.query, x_gemini_api_key, is_query=True)
-    except Exception as e:
-        logger.error(f"Semantic-Query-Embedding-Fehler: {type(e).__name__}: {e}")
-        raise HTTPException(502, detail="Embedding-Berechnung fehlgeschlagen.")
+        try:
+            if body.image_base64:
+                image_bytes = base64.b64decode(body.image_base64)
+                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                    tmp.write(image_bytes)
+                    tmp_path = tmp.name
+                try:
+                    query_vector = await embed_image(tmp_path, x_gemini_api_key)
+                finally:
+                    os.unlink(tmp_path)
+            else:
+                query_vector = await embed_text(body.query, x_gemini_api_key, is_query=True)
+        except Exception as e:
+            logger.error(f"Semantic-Query-Embedding-Fehler: {type(e).__name__}: {e}")
+            raise HTTPException(502, detail="Embedding-Berechnung fehlgeschlagen.")
 
-    vec = _vec_str(query_vector)
+        vec = _vec_str(query_vector)
 
-    # HNSW-Vektorsuche – halfvec-Cast muss zur Indexdefinition passen.
-    # :vec wird über eine qvec-CTE genau einmal materialisiert, damit asyncpg
-    # keinen Fehler bei doppelt verwendeten Named-Parameters wirft.
-    sql = text("""
-        WITH qvec AS (
-            SELECT (:vec)::halfvec(3072) AS v
-        )
-        SELECT
-            r.id,
-            r.title,
-            r.description,
-            r.category,
-            r.cuisine,
-            r.difficulty,
-            r.prep_time_minutes,
-            r.cook_time_minutes,
-            r.total_time_minutes,
-            r.servings,
-            r.is_favorite,
-            i.file_path                                                   AS thumbnail_path,
-            1.0 - ((r.embedding::halfvec(3072)) <=> qvec.v)              AS score
-        FROM recipes r
-        CROSS JOIN qvec
-        LEFT JOIN images i ON i.recipe_id = r.id AND i.is_primary = true
-        WHERE r.user_id = CAST(:uid AS uuid)
-          AND r.embedding IS NOT NULL
-        ORDER BY (r.embedding::halfvec(3072)) <=> qvec.v
-        LIMIT :lim
-    """)
+        # HNSW-Vektorsuche – halfvec-Cast muss zur Indexdefinition passen.
+        # :vec wird über eine qvec-CTE genau einmal materialisiert, damit asyncpg
+        # keinen Fehler bei doppelt verwendeten Named-Parameters wirft.
+        search_sql = text("""
+            WITH qvec AS (
+                SELECT (:vec)::halfvec(3072) AS v
+            )
+            SELECT
+                r.id,
+                r.title,
+                r.description,
+                r.category,
+                r.cuisine,
+                r.difficulty,
+                r.prep_time_minutes,
+                r.cook_time_minutes,
+                r.total_time_minutes,
+                r.servings,
+                r.is_favorite,
+                i.file_path                                                   AS thumbnail_path,
+                1.0 - ((r.embedding::halfvec(3072)) <=> qvec.v)              AS score
+            FROM recipes r
+            CROSS JOIN qvec
+            LEFT JOIN images i ON i.recipe_id = r.id AND i.is_primary = true
+            WHERE r.user_id = CAST(:uid AS uuid)
+              AND r.embedding IS NOT NULL
+            ORDER BY (r.embedding::halfvec(3072)) <=> qvec.v
+            LIMIT :lim
+        """)
 
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(sql, {"vec": vec, "uid": body.user_id, "lim": body.limit})
+        result = await session.execute(search_sql, {"vec": vec, "uid": body.user_id, "lim": body.limit})
         rows = result.fetchall()
 
     return [_row_to_result(row) for row in rows]
@@ -206,8 +205,8 @@ async def hybrid_search(
     if not x_gemini_api_key:
         raise HTTPException(503, detail="Kein API-Schlüssel hinterlegt.")
 
-    # Short-circuit: skip Gemini API call if user has no embedded recipes
     async with AsyncSessionLocal() as session:
+        # Short-circuit: skip Gemini API call if user has no embedded recipes
         has_embeddings = await session.execute(
             text("SELECT 1 FROM recipes WHERE user_id = CAST(:uid AS uuid) AND embedding IS NOT NULL LIMIT 1"),
             {"uid": body.user_id},
@@ -215,74 +214,73 @@ async def hybrid_search(
         if has_embeddings.fetchone() is None:
             return []
 
-    try:
-        query_vector = await embed_text(body.query, x_gemini_api_key, is_query=True)
-    except Exception as e:
-        logger.error(f"Hybrid-Query-Embedding-Fehler: {type(e).__name__}: {e}")
-        raise HTTPException(502, detail="Embedding-Berechnung fehlgeschlagen.")
+        try:
+            query_vector = await embed_text(body.query, x_gemini_api_key, is_query=True)
+        except Exception as e:
+            logger.error(f"Hybrid-Query-Embedding-Fehler: {type(e).__name__}: {e}")
+            raise HTTPException(502, detail="Embedding-Berechnung fehlgeschlagen.")
 
-    vec = _vec_str(query_vector)
+        vec = _vec_str(query_vector)
 
-    # :vec wird über eine qvec-CTE einmal materialisiert – verhindert asyncpg-Fehler
-    # bei doppelt verwendeten Named-Parameters in vector_ranked und ORDER BY.
-    sql = text("""
-        WITH qvec AS (
-            SELECT (:vec)::halfvec(3072) AS v
-        ),
-        vector_ranked AS (
+        # :vec wird über eine qvec-CTE einmal materialisiert – verhindert asyncpg-Fehler
+        # bei doppelt verwendeten Named-Parameters in vector_ranked und ORDER BY.
+        search_sql = text("""
+            WITH qvec AS (
+                SELECT (:vec)::halfvec(3072) AS v
+            ),
+            vector_ranked AS (
+                SELECT
+                    id,
+                    ROW_NUMBER() OVER (
+                        ORDER BY (embedding::halfvec(3072)) <=> (SELECT v FROM qvec)
+                    ) AS vrank
+                FROM recipes
+                WHERE user_id = CAST(:uid AS uuid)
+                  AND embedding IS NOT NULL
+                LIMIT 60
+            ),
+            fts_ranked AS (
+                SELECT
+                    id,
+                    ROW_NUMBER() OVER (
+                        ORDER BY ts_rank(fts_vector, websearch_to_tsquery('german', :query)) DESC
+                    ) AS frank
+                FROM recipes
+                WHERE user_id = CAST(:uid AS uuid)
+                  AND fts_vector @@ websearch_to_tsquery('german', :query)
+                LIMIT 60
+            ),
+            combined AS (
+                SELECT
+                    COALESCE(v.id, f.id)                                         AS recipe_id,
+                    COALESCE(1.0 / (60.0 + v.vrank), 0.0)
+                        + COALESCE(1.0 / (60.0 + f.frank), 0.0)                  AS rrf_score
+                FROM vector_ranked v
+                FULL OUTER JOIN fts_ranked f ON v.id = f.id
+            )
             SELECT
-                id,
-                ROW_NUMBER() OVER (
-                    ORDER BY (embedding::halfvec(3072)) <=> (SELECT v FROM qvec)
-                ) AS vrank
-            FROM recipes
-            WHERE user_id = CAST(:uid AS uuid)
-              AND embedding IS NOT NULL
-            LIMIT 60
-        ),
-        fts_ranked AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (
-                    ORDER BY ts_rank(fts_vector, websearch_to_tsquery('german', :query)) DESC
-                ) AS frank
-            FROM recipes
-            WHERE user_id = CAST(:uid AS uuid)
-              AND fts_vector @@ websearch_to_tsquery('german', :query)
-            LIMIT 60
-        ),
-        combined AS (
-            SELECT
-                COALESCE(v.id, f.id)                                         AS recipe_id,
-                COALESCE(1.0 / (60.0 + v.vrank), 0.0)
-                    + COALESCE(1.0 / (60.0 + f.frank), 0.0)                  AS rrf_score
-            FROM vector_ranked v
-            FULL OUTER JOIN fts_ranked f ON v.id = f.id
-        )
-        SELECT
-            r.id,
-            r.title,
-            r.description,
-            r.category,
-            r.cuisine,
-            r.difficulty,
-            r.prep_time_minutes,
-            r.cook_time_minutes,
-            r.total_time_minutes,
-            r.servings,
-            r.is_favorite,
-            img.file_path   AS thumbnail_path,
-            c.rrf_score     AS score
-        FROM combined c
-        JOIN recipes r ON c.recipe_id = r.id
-        LEFT JOIN images img ON img.recipe_id = r.id AND img.is_primary = true
-        ORDER BY c.rrf_score DESC
-        LIMIT :lim
-    """)
+                r.id,
+                r.title,
+                r.description,
+                r.category,
+                r.cuisine,
+                r.difficulty,
+                r.prep_time_minutes,
+                r.cook_time_minutes,
+                r.total_time_minutes,
+                r.servings,
+                r.is_favorite,
+                img.file_path   AS thumbnail_path,
+                c.rrf_score     AS score
+            FROM combined c
+            JOIN recipes r ON c.recipe_id = r.id
+            LEFT JOIN images img ON img.recipe_id = r.id AND img.is_primary = true
+            ORDER BY c.rrf_score DESC
+            LIMIT :lim
+        """)
 
-    async with AsyncSessionLocal() as session:
         result = await session.execute(
-            sql,
+            search_sql,
             {
                 "vec": vec,
                 "query": body.query,

@@ -39,10 +39,11 @@ export async function GET(request: Request) {
 
   const rows = await db.execute<{ name: string }>(
     sql`
-      SELECT DISTINCT LOWER(TRIM(name)) AS name
-      FROM ingredients
-      WHERE recipe_id IN (SELECT id FROM recipes WHERE user_id = ${userId})
-      ${q ? sql`AND LOWER(TRIM(name)) LIKE ${q.toLowerCase().trim() + "%"}` : sql``}
+      SELECT DISTINCT LOWER(TRIM(i.name)) AS name
+      FROM ingredients i
+      JOIN recipes r ON i.recipe_id = r.id
+      WHERE r.user_id = ${userId}
+      ${q ? sql`AND LOWER(TRIM(i.name)) LIKE ${q.toLowerCase().trim() + "%"}` : sql``}
       ORDER BY name
       LIMIT ${limit}
     `,

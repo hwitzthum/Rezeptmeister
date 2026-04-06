@@ -168,16 +168,16 @@ CREATE TABLE collection_recipes (
 -- Indizes
 -- -------------------------------------------------------
 
--- Vektor-Indizes: werden via Alembic-Migration hinzugefügt, sobald Daten vorhanden sind.
--- (HNSW max. 2000 Dimensionen; IVFFlat braucht Daten zum Training)
--- CREATE INDEX idx_recipes_embedding ON recipes USING hnsw (embedding vector_cosine_ops);
--- CREATE INDEX idx_images_embedding  ON images  USING hnsw (embedding vector_cosine_ops);
+-- Vektor-Indizes (halfvec-Cast umgeht das HNSW-Limit von 2000 Dimensionen)
+CREATE INDEX idx_recipes_embedding_hnsw ON recipes USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops) WITH (m = 16, ef_construction = 64);
+CREATE INDEX idx_images_embedding_hnsw  ON images  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops) WITH (m = 16, ef_construction = 64);
 
 -- B-Tree Indizes
 CREATE INDEX idx_recipes_user_id    ON recipes (user_id);
 CREATE INDEX idx_recipes_category   ON recipes (category);
 CREATE INDEX idx_recipes_is_favorite ON recipes (user_id, is_favorite);
 CREATE INDEX idx_ingredients_recipe_id ON ingredients (recipe_id);
+CREATE INDEX idx_ingredients_name_lower ON ingredients (LOWER(TRIM(name)));
 CREATE INDEX idx_images_recipe_id   ON images (recipe_id);
 CREATE INDEX idx_images_user_id     ON images (user_id);
 CREATE INDEX idx_recipe_notes_recipe_user ON recipe_notes (recipe_id, user_id);

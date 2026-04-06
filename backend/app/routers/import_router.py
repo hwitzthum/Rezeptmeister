@@ -41,4 +41,4 @@ async def import_url(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"URL-Import-Fehler für {body.url!r}: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=502, detail=f"Import fehlgeschlagen: {str(e)}")
+        raise HTTPException(status_code=502, detail="Import fehlgeschlagen.")
