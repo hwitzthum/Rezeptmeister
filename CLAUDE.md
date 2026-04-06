@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Two separate runtimes that never import each other:
 
 ```
-frontend/   → Next.js 15 (App Router, TypeScript) on port 3000
+frontend/   → Next.js 15 (App Router, TypeScript) on port 3001
 backend/    → FastAPI (Python, uv) on port 8000
 db          → PostgreSQL + pgvector (Docker) on port 5432
 uploads/    → Local filesystem (originals/ and thumbnails/) in dev
@@ -45,7 +45,7 @@ docker compose logs db        # DB logs
 ```bash
 cd frontend
 npm install
-npm run dev         # Dev server on http://localhost:3000
+npm run dev         # Dev server on http://localhost:3001
 npm run build       # Production build (run this before merging — tsc alone misses next.js errors)
 npm run lint        # ESLint
 npx drizzle-kit generate   # Generate Drizzle migration from schema changes
@@ -141,7 +141,7 @@ These rules exist because previous sessions skipped todo items and omitted test 
 - Each implementation phase gets a Playwright test file: `frontend/tests/phase-X.spec.ts`.
 - Backend: Pytest integration tests that hit a real PostgreSQL instance (never SQLite mocks).
 - Mark Pytest tests with `pytest.mark.skipif` on DB connection check so they skip gracefully when DB is unavailable.
-- Playwright runs on port 3002 (ports 3000 and 3001 are occupied by other apps on this machine).
+- Playwright runs on port 3002. Port 3000 is occupied by open-webui (Ollama UI); Rezeptmeister dev server runs on port 3001.
 
 ---
 
@@ -151,7 +151,7 @@ These rules exist because previous sessions skipped todo items and omitted test 
 # frontend/.env.local
 DATABASE_URL=postgresql://rezeptmeister:localdev@localhost:5432/rezeptmeister
 NEXTAUTH_SECRET=<random-secret>
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3001
 BACKEND_URL=http://localhost:8000
 UPLOAD_DIR=./uploads
 ENCRYPTION_KEY=<32-byte-hex-key>

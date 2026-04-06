@@ -70,7 +70,7 @@ docker compose exec -T db psql -U rezeptmeister -d rezeptmeister < db/seed.sql
 cd frontend
 npm install
 npx drizzle-kit migrate   # Apply DB migrations (tables created by init.sql, migrations add any delta)
-npm run dev                # Dev server → http://localhost:3000
+npm run dev                # Dev server → http://localhost:3001
 ```
 
 ### Login (seed accounts)
@@ -80,9 +80,9 @@ npm run dev                # Dev server → http://localhost:3000
 | Admin | `harrywitzthum@gmail.com` | `05!Shakespeare_15` |
 | Test user | `test@rezeptmeister.ch` | `test1234` |
 
-**Done!** Your app is running at `http://localhost:3000`.
+**Done!** Your app is running at `http://localhost:3001`.
 
-> **Note:** The FastAPI backend runs inside Docker and is not exposed on the host by default. The frontend proxies all AI requests to it internally. To access the FastAPI Swagger docs directly during development, temporarily add `ports: ["8000:8000"]` to the `backend` service in `docker-compose.yml`, then visit `http://localhost:8000/docs`.
+> **Note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on port 3001. The FastAPI backend runs inside Docker and is not exposed on the host by default. To access FastAPI Swagger docs directly, temporarily add `ports: ["8000:8000"]` to the `backend` service in `docker-compose.yml`, then visit `http://localhost:8000/docs`.
 
 ---
 
@@ -246,7 +246,7 @@ uv run uvicorn app.main:app --reload --port 8000  # Dev server → http://localh
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection (host port 5434) | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` |
 | `NEXTAUTH_SECRET` | JWT signing key (48+ chars) | `openssl rand -base64 48` |
-| `NEXTAUTH_URL` | App base URL | `http://localhost:3000` |
+| `NEXTAUTH_URL` | App base URL | `http://localhost:3001` |
 | `BACKEND_URL` | FastAPI backend URL | `http://localhost:8000` |
 | `UPLOAD_DIR` | Image upload directory | `./uploads` |
 | `ENCRYPTION_KEY` | AES-256 key for API keys (64 hex chars) | `openssl rand -hex 32` |
@@ -522,7 +522,7 @@ Rezeptmeister uses a **3-layer testing approach** for completeness:
 ### 3. E2E Tests (Playwright)
 - Full user journeys: register → login → create → search → export
 - Each phase has dedicated test file: `tests/phase-X.spec.ts`
-- Run on port 3002 (ports 3000/3001 occupied)
+- Run on port 3002 (port 3000 = open-webui, port 3001 = Rezeptmeister)
 - Run with: `npx playwright test`
 
 ### Test Execution
@@ -932,10 +932,10 @@ We welcome contributions! Please follow these steps:
 
 ### Common Issues
 
-**"Port 3000 already in use"**
+**"Port 3001 already in use"**
 ```bash
-# Find process on port 3000
-lsof -i :3000
+# Find process on port 3001
+lsof -i :3001
 # Kill it
 kill -9 <PID>
 # Or use different port
@@ -979,7 +979,7 @@ SELECT id, email, status FROM users;
 - Clear browser cache (Cmd+Shift+R)
 
 **"E2E tests timeout"**
-- Ensure frontend running on port 3000: `npm run dev`
+- Ensure frontend running on port 3001: `npm run dev`
 - Ensure backend running: `docker compose up -d`
 - Increase timeout in `playwright.config.ts`:
 ```typescript
