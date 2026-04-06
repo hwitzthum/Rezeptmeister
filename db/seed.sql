@@ -1,5 +1,6 @@
 -- Rezeptmeister – Testdaten (Schweizer Musterrezepte)
 -- Wird nur in der Entwicklungsumgebung ausgeführt
+-- Idempotent: kann beliebig oft ausgeführt werden ohne Duplikate
 
 -- Admin-Benutzer (Passwort: 05!Shakespeare_15)
 INSERT INTO users (id, email, name, password_hash, role, status) VALUES
@@ -8,7 +9,8 @@ INSERT INTO users (id, email, name, password_hash, role, status) VALUES
      'Harry Witzthum',
      '$2b$12$11dCoVbnkYqUb/uUO2M3deWvK6M9PCRJF5UhVs.LAebhe9ge/KGCW', -- 05!Shakespeare_15
      'admin',
-     'approved');
+     'approved')
+ON CONFLICT (id) DO NOTHING;
 
 -- Test-Benutzer (Passwort: test1234)
 INSERT INTO users (id, email, name, password_hash, role, status) VALUES
@@ -17,7 +19,8 @@ INSERT INTO users (id, email, name, password_hash, role, status) VALUES
      'Test Benutzer',
      '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', -- test1234
      'user',
-     'approved');
+     'approved')
+ON CONFLICT (id) DO NOTHING;
 
 -- Musterrezept 1: Zürcher Geschnetzeltes
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -35,10 +38,12 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 8. Mit Salz, Pfeffer und Zitronensaft abschmecken.
 9. Mit Rösti oder Nudeln servieren.',
      4, 20, 25, 45, 'mittel', 'manual', 'Schweizerisch', 'Hauptgericht',
-     ARRAY['Klassiker', 'Schweiz', 'Fleisch', 'Kalbfleisch']);
+     ARRAY['Klassiker', 'Schweiz', 'Fleisch', 'Kalbfleisch'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000001', 'Kalbsnierstück', 600, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000001'::uuid, 'Kalbsnierstück', 600::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000001', 'Champignons', 300, 'g', 2),
     ('10000000-0000-0000-0000-000000000001', 'Zwiebeln', 2, 'Stk.', 3),
     ('10000000-0000-0000-0000-000000000001', 'Butter', 50, 'g', 4),
@@ -46,7 +51,9 @@ INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
     ('10000000-0000-0000-0000-000000000001', 'Kalbsfond', 2, 'dl', 6),
     ('10000000-0000-0000-0000-000000000001', 'Rahm (Vollrahm)', 2, 'dl', 7),
     ('10000000-0000-0000-0000-000000000001', 'Zitronensaft', 1, 'EL', 8),
-    ('10000000-0000-0000-0000-000000000001', 'Salz und Pfeffer', NULL, NULL, 9);
+    ('10000000-0000-0000-0000-000000000001', 'Salz und Pfeffer', NULL::decimal, NULL, 9)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000001');
 
 -- Musterrezept 2: Birchermüesli
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -60,17 +67,21 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 4. Nüsse und Beeren darübergeben.
 5. Nach Belieben mit frischen Früchten der Saison garnieren.',
      2, 10, 0, 10, 'einfach', 'manual', 'Schweizerisch', 'Frühstück',
-     ARRAY['Frühstück', 'Gesund', 'Vegetarisch', 'Schnell', 'Ohne Kochen']);
+     ARRAY['Frühstück', 'Gesund', 'Vegetarisch', 'Schnell', 'Ohne Kochen'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000002', 'Zarte Haferflocken', 6, 'EL', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000002'::uuid, 'Zarte Haferflocken', 6::decimal, 'EL', 1),
     ('10000000-0000-0000-0000-000000000002', 'Milch', 1.5, 'dl', 2),
     ('10000000-0000-0000-0000-000000000002', 'Naturjoghurt', 1.5, 'dl', 3),
     ('10000000-0000-0000-0000-000000000002', 'Zitronensaft', 1, 'EL', 4),
     ('10000000-0000-0000-0000-000000000002', 'Honig', 1, 'EL', 5),
     ('10000000-0000-0000-0000-000000000002', 'Äpfel (gerieben)', 2, 'Stk.', 6),
     ('10000000-0000-0000-0000-000000000002', 'Gemischte Nüsse (gehackt)', 2, 'EL', 7),
-    ('10000000-0000-0000-0000-000000000002', 'Beeren (frisch oder tiefgefroren)', 100, 'g', 8);
+    ('10000000-0000-0000-0000-000000000002', 'Beeren (frisch oder tiefgefroren)', 100::decimal, 'g', 8)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000002');
 
 -- Musterrezept 3: Rösti
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags, is_favorite) VALUES
@@ -86,14 +97,18 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 6. Mit einem Teller wenden: Teller auf die Pfanne legen, Pfanne umdrehen, Rösti zurückgleiten lassen.
 7. Weitere 10 Minuten braten, bis auch die zweite Seite goldbraun ist.',
      4, 15, 25, 40, 'mittel', 'manual', 'Schweizerisch', 'Beilage',
-     ARRAY['Schweiz', 'Vegetarisch', 'Klassiker', 'Kartoffeln'], true);
+     ARRAY['Schweiz', 'Vegetarisch', 'Klassiker', 'Kartoffeln'], true)
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000003', 'Mehlig kochende Kartoffeln (vorgekocht)', 800, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000003'::uuid, 'Mehlig kochende Kartoffeln (vorgekocht)', 800::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000003', 'Zwiebeln', 1, 'Stk.', 2),
     ('10000000-0000-0000-0000-000000000003', 'Butter', 60, 'g', 3),
     ('10000000-0000-0000-0000-000000000003', 'Salz', 1, 'TL', 4),
-    ('10000000-0000-0000-0000-000000000003', 'Pfeffer', 1, 'Msp.', 5);
+    ('10000000-0000-0000-0000-000000000003', 'Pfeffer', 1::decimal, 'Msp.', 5)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000003');
 
 -- Musterrezept 4: Käseschnitten
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -108,13 +123,17 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 5. Unter dem Grill 5–7 Minuten überbacken, bis der Käse blubbert und goldbraun ist.
 6. Sofort mit Cornichons und frischem Salat servieren.',
      2, 5, 10, 15, 'einfach', 'manual', 'Schweizerisch', 'Snack',
-     ARRAY['Schnell', 'Käse', 'Vegetarisch', 'Zvieri']);
+     ARRAY['Schnell', 'Käse', 'Vegetarisch', 'Zvieri'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000004', 'Ruchbrot (Scheiben)', 4, 'Scheibe', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000004'::uuid, 'Ruchbrot (Scheiben)', 4::decimal, 'Scheibe', 1),
     ('10000000-0000-0000-0000-000000000004', 'Gruyère oder Emmentaler', 200, 'g', 2),
     ('10000000-0000-0000-0000-000000000004', 'Mittelscharfer Senf', 2, 'TL', 3),
-    ('10000000-0000-0000-0000-000000000004', 'Cornichons (zum Servieren)', NULL, NULL, 4);
+    ('10000000-0000-0000-0000-000000000004', 'Cornichons (zum Servieren)', NULL::decimal, NULL, 4)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000004');
 
 -- Musterrezept 5: Apfelwähe
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -131,10 +150,12 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 7. Im Ofen 35–40 Minuten backen, bis der Guss gestockt und der Teig goldbraun ist.
 8. Lauwarm oder kalt servieren, nach Belieben mit Schlagsahne.',
      8, 30, 40, 70, 'mittel', 'manual', 'Schweizerisch', 'Dessert',
-     ARRAY['Dessert', 'Backen', 'Vegetarisch', 'Herbst', 'Äpfel', 'Wähe']);
+     ARRAY['Dessert', 'Backen', 'Vegetarisch', 'Herbst', 'Äpfel', 'Wähe'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000005', 'Mehl (Weissmehl)', 250, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000005'::uuid, 'Mehl (Weissmehl)', 250::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000005', 'Kalte Butter (gewürfelt)', 125, 'g', 2),
     ('10000000-0000-0000-0000-000000000005', 'Salz', 1, 'Msp.', 3),
     ('10000000-0000-0000-0000-000000000005', 'Kaltes Wasser', 3, 'EL', 4),
@@ -143,7 +164,9 @@ INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
     ('10000000-0000-0000-0000-000000000005', 'Zucker', 3, 'EL', 7),
     ('10000000-0000-0000-0000-000000000005', 'Eier', 2, 'Stk.', 8),
     ('10000000-0000-0000-0000-000000000005', 'Rahm (Vollrahm)', 2, 'dl', 9),
-    ('10000000-0000-0000-0000-000000000005', 'Zucker (für Guss)', 2, 'EL', 10);
+    ('10000000-0000-0000-0000-000000000005', 'Zucker (für Guss)', 2::decimal, 'EL', 10)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000005');
 
 -- Musterrezept 6: Älplermagronen
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -162,18 +185,22 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 9. Auf Teller verteilen, Röstzwiebeln darübergeben.
 10. Mit Apfelmus als Beilage servieren.',
      4, 15, 25, 40, 'einfach', 'manual', 'Schweizerisch', 'Hauptgericht',
-     ARRAY['Schweiz', 'Alpen', 'Deftig', 'Vegetarisch', 'Kartoffeln', 'Käse']);
+     ARRAY['Schweiz', 'Alpen', 'Deftig', 'Vegetarisch', 'Kartoffeln', 'Käse'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000006', 'Magronen (kurze Röhren)', 250, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000006'::uuid, 'Magronen (kurze Röhren)', 250::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000006', 'Kartoffeln (festkochend)', 400, 'g', 2),
     ('10000000-0000-0000-0000-000000000006', 'Gruyère (gerieben)', 150, 'g', 3),
     ('10000000-0000-0000-0000-000000000006', 'Rahm (Vollrahm)', 2, 'dl', 4),
     ('10000000-0000-0000-0000-000000000006', 'Zwiebeln (gross)', 2, 'Stk.', 5),
     ('10000000-0000-0000-0000-000000000006', 'Butter', 40, 'g', 6),
     ('10000000-0000-0000-0000-000000000006', 'Muskatnuss', 1, 'Msp.', 7),
-    ('10000000-0000-0000-0000-000000000006', 'Salz und Pfeffer', NULL, NULL, 8),
-    ('10000000-0000-0000-0000-000000000006', 'Apfelmus (als Beilage)', 3, 'dl', 9);
+    ('10000000-0000-0000-0000-000000000006', 'Salz und Pfeffer', NULL::decimal, NULL, 8),
+    ('10000000-0000-0000-0000-000000000006', 'Apfelmus (als Beilage)', 3::decimal, 'dl', 9)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000006');
 
 -- Musterrezept 7: Basler Mehlsuppe
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -190,16 +217,20 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 7. Den Gruyère reiben. In vorgewärmte Teller füllen und grosszügig mit geriebenem Käse bestreuen.
 8. Heiss servieren – traditionell in der Morgenstunde der Basler Fasnacht.',
      4, 10, 50, 60, 'mittel', 'manual', 'Schweizerisch', 'Suppe',
-     ARRAY['Basel', 'Fasnacht', 'Tradition', 'Suppe', 'Winter']);
+     ARRAY['Basel', 'Fasnacht', 'Tradition', 'Suppe', 'Winter'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000007', 'Butter', 60, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000007'::uuid, 'Butter', 60::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000007', 'Mehl (Weissmehl)', 60, 'g', 2),
     ('10000000-0000-0000-0000-000000000007', 'Zwiebeln', 2, 'Stk.', 3),
     ('10000000-0000-0000-0000-000000000007', 'Fleischbrühe (kräftig)', 1, 'l', 4),
     ('10000000-0000-0000-0000-000000000007', 'Gruyère (gerieben)', 100, 'g', 5),
     ('10000000-0000-0000-0000-000000000007', 'Muskatnuss', 1, 'Msp.', 6),
-    ('10000000-0000-0000-0000-000000000007', 'Salz und Pfeffer', NULL, NULL, 7);
+    ('10000000-0000-0000-0000-000000000007', 'Salz und Pfeffer', NULL::decimal, NULL, 7)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000007');
 
 -- Musterrezept 8: Bündner Gerstensuppe
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -219,10 +250,12 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 10. Suppe mit Salz und Pfeffer abschmecken.
 11. In Teller füllen und mit Bündnerfleischstreifen und gehackter Petersilie garnieren.',
      6, 20, 100, 120, 'mittel', 'manual', 'Schweizerisch', 'Suppe',
-     ARRAY['Graubünden', 'Bündner', 'Suppe', 'Winter', 'Deftig', 'Gerste']);
+     ARRAY['Graubünden', 'Bündner', 'Suppe', 'Winter', 'Deftig', 'Gerste'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000008', 'Rollgerste', 200, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000008'::uuid, 'Rollgerste', 200::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000008', 'Geräucherter Speck', 100, 'g', 2),
     ('10000000-0000-0000-0000-000000000008', 'Zwiebeln', 2, 'Stk.', 3),
     ('10000000-0000-0000-0000-000000000008', 'Karotten', 2, 'Stk.', 4),
@@ -233,7 +266,9 @@ INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
     ('10000000-0000-0000-0000-000000000008', 'Rahm (Vollrahm)', 1, 'dl', 9),
     ('10000000-0000-0000-0000-000000000008', 'Bündnerfleisch', 100, 'g', 10),
     ('10000000-0000-0000-0000-000000000008', 'Petersilie (gehackt)', 2, 'EL', 11),
-    ('10000000-0000-0000-0000-000000000008', 'Salz und Pfeffer', NULL, NULL, 12);
+    ('10000000-0000-0000-0000-000000000008', 'Salz und Pfeffer', NULL::decimal, NULL, 12)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000008');
 
 -- Musterrezept 9: Vermicelles
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
@@ -252,14 +287,18 @@ INSERT INTO recipes (id, user_id, title, description, instructions, servings, pr
 9. Die Kastanienmasse locker und spaghettiartig über den Schlagrahm häufeln.
 10. Mit einem Tupfer Schlagrahm und Puderzucker garnieren. Sofort servieren.',
      4, 40, 45, 85, 'anspruchsvoll', 'manual', 'Schweizerisch', 'Dessert',
-     ARRAY['Dessert', 'Kastanien', 'Marroni', 'Herbst', 'Klassiker', 'Elegant']);
+     ARRAY['Dessert', 'Kastanien', 'Marroni', 'Herbst', 'Klassiker', 'Elegant'])
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order) VALUES
-    ('10000000-0000-0000-0000-000000000009', 'Frische Kastanien (Marroni)', 800, 'g', 1),
+INSERT INTO ingredients (recipe_id, name, amount, unit, sort_order)
+SELECT v.* FROM (VALUES
+    ('10000000-0000-0000-0000-000000000009'::uuid, 'Frische Kastanien (Marroni)', 800::decimal, 'g', 1),
     ('10000000-0000-0000-0000-000000000009', 'Milch', 3, 'dl', 2),
     ('10000000-0000-0000-0000-000000000009', 'Vanilleschote', 1, 'Stk.', 3),
     ('10000000-0000-0000-0000-000000000009', 'Puderzucker', 100, 'g', 4),
     ('10000000-0000-0000-0000-000000000009', 'Kirsch (Kirschwasser)', 2, 'EL', 5),
     ('10000000-0000-0000-0000-000000000009', 'Schlagrahm', 3, 'dl', 6),
     ('10000000-0000-0000-0000-000000000009', 'Zucker (für Schlagrahm)', 1, 'EL', 7),
-    ('10000000-0000-0000-0000-000000000009', 'Meringue-Schalen (fertig gekauft)', 4, 'Stk.', 8);
+    ('10000000-0000-0000-0000-000000000009', 'Meringue-Schalen (fertig gekauft)', 4::decimal, 'Stk.', 8)
+) AS v(recipe_id, name, amount, unit, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM ingredients WHERE recipe_id = '10000000-0000-0000-0000-000000000009');
