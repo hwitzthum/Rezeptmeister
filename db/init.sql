@@ -164,6 +164,20 @@ CREATE TABLE collection_recipes (
     PRIMARY KEY (collection_id, recipe_id)
 );
 
+-- Re-Embed-Jobs (Admin-Aufgabenstatus)
+CREATE TABLE re_embed_jobs (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status          VARCHAR(20) NOT NULL DEFAULT 'running',
+    total_recipes   INTEGER NOT NULL DEFAULT 0,
+    completed_recipes INTEGER NOT NULL DEFAULT 0,
+    failed_recipes  INTEGER NOT NULL DEFAULT 0,
+    details         JSONB NOT NULL DEFAULT '[]'::jsonb,
+    started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- -------------------------------------------------------
 -- Indizes
 -- -------------------------------------------------------

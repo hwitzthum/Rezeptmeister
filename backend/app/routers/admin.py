@@ -1,12 +1,14 @@
 """
 Admin-Endpunkte fuer Rezeptmeister.
 Re-Embedding pro Benutzer mit Background-Processing und Fortschrittsverfolgung.
+Job-Status wird in der Datenbank persistiert (ueberlebt Neustarts).
 """
 
 import asyncio
 import logging
 import uuid as uuid_mod
-from typing import Any, Optional
+from datetime import datetime, timezone
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -16,6 +18,7 @@ from sqlalchemy import select, update
 from app.database import AsyncSessionLocal
 from app.dependencies import require_internal_token
 from app.models.recipe import Recipe
+from app.models.job import ReEmbedJob
 from app.services.embedding_service import embed_text
 
 logger = logging.getLogger(__name__)
@@ -24,16 +27,6 @@ router = APIRouter(
     tags=["Admin"],
     dependencies=[Depends(require_internal_token)],
 )
-
-# ── In-Memory Job Store ──────────────────────────────────────────────────────
-
-_jobs: dict[str, dict[str, Any]] = {}
-
-
-def _schedule_job_cleanup(job_id: str, delay_seconds: int = 600) -> None:
-    """Raeumt Job-Daten nach Ablauf der Frist auf."""
-    loop = asyncio.get_running_loop()
-    loop.call_later(delay_seconds, lambda: _jobs.pop(job_id, None))
 
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
@@ -62,6 +55,19 @@ class JobStatusResponse(BaseModel):
     details: list[ReEmbedDetail]
 
 
+# ── DB-Helfer ────────────────────────────────────────────────────────────────
+
+async def _update_job(job_id: UUID, **fields) -> None:
+    """Aktualisiert ein oder mehrere Felder eines Jobs in der Datenbank."""
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(ReEmbedJob)
+            .where(ReEmbedJob.id == job_id)
+            .values(**fields)
+        )
+        await session.commit()
+
+
 # ── Background Task ─────────────────────────────────────────────────────────
 
 def _build_embedding_text(recipe: Recipe) -> str:
@@ -80,10 +86,11 @@ def _build_embedding_text(recipe: Recipe) -> str:
     return "\n".join(parts)
 
 
-async def _run_re_embed(job_id: str, user_id: UUID, api_key: str) -> None:
+async def _run_re_embed(job_id: UUID, user_id: UUID, api_key: str) -> None:
     """
     Berechnet Embeddings fuer alle Rezepte eines Benutzers.
     Schreibt alle erfolgreichen Embeddings in einer einzigen Transaktion (atomar).
+    Fortschritt wird in der Datenbank gespeichert.
     """
     try:
         # Rezepte des Benutzers laden
@@ -94,49 +101,53 @@ async def _run_re_embed(job_id: str, user_id: UUID, api_key: str) -> None:
             recipes = result.scalars().all()
 
         total = len(recipes)
-        _jobs[job_id]["total"] = total
+        await _update_job(job_id, total_recipes=total)
 
         if total == 0:
-            _jobs[job_id]["status"] = "done"
-            _schedule_job_cleanup(job_id)
+            await _update_job(
+                job_id,
+                status="done",
+                completed_at=datetime.now(timezone.utc),
+            )
             return
 
         # Embeddings sequenziell berechnen (Rate-Limit-Schutz)
         successful: list[tuple[UUID, list[float]]] = []
-        details: list[ReEmbedDetail] = []
+        details: list[dict] = []
 
         for recipe in recipes:
             text = _build_embedding_text(recipe)
             try:
                 embedding = await embed_text(text, api_key, is_query=False)
                 successful.append((recipe.id, embedding))
-                details.append(ReEmbedDetail(
-                    recipe_id=str(recipe.id),
-                    title=recipe.title,
-                    status="ok",
-                ))
+                details.append({
+                    "recipe_id": str(recipe.id),
+                    "title": recipe.title,
+                    "status": "ok",
+                })
                 logger.info(
                     f"Embedding berechnet fuer Rezept '{recipe.title}' ({recipe.id})"
                 )
             except Exception as e:
-                details.append(ReEmbedDetail(
-                    recipe_id=str(recipe.id),
-                    title=recipe.title,
-                    status="error",
-                    error=str(e),
-                ))
+                details.append({
+                    "recipe_id": str(recipe.id),
+                    "title": recipe.title,
+                    "status": "error",
+                    "error": str(e),
+                })
                 logger.error(
                     f"Embedding-Fehler fuer Rezept '{recipe.title}' ({recipe.id}): {e}"
                 )
 
-            # Fortschritt aktualisieren
-            completed_count = len([d for d in details if d.status == "ok"])
-            error_count = len([d for d in details if d.status == "error"])
-            _jobs[job_id].update({
-                "completed": completed_count,
-                "errors": error_count,
-                "details": details.copy(),
-            })
+            # Fortschritt in DB aktualisieren
+            completed_count = sum(1 for d in details if d["status"] == "ok")
+            error_count = sum(1 for d in details if d["status"] == "error")
+            await _update_job(
+                job_id,
+                completed_recipes=completed_count,
+                failed_recipes=error_count,
+                details=details.copy(),
+            )
 
             # 100ms Pause zwischen Aufrufen fuer Rate-Limit-Schutz
             await asyncio.sleep(0.1)
@@ -156,19 +167,30 @@ async def _run_re_embed(job_id: str, user_id: UUID, api_key: str) -> None:
                 f"{len(successful)}/{total} in DB geschrieben."
             )
 
-        _jobs[job_id]["status"] = "done"
+        await _update_job(
+            job_id,
+            status="done",
+            completed_at=datetime.now(timezone.utc),
+        )
 
     except Exception as e:
         logger.error(f"Re-Embedding-Job {job_id} fehlgeschlagen: {e}")
-        _jobs[job_id]["status"] = "error"
-        _jobs[job_id]["details"].append(ReEmbedDetail(
-            recipe_id="",
-            title="Job-Fehler",
+        error_detail = [{
+            "recipe_id": "",
+            "title": "Job-Fehler",
+            "status": "error",
+            "error": str(e),
+        }]
+        try:
+            error_detail = details + error_detail
+        except NameError:
+            pass
+        await _update_job(
+            job_id,
             status="error",
-            error=str(e),
-        ))
-
-    _schedule_job_cleanup(job_id)
+            completed_at=datetime.now(timezone.utc),
+            details=error_detail,
+        )
 
 
 # ── Endpunkte ────────────────────────────────────────────────────────────────
@@ -185,25 +207,44 @@ async def re_embed_user(
     if not x_gemini_api_key:
         raise HTTPException(status_code=400, detail="X-Gemini-API-Key Header fehlt.")
 
-    job_id = str(uuid_mod.uuid4())
-    _jobs[job_id] = {
-        "job_id": job_id,
-        "status": "running",
-        "total": 0,
-        "completed": 0,
-        "errors": 0,
-        "details": [],
-    }
+    job_id = uuid_mod.uuid4()
+
+    async with AsyncSessionLocal() as session:
+        job = ReEmbedJob(
+            id=job_id,
+            user_id=body.user_id,
+            status="running",
+        )
+        session.add(job)
+        await session.commit()
 
     asyncio.create_task(_run_re_embed(job_id, body.user_id, x_gemini_api_key))
 
-    return ReEmbedStartResponse(job_id=job_id)
+    return ReEmbedStartResponse(job_id=str(job_id))
 
 
 @router.get("/re-embed-status/{job_id}", response_model=JobStatusResponse)
 async def re_embed_status(job_id: str) -> JobStatusResponse:
     """Gibt den aktuellen Fortschritt eines Re-Embedding-Jobs zurueck."""
-    job = _jobs.get(job_id)
+    try:
+        job_uuid = UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungueltige Job-ID.")
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ReEmbedJob).where(ReEmbedJob.id == job_uuid)
+        )
+        job = result.scalar_one_or_none()
+
     if not job:
         raise HTTPException(status_code=404, detail="Job nicht gefunden.")
-    return JobStatusResponse(**job)
+
+    return JobStatusResponse(
+        job_id=str(job.id),
+        status=job.status,
+        total=job.total_recipes,
+        completed=job.completed_recipes,
+        errors=job.failed_recipes,
+        details=[ReEmbedDetail(**d) for d in (job.details or [])],
+    )
