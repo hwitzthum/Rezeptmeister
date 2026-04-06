@@ -11,9 +11,9 @@ POST /ai/nutrition        – Nährwertberechnung pro Portion
 import io
 import logging
 import uuid
-from pathlib import Path
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from google.genai import types
 from PIL import Image as PilImage
@@ -204,40 +204,72 @@ async def generate_image(
     if not image_bytes:
         raise HTTPException(status_code=502, detail="Kein Bild in der KI-Antwort enthalten.")
 
-    # Verzeichnisse sicherstellen (absoluter Pfad, unabhängig vom Arbeitsverzeichnis)
-    upload_dir = Path(settings.upload_dir).resolve()
-    originals_dir = upload_dir / "originals"
-    thumbnails_dir = upload_dir / "thumbnails"
-    originals_dir.mkdir(parents=True, exist_ok=True)
-    thumbnails_dir.mkdir(parents=True, exist_ok=True)
-
     # Dateinamen erzeugen
     file_stem = f"ai_{uuid.uuid4().hex}"
     original_filename = f"{file_stem}.webp"
     thumbnail_filename = f"{file_stem}.webp"
-    original_path = originals_dir / original_filename
-    thumbnail_path = thumbnails_dir / thumbnail_filename
 
-    # Mit Pillow speichern: Original als WebP, Thumbnail 300×300
+    # Mit Pillow verarbeiten: Original als WebP, Thumbnail 300×300
     try:
         img = PilImage.open(io.BytesIO(image_bytes)).convert("RGB")
-        img.save(str(original_path), format="WEBP", quality=90)
         file_size = len(image_bytes)
         width, height = img.size
 
+        # Original als WebP-Bytes
+        orig_buf = io.BytesIO()
+        img.save(orig_buf, format="WEBP", quality=90)
+        orig_bytes = orig_buf.getvalue()
+
+        # Thumbnail 300×300
         thumb = img.copy()
         thumb.thumbnail(settings.thumbnail_size, PilImage.LANCZOS)
-        # Quadratisches Thumbnail mit weissem Hintergrund (300×300)
         thumb_square = PilImage.new("RGB", settings.thumbnail_size, (255, 255, 255))
         offset = (
             (settings.thumbnail_size[0] - thumb.width) // 2,
             (settings.thumbnail_size[1] - thumb.height) // 2,
         )
         thumb_square.paste(thumb, offset)
-        thumb_square.save(str(thumbnail_path), format="WEBP", quality=85)
+        thumb_buf = io.BytesIO()
+        thumb_square.save(thumb_buf, format="WEBP", quality=85)
+        thumb_bytes = thumb_buf.getvalue()
     except Exception as e:
-        logger.error(f"Bild-Speichern-Fehler: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="Bild konnte nicht gespeichert werden.")
+        logger.error(f"Bild-Verarbeitung-Fehler: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail="Bild konnte nicht verarbeitet werden.")
+
+    # Upload to Supabase Storage (or local filesystem as fallback)
+    if settings.supabase_url:
+        bucket = settings.supabase_storage_bucket
+        base = f"{settings.supabase_url}/storage/v1/object/{bucket}"
+        headers = {
+            "Authorization": f"Bearer {settings.supabase_service_role_key}",
+            "Content-Type": "image/webp",
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                r1 = await client.put(
+                    f"{base}/originals/{original_filename}",
+                    content=orig_bytes, headers=headers, timeout=30.0,
+                )
+                r2 = await client.put(
+                    f"{base}/thumbnails/{thumbnail_filename}",
+                    content=thumb_bytes, headers=headers, timeout=30.0,
+                )
+                if r1.status_code >= 400 or r2.status_code >= 400:
+                    logger.error(f"Supabase upload failed: orig={r1.status_code} thumb={r2.status_code}")
+                    raise HTTPException(status_code=500, detail="Bild-Upload fehlgeschlagen.")
+        except httpx.HTTPError as e:
+            logger.error(f"Supabase upload error: {type(e).__name__}: {e}")
+            raise HTTPException(status_code=500, detail="Bild-Upload fehlgeschlagen.")
+    else:
+        # Local filesystem fallback (dev mode)
+        from pathlib import Path
+        upload_dir = Path(settings.upload_dir).resolve()
+        originals_dir = upload_dir / "originals"
+        thumbnails_dir = upload_dir / "thumbnails"
+        originals_dir.mkdir(parents=True, exist_ok=True)
+        thumbnails_dir.mkdir(parents=True, exist_ok=True)
+        (originals_dir / original_filename).write_bytes(orig_bytes)
+        (thumbnails_dir / thumbnail_filename).write_bytes(thumb_bytes)
 
     # DB-Eintrag anlegen
     try:
