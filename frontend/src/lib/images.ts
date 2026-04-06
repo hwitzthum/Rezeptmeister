@@ -1,5 +1,3 @@
-import path from "path";
-
 // ── MIME / Extension constants ────────────────────────────────────────────────
 
 export const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -22,13 +20,6 @@ export const EXT_TO_MIME: Record<string, string> = {
 };
 
 // ── Path utilities ────────────────────────────────────────────────────────────
-
-/**
- * Absolute path to the uploads directory.
- * In Next.js, process.cwd() is the frontend/ directory; uploads/ lives one level up.
- * Computed once at module load — process.cwd() is stable for the process lifetime.
- */
-export const UPLOAD_BASE = path.resolve(process.cwd(), "..", "uploads");
 
 /**
  * The URL prefix under which uploaded files are served.
@@ -69,15 +60,6 @@ export function normaliseImageSrc(filePath: string): string {
     normalised = `/api${normalised}`;
   }
   return normalised;
-}
-
-/**
- * Converts a DB-stored API-relative filePath back to an absolute filesystem path.
- * /api/uploads/originals/uuid.jpg → /abs/path/to/uploads/originals/uuid.jpg
- */
-export function fileSystemPath(apiRelativePath: string): string {
-  const relative = apiRelativePath.replace(new RegExp(`^${UPLOAD_API_PREFIX}/`), "");
-  return path.join(UPLOAD_BASE, relative);
 }
 
 /**
