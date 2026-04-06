@@ -7,6 +7,7 @@ import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
+import { thumbnailUrl } from "@/lib/images";
 import { decrypt } from "@/lib/crypto";
 
 const listQuerySchema = z.object({
@@ -262,6 +263,12 @@ export async function GET(request: Request) {
       tags: recipes.tags,
       createdAt: recipes.createdAt,
       updatedAt: recipes.updatedAt,
+      thumbnailPath: sql<string | null>`(
+        SELECT file_path FROM images
+        WHERE images.recipe_id = recipes.id
+        ORDER BY images.is_primary DESC, images.created_at DESC
+        LIMIT 1
+      )`,
     })
     .from(recipes)
     .where(where)
@@ -294,6 +301,8 @@ export async function GET(request: Request) {
 
   const rows = rawRows.map((r) => ({
     ...r,
+    thumbnailUrl: r.thumbnailPath ? thumbnailUrl(r.thumbnailPath) : null,
+    thumbnailPath: undefined,
     averageRating: ratingsMap[r.id] ?? null,
   }));
 

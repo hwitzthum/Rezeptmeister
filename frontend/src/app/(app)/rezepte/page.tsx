@@ -21,6 +21,7 @@ interface RecipeListItem {
   isFavorite: boolean;
   tags: string[] | null;
   averageRating: number | null;
+  thumbnailUrl: string | null;
 }
 
 // ── Hauptkomponente ───────────────────────────────────────────────────────────
@@ -233,6 +234,7 @@ export default function RezeptListePage() {
                   isFavorite={recipe.isFavorite}
                   tags={recipe.tags ?? undefined}
                   averageRating={recipe.averageRating ?? undefined}
+                  imageUrl={recipe.thumbnailUrl ?? undefined}
                   onClick={() => router.push(`/rezepte/${recipe.id}`)}
                   onFavoriteToggle={(id, newState) => toggleFavorite(id, newState)}
                 />
