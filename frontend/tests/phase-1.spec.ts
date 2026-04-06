@@ -56,28 +56,28 @@ test.describe("Phase 1 – Projektfundament", () => {
     expect(fontFamily.toLowerCase()).toMatch(/playfair|georgia|serif/i);
   });
 
-  test("Design-Token: Terrakotta-Farbe (#c24d2c) ist gerendert", async ({ page }) => {
+  test("Design-Token: Terrakotta-Farbe (#c24d2c) als CSS-Variable definiert", async ({ page }) => {
     await page.goto("/");
-    const terraBox = page.locator('[title="Terrakotta"]');
-    await expect(terraBox).toBeVisible();
-
-    const bg = await terraBox.evaluate(
-      (el) => getComputedStyle(el).backgroundColor,
+    const terra = await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-terra-500")
+        .trim(),
     );
-    // rgb(194, 77, 44) entspricht #C24D2C
-    expect(bg).toBe("rgb(194, 77, 44)");
+    // #c24d2c oder äquivalente Notation
+    expect(terra).toBeTruthy();
+    expect(terra.toLowerCase()).toMatch(/c24d2c|194.*77.*44/);
   });
 
-  test("Design-Token: Gold-Farbe (#d4a843) ist gerendert", async ({ page }) => {
+  test("Design-Token: Gold-Farbe (#d4a843) als CSS-Variable definiert", async ({ page }) => {
     await page.goto("/");
-    const goldBox = page.locator('[title="Gold"]');
-    await expect(goldBox).toBeVisible();
-
-    const bg = await goldBox.evaluate(
-      (el) => getComputedStyle(el).backgroundColor,
+    const gold = await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-gold-500")
+        .trim(),
     );
-    // rgb(212, 168, 67) entspricht #D4A843
-    expect(bg).toBe("rgb(212, 168, 67)");
+    // #d4a843 oder äquivalente Notation
+    expect(gold).toBeTruthy();
+    expect(gold.toLowerCase()).toMatch(/d4a843|212.*168.*67/);
   });
 
   test("CSS-Variable --bg-base ist eine warme Creme-Farbe", async ({ page }) => {
@@ -90,19 +90,26 @@ test.describe("Phase 1 – Projektfundament", () => {
     expect(bgBase).toBe("#fff8f0");
   });
 
-  test("Phasenanzeige ist auf Seite sichtbar", async ({ page }) => {
-    await page.goto("/");
-    const indicator = page.locator('[data-testid="phase-indicator"]');
-    await expect(indicator).toBeVisible();
-    await expect(indicator).toContainText("Phase 1");
+  test("Anmeldeseite ist erreichbar und zeigt Login-Formular", async ({ page }) => {
+    await page.goto("/auth/anmelden");
+    const form = page.locator("form");
+    await expect(form).toBeVisible();
+    await expect(page.getByLabel(/E-Mail/)).toBeVisible();
   });
 
-  test("Design-Token-Vorschau enthält 3 Farbfelder", async ({ page }) => {
+  test("Design-Token: Alle drei Hauptfarben als CSS-Variablen vorhanden", async ({ page }) => {
     await page.goto("/");
-    const tokenContainer = page.locator('[data-testid="design-tokens"]');
-    await expect(tokenContainer).toBeVisible();
-    const boxes = tokenContainer.locator("div");
-    expect(await boxes.count()).toBe(3);
+    const vars = await page.evaluate(() => {
+      const s = getComputedStyle(document.documentElement);
+      return {
+        terra: s.getPropertyValue("--color-terra-500").trim(),
+        gold: s.getPropertyValue("--color-gold-500").trim(),
+        bgBase: s.getPropertyValue("--bg-base").trim(),
+      };
+    });
+    expect(vars.terra).toBeTruthy();
+    expect(vars.gold).toBeTruthy();
+    expect(vars.bgBase).toBeTruthy();
   });
 
   test("Keine 404-Ressourcen beim Laden der Seite", async ({ page }) => {

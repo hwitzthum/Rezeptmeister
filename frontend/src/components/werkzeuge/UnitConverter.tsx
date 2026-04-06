@@ -6,7 +6,6 @@ import {
   isIngredientRelevant,
   getUnitLabel,
   getUnitsForCategory,
-  UNITS,
   CATEGORY_LABELS,
   INGREDIENT_DENSITIES,
   QUICK_REFERENCES,

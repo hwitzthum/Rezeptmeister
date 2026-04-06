@@ -320,14 +320,14 @@
 
 ## Phase 15 – Dashboard (F-UI-05.3)
 
-- [ ] **Frontend-Design-Skill:** Gesamtes Dashboard `/` (Begrüssung, Karussell, Widgets)
-- [ ] "Zuletzt bearbeitet"-Karussell (letzte 5 Rezepte)
-- [ ] Favoriten-Schnellzugriff
-- [ ] "Rezeptvorschlag des Tages" (KI, falls API-Schlüssel vorhanden)
-- [ ] Schnellzugriff-Buttons: Neues Rezept, Bild hochladen, URL importieren
-- [ ] Einkaufslisten-Widget (Anzahl offener Einträge)
-- [ ] Wochenplan-Vorschau (heutiger Tag)
-- [ ] **E2E-Test:** Dashboard lädt, alle Widgets korrekt, Karussell scrollt
+- [x] **Frontend-Design-Skill:** Gesamtes Dashboard `/` (Begrüssung, Karussell, Widgets)
+- [x] "Zuletzt bearbeitet"-Karussell (letzte 5 Rezepte)
+- [x] Favoriten-Schnellzugriff
+- [x] "Rezeptvorschlag des Tages" (KI, falls API-Schlüssel vorhanden)
+- [x] Schnellzugriff-Buttons: Neues Rezept, Bild hochladen, URL importieren
+- [x] Einkaufslisten-Widget (Anzahl offener Einträge)
+- [x] Wochenplan-Vorschau (heutiger Tag)
+- [x] **E2E-Test:** Dashboard lädt, alle Widgets korrekt, Karussell scrollt ✅ 8/8 Tests grün
 
 ---
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { collections, collectionRecipes, recipes } from "@/lib/db/schema";
+import { collections, collectionRecipes } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";

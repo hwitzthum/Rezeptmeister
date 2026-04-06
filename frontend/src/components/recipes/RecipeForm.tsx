@@ -8,7 +8,6 @@ import Step1Grunddaten, {
 } from "./steps/Step1Grunddaten";
 import Step2Zutaten, {
   type Step2Data,
-  type IngredientItem,
 } from "./steps/Step2Zutaten";
 import Step3Anleitung, { type Step3Data } from "./steps/Step3Anleitung";
 import Step4Metadaten, { type Step4Data } from "./steps/Step4Metadaten";

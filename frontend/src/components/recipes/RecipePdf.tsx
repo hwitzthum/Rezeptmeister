@@ -139,6 +139,7 @@ function RecipePdfPage({
       </View>
 
       {includeImage && heroImg?.filePath && (
+        /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop */
         <Image src={heroImg.filePath} style={styles.image} />
       )}
 

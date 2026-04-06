@@ -123,7 +123,7 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await page.locator("#password").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Anmelden" }).click();
 
-    await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
     await page.goto("/admin");
     await expect(
       page.getByRole("heading", { name: "Benutzerverwaltung" }),
@@ -164,7 +164,7 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
     await page.locator("#password").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Anmelden" }).click();
-    await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
 
     // Go to admin and wait for dashboard to fully render
     await page.goto("/admin");
@@ -204,7 +204,7 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
     await page.locator("#password").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Anmelden" }).click();
-    await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
 
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
@@ -221,7 +221,7 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
     await page.locator("#password").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Anmelden" }).click();
-    await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
 
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
@@ -242,7 +242,7 @@ test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
     await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
     await page.locator("#password").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Anmelden" }).click();
-    await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+    await expect(page).toHaveURL("/", { timeout: 10_000 });
   }
 
   test("Einstellungsseite lädt korrekt", async ({ page }) => {

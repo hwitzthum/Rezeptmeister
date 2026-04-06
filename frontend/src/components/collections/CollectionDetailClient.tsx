@@ -55,11 +55,9 @@ interface CollectionDetailClientProps {
 
 function SortableRecipeCard({
   recipe,
-  collectionId,
   onRemove,
 }: {
   recipe: RecipeInCollection;
-  collectionId: string;
   onRemove: (recipeId: string) => void;
 }) {
   const {
@@ -354,7 +352,7 @@ export default function CollectionDetailClient({
     } finally {
       setExportingPdf(false);
     }
-  }, [recipesList, collection.id, collection.name]);
+  }, [recipesList, collection.name]);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -450,7 +448,6 @@ export default function CollectionDetailClient({
                 <SortableRecipeCard
                   key={recipe.recipeId}
                   recipe={recipe}
-                  collectionId={collection.id}
                   onRemove={(id) => {
                     void handleRemoveRecipe(id);
                   }}

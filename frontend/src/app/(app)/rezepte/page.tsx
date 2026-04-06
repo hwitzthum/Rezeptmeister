@@ -31,7 +31,7 @@ export default function RezeptListePage() {
   // Filter-State
   const [q, setQ] = useState("");
   const [kategorie, setKategorie] = useState("");
-  const [kueche, setKueche] = useState("");
+  const kueche = ""; // Küche-Filter vorbereitet, UI-Auswahl folgt in späterer Phase
   const [schwierigkeit, setSchwierigkeit] = useState("");
   const [nurFavoriten, setNurFavoriten] = useState(false);
   const [sortierung, setSortierung] = useState("neueste");
