@@ -109,24 +109,23 @@ export default async function DashboardPage() {
     ]),
   ];
 
+  // Fetch the best image per recipe: prefer isPrimary, fall back to most recent
   const primaryImages =
     allRecipeIds.length > 0
       ? await db
           .select({ recipeId: images.recipeId, filePath: images.filePath })
           .from(images)
-          .where(
-            and(
-              inArray(images.recipeId, allRecipeIds),
-              eq(images.isPrimary, true),
-            ),
-          )
+          .where(inArray(images.recipeId, allRecipeIds))
+          .orderBy(desc(images.isPrimary), desc(images.createdAt))
       : [];
 
-  const imageMap = Object.fromEntries(
-    primaryImages
-      .filter((i) => i.recipeId && i.filePath)
-      .map((i) => [i.recipeId!, thumbnailUrl(i.filePath)]),
-  );
+  // Keep only the first (best) image per recipe
+  const imageMap: Record<string, string> = {};
+  for (const img of primaryImages) {
+    if (img.recipeId && img.filePath && !imageMap[img.recipeId]) {
+      imageMap[img.recipeId] = thumbnailUrl(img.filePath);
+    }
+  }
 
   const openShoppingCount = shoppingCountResult[0]?.count ?? 0;
   const hasApiKey = !!userRow[0]?.apiKeyEncrypted && userRow[0]?.apiProvider === "gemini";
