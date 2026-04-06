@@ -60,7 +60,7 @@ export async function PUT(
     );
   }
 
-  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  const updates: Partial<typeof recipeNotes.$inferInsert> = { updatedAt: new Date() };
   if (parsed.data.content !== undefined) updates.content = parsed.data.content;
   if (parsed.data.noteType !== undefined) updates.noteType = parsed.data.noteType;
   if (parsed.data.rating !== undefined) updates.rating = parsed.data.rating ?? null;

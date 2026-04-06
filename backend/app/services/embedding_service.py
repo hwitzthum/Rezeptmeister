@@ -84,16 +84,21 @@ async def embed_multimodal(text: str, image_path: str, api_key: str) -> list[flo
 
 async def batch_embed_texts(texts: list[str], api_key: str) -> list[list[float]]:
     """
-    Erstellt Embeddings für mehrere Texte sequenziell (API Rate-Limits beachten).
-    Ein einziger Client wird für alle Aufrufe wiederverwendet.
+    Erstellt Embeddings fuer mehrere Texte mit begrenzter Parallelitaet.
+    Maximal 3 gleichzeitige API-Aufrufe (Rate-Limit-Schutz).
     """
+    import asyncio
+
     model = get_settings().gemini_embedding_model
     client = _utils.get_gemini_client(api_key)
-    results = []
-    for text in texts:
-        result = await client.aio.models.embed_content(
-            model=model,
-            contents=f"search_document: {text}",
-        )
-        results.append(list(result.embeddings[0].values))
-    return results
+    semaphore = asyncio.Semaphore(3)
+
+    async def _embed_one(text: str) -> list[float]:
+        async with semaphore:
+            result = await client.aio.models.embed_content(
+                model=model,
+                contents=f"search_document: {text}",
+            )
+            return list(result.embeddings[0].values)
+
+    return await asyncio.gather(*[_embed_one(t) for t in texts])

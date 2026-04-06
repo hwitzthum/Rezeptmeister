@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -163,8 +163,13 @@ export default function MealPlanClient({
 
   // ── Entry Helpers ──────────────────────────────────────────────────────────
 
+  const entryBySlot = useMemo(
+    () => new Map(entries.map((e) => [`${e.date}-${e.mealType}`, e])),
+    [entries],
+  );
+
   function getEntryForSlot(date: string, mealType: string) {
-    return entries.find((e) => e.date === date && e.mealType === mealType);
+    return entryBySlot.get(`${date}-${mealType}`);
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────────

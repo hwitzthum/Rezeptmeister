@@ -3,7 +3,7 @@ import { cache } from "react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
-import RecipeDetailClient from "@/components/recipes/RecipeDetailClient";
+import RecipeDetailClient, { type RecipeDetail } from "@/components/recipes/RecipeDetailClient";
 import { thumbnailUrl } from "@/lib/images";
 import type { Metadata } from "next";
 
@@ -46,17 +46,18 @@ export default async function RecipeDetailPage({ params }: PageProps) {
 
   if (!recipe) notFound();
 
-  // Serialisieren für Client-Übergabe (Date → string)
-  // thumbnailUrl wird abgeleitet (keine eigene DB-Spalte)
-  const serialized = JSON.parse(
-    JSON.stringify({
-      ...recipe,
-      images: recipe.images.map((img) => ({
-        ...img,
-        thumbnailUrl: thumbnailUrl(img.filePath),
-      })),
-    }),
-  );
+  // Serialisieren für Client-Übergabe (Date → string, thumbnailUrl ableiten)
+  const serialized = {
+    ...recipe,
+    createdAt: recipe.createdAt?.toISOString() ?? "",
+    updatedAt: recipe.updatedAt?.toISOString() ?? "",
+    ingredients: recipe.ingredients,
+    images: recipe.images.map((img) => ({
+      ...img,
+      createdAt: img.createdAt?.toISOString() ?? "",
+      thumbnailUrl: thumbnailUrl(img.filePath),
+    })),
+  } as RecipeDetail;
 
   return <RecipeDetailClient recipe={serialized} userId={session.user.id} />;
 }

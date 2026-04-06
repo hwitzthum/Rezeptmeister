@@ -48,7 +48,7 @@ export async function PUT(
     );
   }
 
-  const updates: Record<string, unknown> = {};
+  const updates: Partial<typeof shoppingListItems.$inferInsert> = {};
   const data = parsed.data;
 
   if (data.ingredientName !== undefined) updates.ingredientName = data.ingredientName;
