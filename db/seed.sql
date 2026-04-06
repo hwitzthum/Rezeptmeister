@@ -2,12 +2,14 @@
 -- Wird nur in der Entwicklungsumgebung ausgeführt
 -- Idempotent: kann beliebig oft ausgeführt werden ohne Duplikate
 
--- Admin-Benutzer (Passwort: 05!Shakespeare_15)
+-- Admin-Benutzer (Standard-Testpasswort: Rezeptmeister1!)
+-- Für eigene Umgebungen: Hash mit `bcrypt.hashpw(password, bcrypt.gensalt(12))` neu generieren
+-- und TEST_ADMIN_PASSWORD in .env anpassen.
 INSERT INTO users (id, email, name, password_hash, role, status) VALUES
     ('00000000-0000-0000-0000-000000000001',
-     'harrywitzthum@gmail.com',
-     'Harry Witzthum',
-     '$2b$12$11dCoVbnkYqUb/uUO2M3deWvK6M9PCRJF5UhVs.LAebhe9ge/KGCW', -- 05!Shakespeare_15
+     'admin@rezeptmeister.ch',
+     'Admin Benutzer',
+     '$2b$12$0onDgwhLSw8VdyW85BNToOi/VKhRBUyRVTHWsNKwwM/.JS0R9klmG',
      'admin',
      'approved')
 ON CONFLICT (id) DO NOTHING;

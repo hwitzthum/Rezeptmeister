@@ -2,17 +2,36 @@
  * Phase 2 – Authentifizierung & API-Schlüssel-Verwaltung
  *
  * Voraussetzung: PostgreSQL läuft (docker compose up -d)
- * und db/seed.sql wurde eingespielt (Admin: harrywitzthum@gmail.com).
+ * und db/seed.sql wurde eingespielt.
  *
  * Der Dev-Server startet automatisch via playwright.config.ts webServer.
  */
 
 import { test, expect } from "@playwright/test";
+import fs from "fs";
+import path from "path";
+
+// Test-Secrets aus Root-.env lesen (Fallback: Umgebungsvariable)
+function loadEnvVar(varName: string): string {
+  if (process.env[varName]) return process.env[varName]!;
+  const envPath = path.resolve(__dirname, "../../.env");
+  if (fs.existsSync(envPath)) {
+    const m = fs.readFileSync(envPath, "utf-8").match(new RegExp(`^${varName}=(.+)$`, "m"));
+    if (m) return m[1].trim();
+  }
+  return "";
+}
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 
-const ADMIN_EMAIL = "harrywitzthum@gmail.com";
-const ADMIN_PASSWORD = "05!Shakespeare_15";
+const ADMIN_EMAIL = loadEnvVar("TEST_ADMIN_EMAIL");
+const ADMIN_PASSWORD = loadEnvVar("TEST_ADMIN_PASSWORD");
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error(
+    "TEST_ADMIN_EMAIL und TEST_ADMIN_PASSWORD müssen in .env oder als Umgebungsvariablen gesetzt sein.",
+  );
+}
 
 // Unique suffix per test run to avoid email collisions
 const RUN_ID = Date.now().toString(36);
@@ -227,10 +246,10 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await page.waitForLoadState("networkidle");
     await page
       .getByPlaceholder(/Name oder E-Mail/)
-      .fill("harrywitzthum@gmail.com");
+      .fill(ADMIN_EMAIL);
 
     // Admin row should appear
-    await expect(page.locator("td").filter({ hasText: "harrywitzthum@gmail.com" })).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator("td").filter({ hasText: ADMIN_EMAIL })).toBeVisible({ timeout: 8_000 });
   });
 });
 

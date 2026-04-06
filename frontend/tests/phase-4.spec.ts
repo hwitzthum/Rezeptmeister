@@ -2,14 +2,33 @@
  * Phase 4 – Bildverwaltung
  *
  * Voraussetzung: PostgreSQL läuft (docker compose up -d)
- * und Admin-User ist in db/seed.sql (harrywitzthum@gmail.com).
+ * und Admin-User ist in db/seed.sql.
  * Der Dev-Server startet automatisch via playwright.config.ts (Port 3002).
  */
 
 import { test, expect } from "@playwright/test";
+import fs from "fs";
+import path from "path";
 
-const ADMIN_EMAIL = "harrywitzthum@gmail.com";
-const ADMIN_PASSWORD = "05!Shakespeare_15";
+// Test-Secrets aus Root-.env lesen (Fallback: Umgebungsvariable)
+function loadEnvVar(varName: string): string {
+  if (process.env[varName]) return process.env[varName]!;
+  const envPath = path.resolve(__dirname, "../../.env");
+  if (fs.existsSync(envPath)) {
+    const m = fs.readFileSync(envPath, "utf-8").match(new RegExp(`^${varName}=(.+)$`, "m"));
+    if (m) return m[1].trim();
+  }
+  return "";
+}
+
+const ADMIN_EMAIL = loadEnvVar("TEST_ADMIN_EMAIL");
+const ADMIN_PASSWORD = loadEnvVar("TEST_ADMIN_PASSWORD");
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error(
+    "TEST_ADMIN_EMAIL und TEST_ADMIN_PASSWORD müssen in .env oder als Umgebungsvariablen gesetzt sein.",
+  );
+}
 
 const RUN_ID = Date.now().toString(36);
 
