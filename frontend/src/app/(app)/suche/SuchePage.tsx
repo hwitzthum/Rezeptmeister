@@ -678,7 +678,7 @@ interface KiResultsProps {
   onReset: () => void;
 }
 
-function KiResults({ results, loading, error, searched, hasImageOrQuery, onReset }: KiResultsProps) {
+function KiResults({ results, loading, error, searched, onReset }: KiResultsProps) {
   if (loading) {
     return (
       <div className="space-y-3">

@@ -26,12 +26,6 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Root landing page is public; authenticated users go straight to the recipe list
-  if (nextUrl.pathname === "/") {
-    if (isLoggedIn) return NextResponse.redirect(new URL("/rezepte", nextUrl));
-    return NextResponse.next();
-  }
-
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     nextUrl.pathname.startsWith(route),
   );
@@ -45,7 +39,7 @@ export default auth((req) => {
 
   // Bereits angemeldet → Login-Seite überspringen, weiter zu App
   if (isLoggedIn && isPublicRoute) {
-    return NextResponse.redirect(new URL("/rezepte", nextUrl));
+    return NextResponse.redirect(new URL("/", nextUrl));
   }
 
   return NextResponse.next();

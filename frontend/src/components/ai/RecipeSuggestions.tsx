@@ -41,10 +41,6 @@ interface GeneratedRecipe {
   cuisine?: string | null;
 }
 
-interface GenerateRecipeResponse {
-  recipe: GeneratedRecipe;
-  tokens_used?: number;
-}
 
 interface ConstraintForm {
   ingredients: string[];

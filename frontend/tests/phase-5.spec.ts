@@ -20,7 +20,7 @@ async function loginAdmin(page: import("@playwright/test").Page) {
   await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
   await page.locator("#password").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Anmelden" }).click();
-  await expect(page).toHaveURL("/rezepte", { timeout: 10_000 });
+  await expect(page).toHaveURL("/", { timeout: 10_000 });
 }
 
 // ── API-Hilfe: Rezept erstellen ───────────────────────────────────────────────

@@ -77,13 +77,12 @@ test.describe("Phase 1.2 – NextAuth.js Konfiguration", () => {
 });
 
 test.describe("Phase 1.2 – Middleware Route-Schutz", () => {
-  test("GET / zeigt öffentliche Startseite für unauthentifizierte Benutzer", async ({
+  test("GET / leitet unauthentifizierte Benutzer zum Login um", async ({
     page,
   }) => {
     await page.goto("/");
-    // Root is the public landing page — no redirect to login
-    await expect(page).toHaveURL("/");
-    await expect(page).toHaveTitle(/Rezeptmeister/i);
+    // Root is the dashboard — unauthenticated users get redirected to login
+    await expect(page).toHaveURL(/\/auth\/anmelden/);
   });
 
   test("GET /rezepte leitet unauthentifizierte Benutzer um", async ({
@@ -109,7 +108,7 @@ test.describe("Phase 1.2 – Middleware Route-Schutz", () => {
   test("GET /auth/anmelden ist ohne Login erreichbar (kein Redirect-Loop)", async ({
     page,
   }) => {
-    const response = await page.goto("/auth/anmelden");
+    await page.goto("/auth/anmelden");
     // Seite muss erreichbar sein (200 oder vom Middleware durchgelassen)
     // Da wir noch keine Seite gebaut haben, kann es eine 404 sein – aber kein Redirect-Loop
     const finalUrl = page.url();

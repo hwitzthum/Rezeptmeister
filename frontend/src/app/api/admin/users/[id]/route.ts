@@ -12,7 +12,7 @@ const updateSchema = z.object({
   role: z.enum(["admin", "user"]).optional(),
 });
 
-async function requireAdmin(request: Request) {
+async function requireAdmin() {
   const session = await auth();
   if (!session?.user || session.user.role !== USER_ROLE.admin) return null;
   return session;
@@ -28,7 +28,7 @@ export async function PUT(
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
 
-  const session = await requireAdmin(request);
+  const session = await requireAdmin();
   if (!session) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }
@@ -87,7 +87,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
 
-  const session = await requireAdmin(request);
+  const session = await requireAdmin();
   if (!session) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }

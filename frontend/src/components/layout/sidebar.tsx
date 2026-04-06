@@ -220,7 +220,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
 /* ─── Mobile Bottom Navigation ─── */
 const mobileNavItems = navItems.slice(0, 5); // Dashboard, Rezepte, Erstellen, Suche, Einkaufsliste
 
-export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function BottomNav() {
   const pathname = usePathname();
 
   function isActive(href: string) {
