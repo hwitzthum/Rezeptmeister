@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { auth } from "@/auth";
 import { z } from "zod";
-import { buildAiHeaders, buildBackendHeaders } from "@/lib/backend";
+import { buildAiHeaders, buildBackendHeaders, fetchBackendWithRetry } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
@@ -132,23 +132,12 @@ export async function POST(request: Request) {
   if (!keyResult.ok) return keyResult.response;
   const geminiKey = keyResult.key;
 
-  const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) {
-    return NextResponse.json({ error: "Backend nicht erreichbar." }, { status: 503 });
-  }
-
-  let backendRes: Response;
-  try {
-    backendRes = await fetch(`${backendUrl}/import/url`, {
-      method: "POST",
-      headers: buildAiHeaders(geminiKey),
-      body: JSON.stringify({
-        ...parsed.data,
-        user_id: session.user.id,
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch {
+  const backendRes = await fetchBackendWithRetry("/import/url", {
+    method: "POST",
+    headers: buildAiHeaders(geminiKey),
+    body: JSON.stringify({ ...parsed.data, user_id: session.user.id }),
+  });
+  if (!backendRes) {
     return NextResponse.json(
       { error: "Verbindung zum KI-Backend fehlgeschlagen." },
       { status: 503 },

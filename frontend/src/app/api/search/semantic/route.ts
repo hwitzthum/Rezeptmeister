@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { z } from "zod";
-import { buildAiHeaders } from "@/lib/backend";
+import { buildAiHeaders, fetchBackendWithRetry } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
@@ -57,11 +57,6 @@ export async function POST(request: Request) {
   if (!keyResult.ok) return keyResult.response;
   const geminiKey = keyResult.key;
 
-  const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) {
-    return NextResponse.json({ error: "Backend nicht erreichbar." }, { status: 503 });
-  }
-
   // Bei Cross-Modal-Suche (image vorhanden) immer /search/semantic verwenden
   const endpoint =
     parsed.data.image || parsed.data.mode === "semantic"
@@ -77,15 +72,16 @@ export async function POST(request: Request) {
     backendBody.image_base64 = parsed.data.image;
   }
 
-  let backendRes: Response;
-  try {
-    backendRes = await fetch(`${backendUrl}${endpoint}`, {
+  const backendRes = await fetchBackendWithRetry(
+    endpoint,
+    {
       method: "POST",
       headers: buildAiHeaders(geminiKey),
       body: JSON.stringify(backendBody),
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch {
+    },
+    15_000,
+  );
+  if (!backendRes) {
     return NextResponse.json(
       { error: "Verbindung zum KI-Backend fehlgeschlagen." },
       { status: 503 },
