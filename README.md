@@ -78,7 +78,7 @@ npm run dev  # http://localhost:3001
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | `harrywitzthum@gmail.com` | `05!Shakespeare_15` |
+| Admin | `admin@rezeptmeister.ch` | `Rezeptmeister1!` |
 | Test user | `test@rezeptmeister.ch` | `test1234` |
 
 > **Port note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on **3001** (frontend) and **8000** (FastAPI, available at `http://localhost:8000/docs`).
@@ -230,11 +230,11 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 
 **Key rule:** Next.js API routes decrypt the user's API key server-side and inject it into each FastAPI request. The key is never sent to the browser and never stored in FastAPI.
 
-### Database Schema (9 Tables)
+### Database Schema (10 Tabellen)
 
 | Table | Purpose |
 |-------|---------|
-| `users` | Registration, roles (`admin`/`user`), status (`pending`/`approved`/`rejected`) |
+| `users` | Registration, roles (`admin`/`user`), status (`pending`/`approved`/`rejected`), encrypted API key column (`api_key_encrypted`) |
 | `recipes` | Recipe metadata, source type, nutrition |
 | `ingredients` | Recipe ingredients with amounts and Swiss units |
 | `images` | Recipe photos, source type (`upload`/`ai_generated`/`ocr`), image embeddings |
@@ -242,7 +242,6 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 | `shopping_list` | Shopping items, checked status, aisle categories |
 | `meal_plans` | Weekly slots (breakfast/lunch/dinner/snack) |
 | `collections` | User-created recipe collections / cookbooks |
-| `api_keys` | AES-256-GCM encrypted user API keys |
 
 ---
 
@@ -436,7 +435,7 @@ Users provide their own Gemini API key. The app handles the full lifecycle:
 
 1. User enters key at `/einstellungen`
 2. Next.js API route encrypts it with `ENCRYPTION_KEY` (AES-256-GCM)
-3. Encrypted value stored in `api_keys` table
+3. Encrypted value stored in `users.api_key_encrypted` column
 4. On each AI request: Next.js decrypts + injects the key into the FastAPI request body
 5. FastAPI uses the key, then discards it — never writes it to disk or logs
 
@@ -444,7 +443,7 @@ Frontend shows only the last 4 characters (`sk-...abc1`). The plaintext key neve
 
 ### Rate Limiting
 
-- **Default:** 100 requests / 15 min per IP (`express-rate-limit`)
+- **Default:** 100 requests / 15 min per IP (custom in-memory sliding window rate limiter in `frontend/src/lib/rate-limit.ts`)
 - **Auth routes** (`/api/auth/*`): stricter limit to prevent brute force
 - **AI routes** (`/api/ai/*`): stricter limit to prevent Gemini quota exhaustion
 - Configuration: `frontend/src/lib/rate-limit.ts`
@@ -453,7 +452,7 @@ Frontend shows only the last 4 characters (`sk-...abc1`). The plaintext key neve
 
 ```
 User query
-    │ Gemini Embedding 2 (task: search_query)
+    │ Gemini Embedding 2 (prefix: "search_query: ")
     ▼
 3072-dim vector
     │ pgvector cosine distance (<=>)
@@ -735,7 +734,7 @@ git push origin main
    - Backend: `resolve_image_path()` tries local disk first, falls back to Supabase download
    - Backend AI image gen: checks `settings.supabase_url` — if set, uploads to Supabase; otherwise writes locally
 
-3. **CORS:** Local backend allows `localhost:3000`. Production restricts to `https://rezeptmeister.vercel.app` via `CORS_ORIGINS_RAW`.
+3. **CORS:** Local backend allows `localhost:3001`. Production restricts to `https://rezeptmeister.vercel.app` via `CORS_ORIGINS_RAW`.
 
 4. **Debug mode:** Local backend has `DEBUG=true` (enables `/docs`). Production has `DEBUG=false`.
 
@@ -788,7 +787,7 @@ psql postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister -c "SELECT
 
 - Set a Gemini API key at `/einstellungen`
 - Verify the key is valid in Google AI Studio
-- Check the `api_keys` table has a row for your user
+- Check the `users` table has a non-null `api_key_encrypted` for your user
 
 ### "Embedding service returns 401"
 

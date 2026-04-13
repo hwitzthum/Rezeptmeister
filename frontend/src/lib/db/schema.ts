@@ -386,6 +386,9 @@ export const collectionRecipesRelations = relations(
   }),
 );
 
+// Note: The `re_embed_jobs` table is defined in db/init.sql and backend/app/models/job.py only.
+// It is managed exclusively by FastAPI and has no Drizzle schema definition.
+
 // ── Inferred Types ────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

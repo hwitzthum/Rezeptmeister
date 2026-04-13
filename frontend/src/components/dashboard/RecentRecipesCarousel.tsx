@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { RecipeCard } from "@/components/ui/card";
+import { RecipeCard } from "@/components/ui/Card";
 import type { DashboardRecipe } from "./DashboardClient";
 
 interface Props {

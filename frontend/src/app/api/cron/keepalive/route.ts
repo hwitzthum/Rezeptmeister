@@ -8,12 +8,12 @@ export async function GET(request: Request) {
   // Verify the request comes from Vercel Cron
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
   }
 
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) {
-    return NextResponse.json({ error: "BACKEND_URL not configured" }, { status: 503 });
+    return NextResponse.json({ error: "BACKEND_URL nicht konfiguriert." }, { status: 503 });
   }
 
   try {
@@ -23,6 +23,6 @@ export async function GET(request: Request) {
     const body = await res.json();
     return NextResponse.json({ status: res.status, backend: body });
   } catch {
-    return NextResponse.json({ error: "Backend unreachable" }, { status: 503 });
+    return NextResponse.json({ error: "Backend nicht erreichbar." }, { status: 503 });
   }
 }

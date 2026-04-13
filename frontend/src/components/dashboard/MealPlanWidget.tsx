@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import type { MealPlanEntry } from "./DashboardClient";
 
 interface Props {

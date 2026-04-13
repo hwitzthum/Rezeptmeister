@@ -79,14 +79,6 @@ export function getOfflineUserId(): string | null {
   }
 }
 
-export function clearOfflineUserId(): void {
-  try {
-    localStorage.removeItem(OFFLINE_USER_KEY);
-  } catch {
-    // ignore
-  }
-}
-
 // ── Public API — all operations are scoped to userId ─────────────────────────
 
 export async function saveRecipeOffline(
@@ -139,19 +131,3 @@ export async function isRecipeOffline(
   return !!entry;
 }
 
-/** Clear all offline data for a user (call on logout). */
-export async function clearUserOfflineData(userId: string): Promise<void> {
-  const db = await getDb();
-  const all = await db.getAllFromIndex("recipes", "userId", userId);
-  const tx = db.transaction("recipes", "readwrite");
-  await Promise.all(all.map((r) => tx.store.delete(r.id)));
-  await tx.done;
-  clearOfflineUserId();
-}
-
-/** Tell the service worker to drop its Cache Storage. */
-export async function clearServiceWorkerCaches(): Promise<void> {
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_CACHES" });
-  }
-}

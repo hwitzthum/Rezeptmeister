@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import UrlImportDialog from "@/components/ai/UrlImportDialog";
 
 export default function QuickActionsWidget() {

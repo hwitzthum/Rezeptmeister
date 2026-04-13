@@ -37,19 +37,27 @@ export async function GET(request: Request) {
   const { q, limit } = parsed.data;
   const userId = session.user.id;
 
-  const rows = await db.execute<{ name: string }>(
-    sql`
-      SELECT DISTINCT LOWER(TRIM(i.name)) AS name
-      FROM ingredients i
-      JOIN recipes r ON i.recipe_id = r.id
-      WHERE r.user_id = ${userId}
-      ${q ? sql`AND LOWER(TRIM(i.name)) LIKE ${q.toLowerCase().trim() + "%"}` : sql``}
-      ORDER BY name
-      LIMIT ${limit}
-    `,
-  );
+  try {
+    const rows = await db.execute<{ name: string }>(
+      sql`
+        SELECT DISTINCT LOWER(TRIM(i.name)) AS name
+        FROM ingredients i
+        JOIN recipes r ON i.recipe_id = r.id
+        WHERE r.user_id = ${userId}
+        ${q ? sql`AND LOWER(TRIM(i.name)) LIKE ${q.toLowerCase().trim() + "%"}` : sql``}
+        ORDER BY name
+        LIMIT ${limit}
+      `,
+    );
 
-  const suggestions = [...rows].map((r) => r.name);
+    const suggestions = [...rows].map((r) => r.name);
 
-  return NextResponse.json({ suggestions });
+    return NextResponse.json({ suggestions });
+  } catch (error) {
+    console.error("Autocomplete-Abfrage fehlgeschlagen:", error);
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 },
+    );
+  }
 }

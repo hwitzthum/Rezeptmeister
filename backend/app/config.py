@@ -32,13 +32,13 @@ class Settings(BaseSettings):
 
     # CORS – stored as str to avoid pydantic-settings JSON-decode issues.
     # Accepts: JSON array, comma-separated, or empty (uses default).
-    cors_origins_raw: str = "http://localhost:3000"
+    cors_origins_raw: str = "http://localhost:3001"
 
     @property
     def cors_origins(self) -> list[str]:
         v = self.cors_origins_raw.strip()
         if not v:
-            return ["http://localhost:3000"]
+            return ["http://localhost:3001"]
         if v.startswith("["):
             return json.loads(v)
         return [o.strip() for o in v.split(",") if o.strip()]

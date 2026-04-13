@@ -15,7 +15,16 @@ const apiKeySchema = z.object({
   provider: z.enum(["gemini", "openai", "claude"]).default("gemini"),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const { allowed } = checkRateLimit(`api-key-get:${ip}`, AUTH_LIMIT);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Zu viele Anfragen. Bitte später erneut versuchen." },
+      { status: 429 },
+    );
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });

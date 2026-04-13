@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Rezeptmeister** is a BYOK (Bring Your Own Key) AI-powered recipe management web app for the Swiss market. The full feature spec lives in `SPEC.md`. The implementation roadmap lives in `tasks/todo.md` (18 phases, each ending with Playwright E2E tests).
+**Rezeptmeister** is a BYOK (Bring Your Own Key) AI-powered recipe management web app for the Swiss market. The full feature spec and implementation roadmap live in `tasks/todo.md` (18 phases, each ending with Playwright E2E tests).
 
 **Language:** All UI text, DB enums, error messages, and API responses must be in **German (Swiss standard)** — use "ss" not "ß", use Swiss units (dl, EL, TL, KL, °C) throughout.
 
@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Two separate runtimes that never import each other:
 
 ```
-frontend/   → Next.js 15 (App Router, TypeScript) on port 3001
+frontend/   → Next.js 16 (App Router, TypeScript) on port 3001
 backend/    → FastAPI (Python, uv) on port 8000
 db          → PostgreSQL + pgvector (Docker) on port 5432
 uploads/    → Local filesystem (originals/ and thumbnails/) in dev
@@ -96,19 +96,19 @@ npx playwright show-report     # View last test report
 - Passwords: bcrypt (never plain).
 - User `status` must be `'approved'` to log in — enforce in NextAuth `authorize` callback.
 - API keys: AES-256 encrypted at rest using `ENCRYPTION_KEY` env var (32-byte hex). Decrypted only in server-side API route handlers, never returned to client (only masked placeholder shown).
-- Rate limiting: `express-rate-limit` on every Next.js API route (100 req/15 min default), stricter on `/api/ai/*` and `/api/auth/*`.
+- Rate limiting: custom in-memory sliding window rate limiter (`frontend/src/lib/rate-limit.ts`) on every Next.js API route (100 req/15 min default), stricter on `/api/ai/*` and `/api/auth/*`.
 - Validate all inputs with `zod` at API route entry points.
 
 ### AI / Embeddings (FastAPI)
 - Embedding model: `gemini-embedding-2-preview`, 3072 dims.
-- Use `task: search_query` prefix for query embeddings, `task: search_document` for document embeddings.
+- Prefix query text with `search_query: ` and document text with `search_document: ` when creating embeddings (plain string prefixes, not API parameters).
 - Embedding creation is always async (Background Task) — never block the HTTP response.
 - All AI endpoints receive the user's API key in the request body (forwarded by Next.js proxy from server-side session). FastAPI does NOT read from DB for API keys.
 
 ### Image Handling
 - Upload: validate MIME type (`image/jpeg`, `image/png`), max 10 MB.
 - Thumbnail: 300×300 WebP via `sharp` (Next.js side) stored in `uploads/thumbnails/`.
-- Serve uploads via Next.js static route (dev) or S3 URL (prod).
+- Serve uploads via Next.js static route (dev) or Supabase Storage CDN URL (prod).
 - Image embeddings are created asynchronously by FastAPI after upload.
 
 ### Swiss Units
@@ -149,16 +149,21 @@ These rules exist because previous sessions skipped todo items and omitted test 
 
 ```bash
 # frontend/.env.local
-DATABASE_URL=postgresql://rezeptmeister:localdev@localhost:5432/rezeptmeister
+DATABASE_URL=postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister
 NEXTAUTH_SECRET=<random-secret>
 NEXTAUTH_URL=http://localhost:3001
 BACKEND_URL=http://localhost:8000
 UPLOAD_DIR=./uploads
 ENCRYPTION_KEY=<32-byte-hex-key>
+INTERNAL_SECRET=<random-secret>
+# Produktion: Supabase Storage
+SUPABASE_URL=<your-supabase-url>
+SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
 # backend/.env (or injected via docker-compose)
-DATABASE_URL=postgresql://rezeptmeister:localdev@db:5432/rezeptmeister
-UPLOAD_DIR=/app/uploads
+DATABASE_URL=postgresql+asyncpg://rezeptmeister:localdev@db:5432/rezeptmeister
+UPLOAD_DIR=../uploads  # Docker: /app/uploads, lokal: ../uploads
+INTERNAL_SECRET=<same-as-frontend>
 ```
 
 User-provided AI API keys (Gemini, Claude, OpenAI) are stored encrypted in the DB — never in env files.

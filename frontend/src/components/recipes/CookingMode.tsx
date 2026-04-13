@@ -10,7 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import { parseSteps } from "@/lib/cooking/parse-steps";
 import { parseTimers, type TimerMatch } from "@/lib/cooking/parse-timers";
-import { useSwipe } from "@/lib/cooking/use-swipe";
+import { useSwipe } from "@/lib/cooking/useSwipe";
 import { formatAmount } from "@/lib/units";
 import type { RecipeDetail } from "./RecipeDetailClient";
 

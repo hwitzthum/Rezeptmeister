@@ -42,42 +42,50 @@ export async function GET(request: Request) {
 
   const where = and(...conditions);
 
-  const [{ total }] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(images)
-    .where(where);
+  try {
+    const [{ total }] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(images)
+      .where(where);
 
-  const rows = await db
-    .select({
-      id: images.id,
-      userId: images.userId,
-      recipeId: images.recipeId,
-      filePath: images.filePath,
-      fileName: images.fileName,
-      mimeType: images.mimeType,
-      fileSizeBytes: images.fileSizeBytes,
-      width: images.width,
-      height: images.height,
-      isPrimary: images.isPrimary,
-      sourceType: images.sourceType,
-      altText: images.altText,
-      createdAt: images.createdAt,
-    })
-    .from(images)
-    .where(where)
-    .orderBy(desc(images.createdAt))
-    .limit(limit)
-    .offset((seite - 1) * limit);
+    const rows = await db
+      .select({
+        id: images.id,
+        userId: images.userId,
+        recipeId: images.recipeId,
+        filePath: images.filePath,
+        fileName: images.fileName,
+        mimeType: images.mimeType,
+        fileSizeBytes: images.fileSizeBytes,
+        width: images.width,
+        height: images.height,
+        isPrimary: images.isPrimary,
+        sourceType: images.sourceType,
+        altText: images.altText,
+        createdAt: images.createdAt,
+      })
+      .from(images)
+      .where(where)
+      .orderBy(desc(images.createdAt))
+      .limit(limit)
+      .offset((seite - 1) * limit);
 
-  const result = rows.map((row) => ({
-    ...row,
-    thumbnailUrl: thumbnailUrl(row.filePath),
-  }));
+    const result = rows.map((row) => ({
+      ...row,
+      thumbnailUrl: thumbnailUrl(row.filePath),
+    }));
 
-  return NextResponse.json({
-    images: result,
-    total,
-    seite,
-    hasMore: seite * limit < total,
-  });
+    return NextResponse.json({
+      images: result,
+      total,
+      seite,
+      hasMore: seite * limit < total,
+    });
+  } catch (error) {
+    console.error("Bilder-Abfrage fehlgeschlagen:", error);
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 },
+    );
+  }
 }

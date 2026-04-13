@@ -23,7 +23,6 @@ def _make_mock_db_module() -> MagicMock:
     mock_db.AsyncSessionLocal = MagicMock(return_value=mock_session)
     mock_db.engine = MagicMock()
     mock_db.Base = MagicMock()
-    mock_db.get_db = AsyncMock()
     return mock_db
 
 

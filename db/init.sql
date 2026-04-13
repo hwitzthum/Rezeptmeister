@@ -125,6 +125,7 @@ CREATE TABLE shopping_list_items (
     is_checked      BOOLEAN NOT NULL DEFAULT false,
     aisle_category  VARCHAR(100),
     sort_order      INTEGER NOT NULL DEFAULT 0,
+    meal_plan_entry_id UUID,  -- FK wird nach meal_plans gesetzt
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -141,6 +142,11 @@ CREATE TABLE meal_plans (
     notes            TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Jetzt meal_plan_entry_id FK in shopping_list_items setzen
+ALTER TABLE shopping_list_items
+    ADD CONSTRAINT shopping_list_items_meal_plan_entry_id_fkey
+    FOREIGN KEY (meal_plan_entry_id) REFERENCES meal_plans(id) ON DELETE SET NULL;
 
 -- -------------------------------------------------------
 -- collections
@@ -196,6 +202,7 @@ CREATE INDEX idx_images_recipe_id   ON images (recipe_id);
 CREATE INDEX idx_images_user_id     ON images (user_id);
 CREATE INDEX idx_recipe_notes_recipe_user ON recipe_notes (recipe_id, user_id);
 CREATE INDEX idx_meal_plans_user_date ON meal_plans (user_id, date);
+CREATE UNIQUE INDEX idx_meal_plans_unique_slot ON meal_plans(user_id, date, meal_type);
 CREATE INDEX idx_shopping_list_user_checked ON shopping_list_items (user_id, is_checked);
 CREATE INDEX idx_users_email ON users (email);
 CREATE INDEX idx_users_status ON users (status);

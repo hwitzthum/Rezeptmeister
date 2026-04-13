@@ -11,14 +11,6 @@ export const MIME_TO_EXT: Record<AllowedImageMime, string> = {
   "image/webp": ".webp",
 };
 
-export const EXT_TO_MIME: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-};
-
 // ── Path utilities ────────────────────────────────────────────────────────────
 
 /**

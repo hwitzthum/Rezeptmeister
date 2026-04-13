@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import type { DashboardRecipe } from "./DashboardClient";
 
 interface Props {

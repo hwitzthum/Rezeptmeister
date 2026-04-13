@@ -211,7 +211,7 @@
 - [x] **E2E-Test:** Skalierungshinweise bei 5× Faktor erscheinen
 
 ### 8.3 Bildgenerierung (F-AI-04)
-- [x] FastAPI-Router `POST /ai/generate-image` (gemini-2.0-flash-preview-image-generation)
+- [x] FastAPI-Router `POST /ai/generate-image` (gemini-2.5-flash-image)
 - [x] Automatische Prompt-Erstellung aus Rezepttitel + Zutaten + Kategorie
 - [x] Generiertes Bild mit "KI-generiert"-Badge (`source_type='ai_generated'`)
 - [x] Bild-Embedding erstellen nach Generierung (Background Task)
@@ -356,7 +356,7 @@
 
 ## Phase 18 – Non-Functional & Finalisierung
 
-- [x] Rate Limiting: express-rate-limit auf alle Next.js API Routes (100/15min), strenger auf KI-Endpunkten ✅ 34/37 Routes (3 absichtlich offen: NextAuth, health, uploads)
+- [x] Rate Limiting: custom in-memory rate limiter auf alle Next.js API Routes (100/15min), strenger auf KI-Endpunkten ✅ 34/37 Routes (3 absichtlich offen: NextAuth, health, uploads)
 - [x] Input-Validierung und Sanitisierung (zod auf allen API-Routes) ✅ 32/37 Routes (5 ohne Eingabe: NextAuth, health, uploads, favorit-Toggle, DELETE)
 - [x] CSRF-Schutz via NextAuth ✅ Implizit via JWT-Strategie
 - [x] WCAG 2.1 AA: Kontraste prüfen, Tastaturnavigation, ARIA-Labels ✅ Skip-to-content, Kontrastfixes, alt-Texte, aria-expanded, Fokus-Trap

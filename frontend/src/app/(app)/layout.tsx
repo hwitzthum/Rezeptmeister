@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { USER_ROLE } from "@/lib/auth";
-import { Sidebar, BottomNav } from "@/components/layout/sidebar";
+import { Sidebar, BottomNav } from "@/components/layout/Sidebar";
 import { Toaster } from "react-hot-toast";
 import OfflineIndicator from "@/components/layout/OfflineIndicator";
 

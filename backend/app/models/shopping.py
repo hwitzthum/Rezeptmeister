@@ -18,4 +18,7 @@ class ShoppingListItem(Base):
     is_checked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     aisle_category: Mapped[str | None] = mapped_column(String(100))
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    meal_plan_entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("meal_plans.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

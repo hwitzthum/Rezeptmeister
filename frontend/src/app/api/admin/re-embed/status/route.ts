@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildBackendHeaders } from "@/lib/backend";
 import { checkRateLimit, getClientIp, DEFAULT_LIMIT } from "@/lib/rate-limit";
 import { USER_ROLE } from "@/lib/auth";
+import { z } from "zod";
 
 interface JobStatus {
   job_id: string;
@@ -12,7 +13,9 @@ interface JobStatus {
   errors: number;
 }
 
-export async function GET(request: NextRequest) {
+const jobIdsSchema = z.string().min(1).max(2000);
+
+export async function GET(request: Request) {
   const ip = getClientIp(request);
   const rl = checkRateLimit(`admin-re-embed-status:${ip}`, DEFAULT_LIMIT);
   if (!rl.allowed) {
@@ -35,13 +38,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const jobIds = request.nextUrl.searchParams.get("jobIds");
-  if (!jobIds) {
+  const rawJobIds = new URL(request.url).searchParams.get("jobIds");
+  if (!rawJobIds) {
     return NextResponse.json(
       { error: "jobIds Parameter fehlt." },
       { status: 400 },
     );
   }
+
+  const jobIdsResult = jobIdsSchema.safeParse(rawJobIds);
+  if (!jobIdsResult.success) {
+    return NextResponse.json(
+      { error: "Ungültiger jobIds Parameter." },
+      { status: 400 },
+    );
+  }
+
+  const jobIds = jobIdsResult.data;
 
   const ids = jobIds.split(",").filter(Boolean);
   const statuses: JobStatus[] = [];

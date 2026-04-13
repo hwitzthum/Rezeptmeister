@@ -40,10 +40,15 @@ export async function GET(request: Request) {
     );
   }
 
-  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-  if (!datePattern.test(start) || !datePattern.test(end)) {
+  const dateQuerySchema = z.object({
+    start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ungültiges Datumsformat"),
+    end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ungültiges Datumsformat"),
+  });
+
+  const parsed = dateQuerySchema.safeParse({ start, end });
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Ungültiges Datumsformat. Erwartet: YYYY-MM-DD." },
+      { error: "Ungültiges Datumsformat. Erwartet: YYYY-MM-DD" },
       { status: 400 },
     );
   }

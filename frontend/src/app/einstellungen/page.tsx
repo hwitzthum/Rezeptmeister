@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import ApiKeyForm from "./ApiKeyForm";
+import ApiKeyForm from "@/components/settings/ApiKeyForm";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import Link from "next/link";
 
