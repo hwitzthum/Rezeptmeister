@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const supabaseHostname = process.env.SUPABASE_URL
+  ? new URL(process.env.SUPABASE_URL).hostname
+  : "aaghjfmstezmxyxyrfri.supabase.co"; // fallback for build time
+
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/webp"],
@@ -8,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "aaghjfmstezmxyxyrfri.supabase.co",
+        hostname: supabaseHostname,
         pathname: "/storage/v1/object/public/**",
       },
     ],
@@ -29,8 +33,19 @@ const nextConfig: NextConfig = {
             value: "camera=(), microphone=(), geolocation=()",
           },
           { key: "X-DNS-Prefetch-Control", value: "off" },
-          // TODO: Content-Security-Policy (report-only) — Next.js inline scripts
-          // make a strict CSP complex; add once nonce-based CSP is configured.
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              `img-src 'self' data: blob: https://${supabaseHostname}`,
+              "connect-src 'self' https://*.supabase.co",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
         ],
       },
     ];
