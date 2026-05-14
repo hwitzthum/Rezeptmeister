@@ -36,4 +36,13 @@ if (!process.env.INTERNAL_SECRET && !isBuildPhase) {
     "[env-check] INTERNAL_SECRET ist nicht gesetzt. " +
       "Backend-Anfragen werden fehlschlagen.",
   );
+} else if (
+  !isBuildPhase &&
+  process.env.INTERNAL_SECRET &&
+  process.env.INTERNAL_SECRET.length < 32
+) {
+  throw new Error(
+    "INTERNAL_SECRET muss mindestens 32 Zeichen lang sein. " +
+      "Generieren: openssl rand -hex 32",
+  );
 }
