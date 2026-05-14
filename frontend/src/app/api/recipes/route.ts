@@ -148,13 +148,13 @@ export async function POST(request: Request) {
         }),
         signal: AbortSignal.timeout(60_000),
       }).catch((err) => {
-        console.error("Embedding-Berechnung fehlgeschlagen:", err);
+        console.error("Embedding-Berechnung fehlgeschlagen", { message: err instanceof Error ? err.message : String(err) });
       });
     }
 
     return NextResponse.json(recipe, { status: 201 });
   } catch (err) {
-    console.error("Fehler beim Erstellen des Rezepts:", err);
+    console.error("Fehler beim Erstellen des Rezepts", { message: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { error: "Interner Serverfehler." },
       { status: 500 },
