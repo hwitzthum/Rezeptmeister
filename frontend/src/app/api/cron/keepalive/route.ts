@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 
 /**
  * Vercel Cron endpoint that pings the Render backend /health endpoint
  * every 10 minutes to prevent free-tier spin-down.
  */
+
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+}
+
 export async function GET(request: Request) {
-  // Verify the request comes from Vercel Cron
+  // Verify the request comes from Vercel Cron using constant-time comparison
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!safeCompare(authHeader ?? "", `Bearer ${process.env.CRON_SECRET ?? ""}`)) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
   }
 

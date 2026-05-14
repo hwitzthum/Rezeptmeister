@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       hasMore: seite * limit < total,
     });
   } catch (error) {
-    console.error("Bilder-Abfrage fehlgeschlagen:", error);
+    console.error("Bilder-Abfrage fehlgeschlagen", { message: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Interner Serverfehler." },
       { status: 500 },

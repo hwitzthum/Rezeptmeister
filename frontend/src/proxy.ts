@@ -16,8 +16,16 @@ export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
 
-  // Alle /api/* Routen durchlassen – sie handhaben Auth selbst
+  // /api/auth/* routes handle their own authentication – pass through
+  if (nextUrl.pathname.startsWith("/api/auth/")) {
+    return NextResponse.next();
+  }
+
+  // All other /api/* routes require a valid session
   if (nextUrl.pathname.startsWith("/api/")) {
+    if (!isLoggedIn) {
+      return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    }
     return NextResponse.next();
   }
 

@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
 from functools import lru_cache
 import json
+import os
 
 
 class Settings(BaseSettings):
@@ -25,6 +27,9 @@ class Settings(BaseSettings):
     # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
     debug: bool = False
 
+    # Environment name – used for production guards
+    environment: str = "development"
+
     # Supabase Storage – for downloading and uploading images
     supabase_url: str = ""
     supabase_service_role_key: str = ""
@@ -42,6 +47,25 @@ class Settings(BaseSettings):
         if v.startswith("["):
             return json.loads(v)
         return [o.strip() for o in v.split(",") if o.strip()]
+
+    @model_validator(mode="after")
+    def check_internal_secret(self) -> "Settings":
+        if os.environ.get("NEXT_PHASE") != "phase-production-build":
+            if not self.internal_secret or len(self.internal_secret) < 32:
+                raise ValueError(
+                    "INTERNAL_SECRET must be at least 32 characters. "
+                    "Generate with: openssl rand -hex 32"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def check_debug_in_production(self) -> "Settings":
+        if self.environment.lower() == "production" and self.debug:
+            raise ValueError(
+                "debug=True is not allowed when ENVIRONMENT=production. "
+                "Set debug=False or change ENVIRONMENT."
+            )
+        return self
 
 
 @lru_cache
