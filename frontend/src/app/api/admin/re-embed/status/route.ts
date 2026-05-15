@@ -14,6 +14,8 @@ interface JobStatus {
 }
 
 const jobIdsSchema = z.string().min(1).max(2000);
+// UUID v4 format validation (matches the format used by Python uuid.uuid4())
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
@@ -56,14 +58,18 @@ export async function GET(request: Request) {
 
   const jobIds = jobIdsResult.data;
 
-  const ids = jobIds.split(",").filter(Boolean);
+  // Validate each ID is a proper UUID before passing it in a URL path segment
+  const rawIds = jobIds.split(",").filter(Boolean);
+  const ids = rawIds.filter((id) => UUID_REGEX.test(id));
+  const invalidIds = rawIds.length - ids.length;
+
   const statuses: JobStatus[] = [];
-  let notFound = 0;
+  let notFound = invalidIds; // Count invalid IDs as not found
 
   for (const id of ids) {
     try {
       const res = await fetch(
-        `${backendUrl}/admin/re-embed-status/${encodeURIComponent(id)}`,
+        `${backendUrl}/admin/re-embed-status/${id}`,
         { headers: buildBackendHeaders() },
       );
       if (res.ok) {
@@ -93,7 +99,7 @@ export async function GET(request: Request) {
     totalErrors,
     completedJobs,
     errorJobs,
-    totalJobs: ids.length,
+    totalJobs: rawIds.length,
     allDone,
   });
 }
