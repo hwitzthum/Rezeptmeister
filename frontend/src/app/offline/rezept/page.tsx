@@ -14,17 +14,15 @@ function OfflineRecipeContent() {
   const userId = useOfflineUserId();
 
   const [entry, setEntry] = useState<OfflineRecipe | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [targetServings, setTargetServings] = useState<number | null>(null);
+  const notFound = !recipeId || fetchFailed;
 
   useEffect(() => {
-    if (!recipeId || !userId) {
-      if (!recipeId) setNotFound(true);
-      return;
-    }
+    if (!recipeId || !userId) return;
     getOfflineRecipe(userId, recipeId).then((r) => {
       if (!r) {
-        setNotFound(true);
+        setFetchFailed(true);
       } else {
         setEntry(r);
         setTargetServings(r.data.servings);
@@ -33,8 +31,7 @@ function OfflineRecipeContent() {
   }, [recipeId, userId]);
 
   const recipe = entry?.data ?? null;
-  const scale =
-    recipe && targetServings ? targetServings / recipe.servings : 1;
+  const scale = recipe && targetServings ? targetServings / recipe.servings : 1;
 
   // Build blob URLs for images
   const imageUrls = useMemo(() => {
@@ -114,7 +111,9 @@ function OfflineRecipeContent() {
             {recipe.title}
           </h1>
           {recipe.description && (
-            <p className="text-warm-500 dark:text-warm-400 text-sm mt-1">{recipe.description}</p>
+            <p className="text-warm-500 dark:text-warm-400 text-sm mt-1">
+              {recipe.description}
+            </p>
           )}
           {/* Meta badges */}
           <div className="flex gap-2 mt-3 flex-wrap">
@@ -186,10 +185,7 @@ function OfflineRecipeContent() {
         {/* Ingredients */}
         <section>
           <h2 className="text-lg font-semibold mb-3">Zutaten</h2>
-          <ul
-            data-testid="offline-ingredients"
-            className="space-y-2"
-          >
+          <ul data-testid="offline-ingredients" className="space-y-2">
             {recipe.ingredients.map((ing) => {
               const scaledAmount = ing.amount
                 ? parseFloat(ing.amount) * scale
@@ -237,7 +233,10 @@ function OfflineRecipeContent() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "kcal", value: recipe.nutritionInfo.kcal },
-                { label: "Protein", value: `${recipe.nutritionInfo.protein_g}g` },
+                {
+                  label: "Protein",
+                  value: `${recipe.nutritionInfo.protein_g}g`,
+                },
                 { label: "Fett", value: `${recipe.nutritionInfo.fat_g}g` },
                 { label: "KH", value: `${recipe.nutritionInfo.carbs_g}g` },
               ].map((n) => (
@@ -248,7 +247,9 @@ function OfflineRecipeContent() {
                   <div className="text-lg font-semibold text-warm-800 dark:text-warm-200">
                     {n.value}
                   </div>
-                  <div className="text-xs text-warm-500 dark:text-warm-400">{n.label}</div>
+                  <div className="text-xs text-warm-500 dark:text-warm-400">
+                    {n.label}
+                  </div>
                 </div>
               ))}
             </div>

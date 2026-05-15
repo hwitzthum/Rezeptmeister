@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { recipes, ingredients } from "@/lib/db/schema";
+import { recipes } from "@/lib/db/schema";
 import { sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -28,7 +28,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger JSON-Body." },
+      { status: 400 },
+    );
   }
 
   const parsed = matchSchema.safeParse(body);
@@ -43,7 +46,9 @@ export async function POST(request: Request) {
   const userId = session.user.id;
 
   // Normalize user ingredients for matching
-  const normalizedIngredients = userIngredients.map((i) => i.toLowerCase().trim());
+  const normalizedIngredients = userIngredients.map((i) =>
+    i.toLowerCase().trim(),
+  );
 
   // Build bidirectional ILIKE conditions using parameterized sql.join
   // "Tomate" matches "Tomaten", "Cherry-Tomaten" and vice versa
@@ -127,7 +132,11 @@ export async function POST(request: Request) {
     const nonOptional = recipe.ingredients.filter((i) => !i.isOptional);
 
     const matched: string[] = [];
-    const missing: { name: string; amount: string | null; unit: string | null }[] = [];
+    const missing: {
+      name: string;
+      amount: string | null;
+      unit: string | null;
+    }[] = [];
 
     for (const ing of nonOptional) {
       const ingNameLower = ing.name.toLowerCase().trim();
@@ -161,7 +170,9 @@ export async function POST(request: Request) {
 
   // Preserve match_percentage order (findMany doesn't guarantee order)
   const orderMap = new Map(paged.map((m, i) => [m.id, i]));
-  resultRecipes.sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+  resultRecipes.sort(
+    (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
+  );
 
   return NextResponse.json({
     recipes: resultRecipes,

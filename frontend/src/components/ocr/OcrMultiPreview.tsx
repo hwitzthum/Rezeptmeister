@@ -11,25 +11,15 @@ interface Props {
   onRecipeSaved: (recipeId: string, index: number) => void;
 }
 
-export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeSaved }: Props) {
+export default function OcrMultiPreview({
+  recipes,
+  imageId,
+  onAllDone,
+  onRecipeSaved,
+}: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [savedIds, setSavedIds] = useState<Map<number, string>>(new Map());
   const [skipped, setSkipped] = useState<Set<number>>(new Set());
-
-  // Single recipe → render OcrPreviewPanel directly without carousel chrome
-  if (recipes.length === 1) {
-    return (
-      <OcrPreviewPanel
-        result={recipes[0]}
-        imageId={imageId}
-        onSaved={(recipeId) => {
-          onRecipeSaved(recipeId, 0);
-          onAllDone([recipeId]);
-        }}
-        onClose={() => onAllDone([])}
-      />
-    );
-  }
 
   const total = recipes.length;
   const allHandled = savedIds.size + skipped.size >= total;
@@ -46,6 +36,22 @@ export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeS
     },
     [currentIndex, total],
   );
+
+  // Single recipe → render OcrPreviewPanel directly without carousel chrome.
+  // Placed after hooks to satisfy rules-of-hooks.
+  if (recipes.length === 1) {
+    return (
+      <OcrPreviewPanel
+        result={recipes[0]}
+        imageId={imageId}
+        onSaved={(recipeId) => {
+          onRecipeSaved(recipeId, 0);
+          onAllDone([recipeId]);
+        }}
+        onClose={() => onAllDone([])}
+      />
+    );
+  }
 
   function handleSaved(recipeId: string) {
     const next = new Map(savedIds);
@@ -76,15 +82,27 @@ export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeS
           className="w-8 h-8 rounded-lg flex items-center justify-center text-warm-500 hover:text-warm-700 hover:bg-warm-100 dark:text-warm-400 dark:hover:text-warm-200 dark:hover:bg-warm-800 transition-all"
           aria-label="Vorheriges Rezept"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
 
         <span className="text-sm font-medium text-[var(--text-primary)]">
           Rezept {currentIndex + 1} von {total}
           {savedIds.has(currentIndex) && (
-            <span className="ml-2 text-xs text-green-600 dark:text-green-400">Gespeichert</span>
+            <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+              Gespeichert
+            </span>
           )}
           {skipped.has(currentIndex) && (
             <span className="ml-2 text-xs text-warm-400">Übersprungen</span>
@@ -97,8 +115,18 @@ export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeS
           className="w-8 h-8 rounded-lg flex items-center justify-center text-warm-500 hover:text-warm-700 hover:bg-warm-100 dark:text-warm-400 dark:hover:text-warm-200 dark:hover:bg-warm-800 transition-all"
           aria-label="Nächstes Rezept"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
       </div>
@@ -129,8 +157,18 @@ export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeS
       {savedIds.has(currentIndex) ? (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center">
-            <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-6 h-6 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
           <p className="text-sm font-medium text-[var(--text-primary)]">
@@ -168,7 +206,8 @@ export default function OcrMultiPreview({ recipes, imageId, onAllDone, onRecipeS
       {allHandled && (
         <div className="flex justify-center pt-2 border-t border-[var(--border-subtle)]">
           <Button variant="primary" size="sm" onClick={handleFinish}>
-            Fertig — {savedIds.size} Rezept{savedIds.size !== 1 ? "e" : ""} gespeichert
+            Fertig — {savedIds.size} Rezept{savedIds.size !== 1 ? "e" : ""}{" "}
+            gespeichert
           </Button>
         </div>
       )}

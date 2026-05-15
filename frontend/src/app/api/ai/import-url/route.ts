@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { auth } from "@/auth";
 import { z } from "zod";
-import { buildAiHeaders, buildBackendHeaders, fetchBackendWithRetry } from "@/lib/backend";
+import {
+  buildAiHeaders,
+  buildBackendHeaders,
+  fetchBackendWithRetry,
+} from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
@@ -32,7 +36,10 @@ async function fetchAndStoreImage(
   try {
     // SSRF guard: reject private/internal addresses before making any request
     if (!(await isSafeExternalUrl(imageUrl))) {
-      console.warn("fetchAndStoreImage: blocked SSRF attempt for URL:", imageUrl);
+      console.warn(
+        "fetchAndStoreImage: blocked SSRF attempt for URL:",
+        imageUrl,
+      );
       return null;
     }
 
@@ -46,22 +53,29 @@ async function fetchAndStoreImage(
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
       if (!location) return null;
-      const redirectUrl = location.startsWith("http") ? location : new URL(location, imageUrl).href;
+      const redirectUrl = location.startsWith("http")
+        ? location
+        : new URL(location, imageUrl).href;
       if (!(await isSafeExternalUrl(redirectUrl))) {
-        console.warn("fetchAndStoreImage: blocked redirect to internal address:", redirectUrl);
+        console.warn(
+          "fetchAndStoreImage: blocked redirect to internal address:",
+          redirectUrl,
+        );
         return null;
       }
       const finalRes = await fetch(redirectUrl, {
         signal: AbortSignal.timeout(10_000),
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)",
+        },
         redirect: "error",
       });
       if (!finalRes.ok) return null;
-      return fetchImageResponse(finalRes, userId, geminiKey, redirectUrl);
+      return fetchImageResponse(finalRes, userId, geminiKey);
     }
 
     if (!res.ok) return null;
-    return fetchImageResponse(res, userId, geminiKey, imageUrl);
+    return fetchImageResponse(res, userId, geminiKey);
   } catch (err) {
     console.warn("Bild-Import fehlgeschlagen (nicht kritisch):", err);
     return null;
@@ -73,10 +87,12 @@ async function fetchImageResponse(
   res: Response,
   userId: string,
   geminiKey: string | null,
-  _sourceUrl: string,
 ): Promise<string | null> {
-  const contentType = (res.headers.get("content-type") ?? "").split(";")[0].trim();
-  if (!ALLOWED_IMAGE_MIME.includes(contentType as AllowedImageMime)) return null;
+  const contentType = (res.headers.get("content-type") ?? "")
+    .split(";")[0]
+    .trim();
+  if (!ALLOWED_IMAGE_MIME.includes(contentType as AllowedImageMime))
+    return null;
 
   const contentLength = Number(res.headers.get("content-length") || 0);
   if (contentLength > MAX_IMAGE_BYTES) return null;
@@ -92,7 +108,11 @@ async function fetchImageResponse(
   const s = sharp(buffer);
   const [meta, thumbBuffer] = await Promise.all([
     s.metadata(),
-    s.clone().resize(300, 300, { fit: "cover", position: "centre" }).webp({ quality: 80 }).toBuffer(),
+    s
+      .clone()
+      .resize(300, 300, { fit: "cover", position: "centre" })
+      .webp({ quality: 80 })
+      .toBuffer(),
   ]);
 
   // Defense-in-depth: validate actual image format detected by Sharp
@@ -122,7 +142,9 @@ async function fetchImageResponse(
   // Fire-and-forget image embedding
   const backendUrl = process.env.BACKEND_URL;
   if (backendUrl) {
-    const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
+    const headers = geminiKey
+      ? buildAiHeaders(geminiKey)
+      : buildBackendHeaders();
     fetch(`${backendUrl}/embed/image`, {
       method: "POST",
       headers,
@@ -142,7 +164,9 @@ export async function POST(request: Request) {
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },
       {
         status: 429,
-        headers: { "Retry-After": String(Math.ceil((rl.retryAfterMs ?? 0) / 1_000)) },
+        headers: {
+          "Retry-After": String(Math.ceil((rl.retryAfterMs ?? 0) / 1_000)),
+        },
       },
     );
   }
@@ -156,7 +180,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger JSON-Body." },
+      { status: 400 },
+    );
   }
 
   const parsed = bodySchema.safeParse(body);
@@ -188,11 +215,13 @@ export async function POST(request: Request) {
     try {
       const err = (await backendRes.json()) as { detail?: string };
       if (err.detail) detail = err.detail;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return NextResponse.json({ error: detail }, { status: backendRes.status });
   }
 
-  const result = await backendRes.json() as Record<string, unknown>;
+  const result = (await backendRes.json()) as Record<string, unknown>;
 
   // Auto-fetch hero image if the backend extracted an image_url
   let imageId: string | null = null;
@@ -207,9 +236,15 @@ export async function POST(request: Request) {
       if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
         geminiKeyForEmbed = decrypt(userRecord.apiKeyEncrypted);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
-    imageId = await fetchAndStoreImage(result.image_url, session.user.id, geminiKeyForEmbed);
+    imageId = await fetchAndStoreImage(
+      result.image_url,
+      session.user.id,
+      geminiKeyForEmbed,
+    );
   }
 
   return NextResponse.json({ ...result, imageId });
