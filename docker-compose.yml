@@ -18,8 +18,12 @@ services:
 
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
+    # Port 8000 is NOT exposed to the host. The FastAPI backend is protected by
+    # the INTERNAL_SECRET token and should only be reachable from other containers
+    # (Next.js via BACKEND_URL=http://backend:8000). Remove this comment and
+    # un-comment the line below ONLY for local debugging:
+    # ports:
+    #   - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://rezeptmeister:${DB_PASSWORD:-localdev}@db:5432/rezeptmeister
       UPLOAD_DIR: /app/uploads

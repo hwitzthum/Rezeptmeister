@@ -94,19 +94,27 @@ export function checkRateLimit(
 }
 
 /** Extract client IP from Next.js request headers.
- * Uses the rightmost entry of x-forwarded-for, which is set by the trusted
- * reverse proxy closest to the application (not spoofable by the client).
+ * Uses the leftmost (first) entry of x-forwarded-for, which represents the
+ * original client IP as appended by the first proxy in the chain.
+ * Prefers x-real-ip when set by a trusted reverse proxy (e.g., nginx).
  * Falls back to a URL+User-Agent hash when no IP header is present,
- * to avoid all unknown clients sharing a single rate-limit bucket. */
+ * to avoid all unknown clients sharing a single rate-limit bucket.
+ *
+ * Note: in deployments without a trusted reverse proxy, x-forwarded-for
+ * can be spoofed by clients. For production, ensure a reverse proxy (Vercel,
+ * nginx, etc.) strips or overwrites these headers before forwarding. */
 export function getClientIp(request: Request): string {
+  // Prefer x-real-ip as it is typically set by a single trusted proxy
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp?.trim()) return realIp.trim();
+
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
+    // Use leftmost IP = original client address
     const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
-    const ip = ips[ips.length - 1];
+    const ip = ips[0];
     if (ip) return ip;
   }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp;
 
   // Fallback: hash URL + User-Agent to avoid a shared "unknown" bucket
   const ua = request.headers.get("user-agent") ?? "";

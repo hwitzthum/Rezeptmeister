@@ -23,12 +23,24 @@ def safe_image_path(file_path: str, upload_dir: str) -> str:
     Leitet den absoluten Dateisystempfad aus einem DB-gespeicherten file_path ab
     und stellt sicher, dass er innerhalb von upload_dir/originals bleibt.
     Wirft ValueError bei Path-Traversal-Versuchen.
+
+    Security notes:
+    - os.path.basename strips any directory components from file_path, preventing
+      directory traversal (e.g. "../../etc/passwd" → "passwd").
+    - os.path.realpath resolves symlinks so a symlink pointing outside the root
+      is detected and rejected.
+    - The startswith check uses os.sep as a separator to prevent false positives
+      where allowed_root is a prefix of a sibling directory name (e.g.
+      /uploads/originals vs /uploads/originals2).
     """
     filename = os.path.basename(file_path)
+    if not filename or filename in (".", ".."):
+        raise ValueError(f"Ungültiger Dateiname: {file_path!r}")
     allowed_root = os.path.realpath(os.path.join(upload_dir, "originals"))
     resolved = os.path.realpath(os.path.join(allowed_root, filename))
+    # Ensure resolved path is strictly inside allowed_root (not equal to it)
     if not resolved.startswith(allowed_root + os.sep):
-        raise ValueError(f"Ungültiger Dateipfad: {file_path!r}")
+        raise ValueError(f"Ungültiger Dateipfad (Path-Traversal erkannt): {file_path!r}")
     return resolved
 
 

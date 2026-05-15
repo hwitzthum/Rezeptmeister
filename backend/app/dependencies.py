@@ -2,6 +2,8 @@
 Gemeinsame FastAPI-Dependencies fuer Rezeptmeister.
 """
 
+import hmac
+
 from fastapi import Header, HTTPException
 
 from app.config import get_settings
@@ -14,6 +16,9 @@ async def require_internal_token(
     Fail-closed Authentifizierung fuer interne Endpunkte.
     Gibt 503 zurueck wenn INTERNAL_SECRET nicht konfiguriert ist,
     401 wenn der Token fehlt oder falsch ist.
+
+    Verwendet hmac.compare_digest fuer konstante Vergleichszeit,
+    um Timing-Angriffe zu verhindern.
     """
     secret = get_settings().internal_secret
     if not secret:
@@ -21,5 +26,6 @@ async def require_internal_token(
             status_code=503,
             detail="Admin-Endpunkt nicht konfiguriert (INTERNAL_SECRET fehlt).",
         )
-    if x_internal_token != secret:
+    token = x_internal_token or ""
+    if not hmac.compare_digest(token.encode(), secret.encode()):
         raise HTTPException(status_code=401, detail="Unauthorized")

@@ -1,3 +1,5 @@
+import hmac
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -45,7 +47,10 @@ _TOKEN_EXEMPT = {"/health"}
 
 
 class InternalTokenMiddleware(BaseHTTPMiddleware):
-    """Require X-Internal-Token on all non-exempt routes. Returns 503 if secret is unconfigured."""
+    """Require X-Internal-Token on all non-exempt routes. Returns 503 if secret is unconfigured.
+
+    Uses hmac.compare_digest for constant-time token comparison to prevent timing attacks.
+    """
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path not in _TOKEN_EXEMPT:
@@ -54,8 +59,8 @@ class InternalTokenMiddleware(BaseHTTPMiddleware):
                     {"detail": "Server nicht konfiguriert (INTERNAL_SECRET fehlt)."},
                     status_code=503,
                 )
-            token = request.headers.get("X-Internal-Token")
-            if token != settings.internal_secret:
+            token = request.headers.get("X-Internal-Token", "")
+            if not hmac.compare_digest(token.encode(), settings.internal_secret.encode()):
                 return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         return await call_next(request)
 

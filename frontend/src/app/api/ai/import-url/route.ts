@@ -17,6 +17,7 @@ import {
   type AllowedImageMime,
 } from "@/lib/images";
 import { uploadToStorage } from "@/lib/supabase-storage";
+import { isSafeExternalUrl } from "@/lib/ssrf-guard";
 
 const bodySchema = z.object({
   url: z.string().url(),
@@ -29,70 +30,108 @@ async function fetchAndStoreImage(
   geminiKey: string | null,
 ): Promise<string | null> {
   try {
+    // SSRF guard: reject private/internal addresses before making any request
+    if (!(await isSafeExternalUrl(imageUrl))) {
+      console.warn("fetchAndStoreImage: blocked SSRF attempt for URL:", imageUrl);
+      return null;
+    }
+
     const res = await fetch(imageUrl, {
       signal: AbortSignal.timeout(10_000),
       headers: { "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)" },
-      redirect: "follow",
-    });
-    if (!res.ok) return null;
-
-    const contentType = (res.headers.get("content-type") ?? "").split(";")[0].trim();
-    if (!ALLOWED_IMAGE_MIME.includes(contentType as AllowedImageMime)) return null;
-
-    const contentLength = Number(res.headers.get("content-length") || 0);
-    if (contentLength > MAX_IMAGE_BYTES) return null;
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.length > MAX_IMAGE_BYTES) return null;
-
-    const imageId = crypto.randomUUID();
-    const ext = MIME_TO_EXT[contentType as AllowedImageMime] ?? ".jpg";
-    const originalFileName = `${imageId}${ext}`;
-    const thumbFileName = `${imageId}.webp`;
-
-    const s = sharp(buffer);
-    const [meta, thumbBuffer] = await Promise.all([
-      s.metadata(),
-      s.clone().resize(300, 300, { fit: "cover", position: "centre" }).webp({ quality: 80 }).toBuffer(),
-    ]);
-
-    await Promise.all([
-      uploadToStorage(`originals/${originalFileName}`, buffer, contentType),
-      uploadToStorage(`thumbnails/${thumbFileName}`, thumbBuffer, "image/webp"),
-    ]);
-
-    const filePath = `${UPLOAD_API_PREFIX}/originals/${originalFileName}`;
-    await db.insert(images).values({
-      id: imageId,
-      userId,
-      recipeId: null,
-      filePath,
-      fileName: originalFileName,
-      mimeType: contentType,
-      fileSizeBytes: buffer.length,
-      width: meta.width ?? null,
-      height: meta.height ?? null,
-      sourceType: "web_import",
-      isPrimary: false,
+      redirect: "manual", // handle redirects manually to re-check each hop
     });
 
-    // Fire-and-forget image embedding
-    const backendUrl = process.env.BACKEND_URL;
-    if (backendUrl) {
-      const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
-      fetch(`${backendUrl}/embed/image`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ image_id: imageId }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch(() => {});
+    // Follow redirects manually, re-checking each hop for SSRF
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) return null;
+      const redirectUrl = location.startsWith("http") ? location : new URL(location, imageUrl).href;
+      if (!(await isSafeExternalUrl(redirectUrl))) {
+        console.warn("fetchAndStoreImage: blocked redirect to internal address:", redirectUrl);
+        return null;
+      }
+      const finalRes = await fetch(redirectUrl, {
+        signal: AbortSignal.timeout(10_000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)" },
+        redirect: "error",
+      });
+      if (!finalRes.ok) return null;
+      return fetchImageResponse(finalRes, userId, geminiKey, redirectUrl);
     }
 
-    return imageId;
+    if (!res.ok) return null;
+    return fetchImageResponse(res, userId, geminiKey, imageUrl);
   } catch (err) {
     console.warn("Bild-Import fehlgeschlagen (nicht kritisch):", err);
     return null;
   }
+}
+
+/** Process a successful image fetch response, store it, and return imageId. */
+async function fetchImageResponse(
+  res: Response,
+  userId: string,
+  geminiKey: string | null,
+  _sourceUrl: string,
+): Promise<string | null> {
+  const contentType = (res.headers.get("content-type") ?? "").split(";")[0].trim();
+  if (!ALLOWED_IMAGE_MIME.includes(contentType as AllowedImageMime)) return null;
+
+  const contentLength = Number(res.headers.get("content-length") || 0);
+  if (contentLength > MAX_IMAGE_BYTES) return null;
+
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length > MAX_IMAGE_BYTES) return null;
+
+  const imageId = crypto.randomUUID();
+  const ext = MIME_TO_EXT[contentType as AllowedImageMime] ?? ".jpg";
+  const originalFileName = `${imageId}${ext}`;
+  const thumbFileName = `${imageId}.webp`;
+
+  const s = sharp(buffer);
+  const [meta, thumbBuffer] = await Promise.all([
+    s.metadata(),
+    s.clone().resize(300, 300, { fit: "cover", position: "centre" }).webp({ quality: 80 }).toBuffer(),
+  ]);
+
+  // Defense-in-depth: validate actual image format detected by Sharp
+  const allowedFormats = ["jpeg", "png", "webp"];
+  if (!meta.format || !allowedFormats.includes(meta.format)) return null;
+
+  await Promise.all([
+    uploadToStorage(`originals/${originalFileName}`, buffer, contentType),
+    uploadToStorage(`thumbnails/${thumbFileName}`, thumbBuffer, "image/webp"),
+  ]);
+
+  const filePath = `${UPLOAD_API_PREFIX}/originals/${originalFileName}`;
+  await db.insert(images).values({
+    id: imageId,
+    userId,
+    recipeId: null,
+    filePath,
+    fileName: originalFileName,
+    mimeType: contentType,
+    fileSizeBytes: buffer.length,
+    width: meta.width ?? null,
+    height: meta.height ?? null,
+    sourceType: "web_import",
+    isPrimary: false,
+  });
+
+  // Fire-and-forget image embedding
+  const backendUrl = process.env.BACKEND_URL;
+  if (backendUrl) {
+    const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
+    fetch(`${backendUrl}/embed/image`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ image_id: imageId }),
+      signal: AbortSignal.timeout(60_000),
+    }).catch(() => {});
+  }
+
+  return imageId;
 }
 
 export async function POST(request: Request) {
