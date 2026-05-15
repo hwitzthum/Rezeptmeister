@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAllOfflineRecipes, type OfflineRecipe } from "@/lib/offline/db";
 import { useOnlineStatus } from "@/lib/hooks/useOnlineStatus";
@@ -9,18 +9,12 @@ import { useOfflineUserId } from "@/lib/hooks/useOfflineUserId";
 export default function OfflinePage() {
   const isOnline = useOnlineStatus();
   const userId = useOfflineUserId();
-  const [recipes, setRecipes] = useState<OfflineRecipe[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [recipes, setRecipes] = useState<OfflineRecipe[] | null>(null);
+  const loaded = !userId || recipes !== null;
 
   useEffect(() => {
-    if (!userId) {
-      setLoaded(true);
-      return;
-    }
-    getAllOfflineRecipes(userId).then((r) => {
-      setRecipes(r);
-      setLoaded(true);
-    });
+    if (!userId) return;
+    getAllOfflineRecipes(userId).then(setRecipes);
   }, [userId]);
 
   return (
@@ -28,11 +22,7 @@ export default function OfflinePage() {
       {/* Header */}
       <header className="bg-[var(--bg-surface,#fff)] border-b border-[var(--border-base,#e5e0db)] px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <h1
-            className="text-2xl font-bold"
-          >
-            Rezeptmeister
-          </h1>
+          <h1 className="text-2xl font-bold">Rezeptmeister</h1>
           {!isOnline && (
             <span
               data-testid="offline-badge"
@@ -55,7 +45,7 @@ export default function OfflinePage() {
 
         {!loaded ? (
           <div className="text-warm-400 text-sm">Laden...</div>
-        ) : recipes.length === 0 ? (
+        ) : !recipes || recipes.length === 0 ? (
           <div
             data-testid="no-offline-recipes"
             className="text-center py-12 text-warm-400"
@@ -95,7 +85,10 @@ export default function OfflinePage() {
                   <div className="flex items-center gap-4">
                     {/* Thumbnail */}
                     {r.imageThumbnails.length > 0 ? (
-                      <ThumbnailFromBlob blob={r.imageThumbnails[0].blob} title={r.data.title} />
+                      <ThumbnailFromBlob
+                        blob={r.imageThumbnails[0].blob}
+                        title={r.data.title}
+                      />
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-warm-100 dark:bg-warm-800 flex items-center justify-center text-warm-300 shrink-0">
                         <svg
@@ -114,9 +107,7 @@ export default function OfflinePage() {
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h3 className="font-semibold truncate">
-                        {r.data.title}
-                      </h3>
+                      <h3 className="font-semibold truncate">{r.data.title}</h3>
                       {r.data.category && (
                         <p className="text-xs text-warm-500 dark:text-warm-400">
                           {r.data.category}
@@ -152,14 +143,15 @@ export default function OfflinePage() {
 // ── Helper: render blob as img ────────────────────────────────────────────────
 
 function ThumbnailFromBlob({ blob, title }: { blob: Blob; title: string }) {
-  const [src, setSrc] = useState<string | null>(null);
+  const src = useMemo(
+    () => (blob.size === 0 ? null : URL.createObjectURL(blob)),
+    [blob],
+  );
 
   useEffect(() => {
-    if (blob.size === 0) return;
-    const url = URL.createObjectURL(blob);
-    setSrc(url);
-    return () => URL.revokeObjectURL(url);
-  }, [blob]);
+    if (!src) return;
+    return () => URL.revokeObjectURL(src);
+  }, [src]);
 
   if (!src) {
     return (

@@ -1,26 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribe(onChange: () => void): () => void {
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
+  return () => {
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
+  };
+}
+
+const getSnapshot = (): boolean => navigator.onLine;
+
+// Server snapshot: always render as online to avoid hydration mismatch.
+const getServerSnapshot = (): boolean => true;
 
 export function useOnlineStatus(): boolean {
-  // Always start with true to avoid hydration mismatch (server always renders online)
-  const [isOnline, setIsOnline] = useState(true);
-
-  useEffect(() => {
-    // Sync with actual browser state after hydration
-    setIsOnline(navigator.onLine);
-
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
-
-  return isOnline;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -26,7 +32,11 @@ interface ZutatenMatchResult {
   matchedCount: number;
   matchPercentage: number;
   matchedIngredients: string[];
-  missingIngredients: { name: string; amount: string | null; unit: string | null }[];
+  missingIngredients: {
+    name: string;
+    amount: string | null;
+    unit: string | null;
+  }[];
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -124,7 +134,9 @@ export default function SuchePage() {
   const pathname = usePathname();
 
   // ── Search mode ───────────────────────────────────────────────────────────
-  const [searchMode, setSearchMode] = useState<"volltext" | "ki" | "web" | "zutaten">("volltext");
+  const [searchMode, setSearchMode] = useState<
+    "volltext" | "ki" | "web" | "zutaten"
+  >("volltext");
 
   // ── URL import state (triggered from web search results) ─────────────────
   const [importUrl, setImportUrl] = useState("");
@@ -132,13 +144,23 @@ export default function SuchePage() {
 
   // ── Filter state (initialised from URL on mount) ──────────────────────────
   const [q, setQ] = useState(searchParams.get("q") ?? "");
-  const [kategorie, setKategorie] = useState(searchParams.get("kategorie") ?? "");
+  const [kategorie, setKategorie] = useState(
+    searchParams.get("kategorie") ?? "",
+  );
   const [kueche, setKueche] = useState(searchParams.get("kueche") ?? "");
-  const [schwierigkeit, setSchwierigkeit] = useState(searchParams.get("schwierigkeit") ?? "");
-  const [ernaehrungsform, setErnaehrungsform] = useState(searchParams.get("ernaehrungsform") ?? "");
-  const [zeitaufwand, setZeitaufwand] = useState(searchParams.get("zeitaufwand") ?? "");
+  const [schwierigkeit, setSchwierigkeit] = useState(
+    searchParams.get("schwierigkeit") ?? "",
+  );
+  const [ernaehrungsform, setErnaehrungsform] = useState(
+    searchParams.get("ernaehrungsform") ?? "",
+  );
+  const [zeitaufwand, setZeitaufwand] = useState(
+    searchParams.get("zeitaufwand") ?? "",
+  );
   const [zutaten, setZutaten] = useState(searchParams.get("zutaten") ?? "");
-  const [sortierung, setSortierung] = useState(searchParams.get("sortierung") ?? "neueste");
+  const [sortierung, setSortierung] = useState(
+    searchParams.get("sortierung") ?? "neueste",
+  );
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // ── Volltext results ──────────────────────────────────────────────────────
@@ -160,9 +182,10 @@ export default function SuchePage() {
 
   // ── Zutaten-Suche state ───────────────────────────────────────────────────
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
-  const [zutatenResults, setZutatenResults] = useState<ZutatenMatchResult[]>([]);
+  const [zutatenResults, setZutatenResults] = useState<ZutatenMatchResult[]>(
+    [],
+  );
   const [zutatenTotal, setZutatenTotal] = useState(0);
-  const [zutatenHasMore, setZutatenHasMore] = useState(false);
   const [zutatenLoading, setZutatenLoading] = useState(false);
   const [zutatenSearched, setZutatenSearched] = useState(false);
   const zutatenAbortRef = useRef<AbortController | null>(null);
@@ -187,10 +210,12 @@ export default function SuchePage() {
     if (kategorie) params.set("kategorie", kategorie);
     if (kueche) params.set("kueche", kueche);
     if (schwierigkeit) params.set("schwierigkeit", schwierigkeit);
-    if (debouncedErnaehrungsform) params.set("ernaehrungsform", debouncedErnaehrungsform);
+    if (debouncedErnaehrungsform)
+      params.set("ernaehrungsform", debouncedErnaehrungsform);
     if (zeitaufwand) params.set("zeitaufwand", zeitaufwand);
     if (debouncedZutaten) params.set("zutaten", debouncedZutaten);
-    if (sortierung && sortierung !== "neueste") params.set("sortierung", sortierung);
+    if (sortierung && sortierung !== "neueste")
+      params.set("sortierung", sortierung);
     const qs = params.size > 0 ? "?" + params.toString() : "";
     router.replace(pathname + qs, { scroll: false });
   }, [
@@ -219,7 +244,8 @@ export default function SuchePage() {
         if (kategorie) params.set("kategorie", kategorie);
         if (kueche) params.set("kueche", kueche);
         if (schwierigkeit) params.set("schwierigkeit", schwierigkeit);
-        if (debouncedErnaehrungsform) params.set("ernaehrungsform", debouncedErnaehrungsform);
+        if (debouncedErnaehrungsform)
+          params.set("ernaehrungsform", debouncedErnaehrungsform);
         if (zeitaufwand) params.set("zeitaufwand", zeitaufwand);
         if (debouncedZutaten) params.set("zutaten", debouncedZutaten);
         params.set("sortierung", sortierung);
@@ -230,7 +256,9 @@ export default function SuchePage() {
         if (!res.ok) throw new Error("Fehler beim Laden der Rezepte.");
         const data = await res.json();
 
-        setItems((prev) => (append ? [...prev, ...data.recipes] : data.recipes));
+        setItems((prev) =>
+          append ? [...prev, ...data.recipes] : data.recipes,
+        );
         setTotal(data.total);
         setHasMore(data.hasMore);
         if (data.facets) setFacets(data.facets);
@@ -241,7 +269,16 @@ export default function SuchePage() {
         setLoadingMore(false);
       }
     },
-    [debouncedQ, kategorie, kueche, schwierigkeit, debouncedErnaehrungsform, zeitaufwand, debouncedZutaten, sortierung],
+    [
+      debouncedQ,
+      kategorie,
+      kueche,
+      schwierigkeit,
+      debouncedErnaehrungsform,
+      zeitaufwand,
+      debouncedZutaten,
+      sortierung,
+    ],
   );
 
   // Re-fetch on filter change (Volltext only)
@@ -252,64 +289,69 @@ export default function SuchePage() {
   }, [fetchResults, searchMode]);
 
   // ── KI fetch ──────────────────────────────────────────────────────────────
-  const fetchKiResults = useCallback(async (imageFile?: File) => {
-    const activeImage = imageFile ?? kiImage;
-    if (!q.trim() && !activeImage) return;
+  const fetchKiResults = useCallback(
+    async (imageFile?: File) => {
+      const activeImage = imageFile ?? kiImage;
+      if (!q.trim() && !activeImage) return;
 
-    setKiLoading(true);
-    setKiError(null);
-    setNoApiKey(false);
-    setKiSearched(true);
+      setKiLoading(true);
+      setKiError(null);
+      setNoApiKey(false);
+      setKiSearched(true);
 
-    try {
-      let imageBase64: string | undefined;
-      if (activeImage) {
-        const buf = await activeImage.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let binary = "";
-        const CHUNK = 8192;
-        for (let i = 0; i < bytes.length; i += CHUNK) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-        }
-        imageBase64 = btoa(binary);
-      }
-
-      const res = await fetch("/api/search/semantic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: q,
-          limit: 20,
-          ...(imageBase64 ? { image: imageBase64 } : {}),
-        }),
-      });
-
-      if (!res.ok) {
-        let errMsg = "KI-Suche fehlgeschlagen.";
-        try {
-          const data = (await res.json()) as { error?: string };
-          if (
-            res.status === 503 ||
-            data.error?.toLowerCase().includes("api-schlüssel")
-          ) {
-            setNoApiKey(true);
-            return;
+      try {
+        let imageBase64: string | undefined;
+        if (activeImage) {
+          const buf = await activeImage.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let binary = "";
+          const CHUNK = 8192;
+          for (let i = 0; i < bytes.length; i += CHUNK) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
           }
-          if (data.error) errMsg = data.error;
-        } catch { /* ignore */ }
-        throw new Error(errMsg);
-      }
+          imageBase64 = btoa(binary);
+        }
 
-      const data = (await res.json()) as KiRecipe[];
-      setKiResults(data);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
-      setKiError(msg);
-      toast.error("KI-Suche fehlgeschlagen.");
-    } finally {
-      setKiLoading(false);
-    }
-  }, [q, kiImage]);
+        const res = await fetch("/api/search/semantic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: q,
+            limit: 20,
+            ...(imageBase64 ? { image: imageBase64 } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          let errMsg = "KI-Suche fehlgeschlagen.";
+          try {
+            const data = (await res.json()) as { error?: string };
+            if (
+              res.status === 503 ||
+              data.error?.toLowerCase().includes("api-schlüssel")
+            ) {
+              setNoApiKey(true);
+              return;
+            }
+            if (data.error) errMsg = data.error;
+          } catch {
+            /* ignore */
+          }
+          throw new Error(errMsg);
+        }
+
+        const data = (await res.json()) as KiRecipe[];
+        setKiResults(data);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
+        setKiError(msg);
+        toast.error("KI-Suche fehlgeschlagen.");
+      } finally {
+        setKiLoading(false);
+      }
+    },
+    [q, kiImage],
+  );
 
   // ── Zutaten fetch ─────────────────────────────────────────────────────────
   const fetchZutatenResults = useCallback(async (ings: string[]) => {
@@ -319,7 +361,6 @@ export default function SuchePage() {
     if (ings.length === 0) {
       setZutatenResults([]);
       setZutatenTotal(0);
-      setZutatenHasMore(false);
       setZutatenSearched(false);
       return;
     }
@@ -342,14 +383,12 @@ export default function SuchePage() {
       if (!controller.signal.aborted) {
         setZutatenResults(data.recipes);
         setZutatenTotal(data.total);
-        setZutatenHasMore(data.hasMore);
       }
     } catch (err) {
       // Silently ignore aborted requests — a newer one is already in flight
       if (err instanceof DOMException && err.name === "AbortError") return;
       setZutatenResults([]);
       setZutatenTotal(0);
-      setZutatenHasMore(false);
       toast.error("Zutaten-Suche fehlgeschlagen.");
     } finally {
       if (!controller.signal.aborted) {
@@ -367,17 +406,31 @@ export default function SuchePage() {
 
   // ── Active filter chips (Volltext) ────────────────────────────────────────
   const activeFilters: { label: string; clear: () => void }[] = [];
-  if (kategorie) activeFilters.push({ label: kategorie, clear: () => setKategorie("") });
+  if (kategorie)
+    activeFilters.push({ label: kategorie, clear: () => setKategorie("") });
   if (kueche) activeFilters.push({ label: kueche, clear: () => setKueche("") });
   if (schwierigkeit)
-    activeFilters.push({ label: DIFFICULTY_LABELS[schwierigkeit] ?? schwierigkeit, clear: () => setSchwierigkeit("") });
+    activeFilters.push({
+      label: DIFFICULTY_LABELS[schwierigkeit] ?? schwierigkeit,
+      clear: () => setSchwierigkeit(""),
+    });
   if (ernaehrungsform)
-    activeFilters.push({ label: ernaehrungsform, clear: () => setErnaehrungsform("") });
+    activeFilters.push({
+      label: ernaehrungsform,
+      clear: () => setErnaehrungsform(""),
+    });
   if (zeitaufwand) {
     const opt = ZEITAUFWAND_OPTIONS.find((o) => o.value === zeitaufwand);
-    activeFilters.push({ label: opt?.label ?? `${zeitaufwand} Min.`, clear: () => setZeitaufwand("") });
+    activeFilters.push({
+      label: opt?.label ?? `${zeitaufwand} Min.`,
+      clear: () => setZeitaufwand(""),
+    });
   }
-  if (zutaten) activeFilters.push({ label: `Zutat: ${zutaten}`, clear: () => setZutaten("") });
+  if (zutaten)
+    activeFilters.push({
+      label: `Zutat: ${zutaten}`,
+      clear: () => setZutaten(""),
+    });
 
   function resetAllFilters() {
     setQ("");
@@ -443,7 +496,9 @@ export default function SuchePage() {
                 }`}
               >
                 KI-Suche
-                <span className="text-xs leading-none" aria-hidden>✨</span>
+                <span className="text-xs leading-none" aria-hidden>
+                  ✨
+                </span>
               </button>
               <button
                 type="button"
@@ -456,7 +511,9 @@ export default function SuchePage() {
                 }`}
               >
                 Web
-                <span className="text-xs leading-none" aria-hidden>🌐</span>
+                <span className="text-xs leading-none" aria-hidden>
+                  🌐
+                </span>
               </button>
               <button
                 type="button"
@@ -474,7 +531,9 @@ export default function SuchePage() {
 
             {isVolltextMode && (
               <span className="text-sm text-[var(--text-muted)]">
-                {loading ? "Suche läuft…" : `${total} Rezept${total !== 1 ? "e" : ""}`}
+                {loading
+                  ? "Suche läuft…"
+                  : `${total} Rezept${total !== 1 ? "e" : ""}`}
               </span>
             )}
           </div>
@@ -482,88 +541,98 @@ export default function SuchePage() {
 
         {/* Search bar (not shown in Zutaten mode — ingredient input is in results) */}
         {!isZutatenMode && (
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="search"
-              role="searchbox"
-              autoFocus
-              placeholder={
-                isKiMode
-                  ? "Beschreiben Sie, was Sie kochen möchten… (Enter zum Suchen)"
-                  : isWebMode
-                  ? "Rezept im Web suchen…"
-                  : "Rezept, Zutat oder Beschreibung suchen…"
-              }
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && isKiMode) {
-                  e.preventDefault();
-                  void fetchKiResults();
-                }
-              }}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400"
-            />
-          </div>
-
-          {/* Sort (Volltext only) */}
-          {isVolltextMode && (
-            <select
-              value={sortierung}
-              onChange={(e) => setSortierung(e.target.value)}
-              className="px-3 py-2.5 rounded-xl text-sm bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
-            >
-              {debouncedQ && <option value="relevanz">Relevanz</option>}
-              <option value="neueste">Neueste</option>
-              <option value="alphabetisch">A–Z</option>
-              <option value="bearbeitet">Zuletzt bearbeitet</option>
-            </select>
-          )}
-
-          {/* KI search button */}
-          {isKiMode && (
-            <button
-              type="button"
-              onClick={() => void fetchKiResults()}
-              disabled={kiLoading || (!q.trim() && !kiImage)}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium bg-terra-500 text-white hover:bg-terra-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {kiLoading ? "Sucht…" : "Suchen"}
-            </button>
-          )}
-
-          {/* Mobile filter toggle (Volltext only) */}
-          {isVolltextMode && (
-            <button
-              type="button"
-              onClick={() => setShowMobileFilters((v) => !v)}
-              className={`lg:hidden px-3 py-2.5 rounded-xl text-sm border transition-colors ${
-                hasActiveFilters
-                  ? "border-terra-400 bg-terra-50 dark:bg-terra-950/30 text-terra-700"
-                  : "border-[var(--border-base)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]"
-              }`}
-              aria-label="Filter"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 12h10M11 20h2" />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
-            </button>
-          )}
-        </div>
+              <input
+                type="search"
+                role="searchbox"
+                autoFocus
+                placeholder={
+                  isKiMode
+                    ? "Beschreiben Sie, was Sie kochen möchten… (Enter zum Suchen)"
+                    : isWebMode
+                      ? "Rezept im Web suchen…"
+                      : "Rezept, Zutat oder Beschreibung suchen…"
+                }
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && isKiMode) {
+                    e.preventDefault();
+                    void fetchKiResults();
+                  }
+                }}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400"
+              />
+            </div>
+
+            {/* Sort (Volltext only) */}
+            {isVolltextMode && (
+              <select
+                value={sortierung}
+                onChange={(e) => setSortierung(e.target.value)}
+                className="px-3 py-2.5 rounded-xl text-sm bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
+              >
+                {debouncedQ && <option value="relevanz">Relevanz</option>}
+                <option value="neueste">Neueste</option>
+                <option value="alphabetisch">A–Z</option>
+                <option value="bearbeitet">Zuletzt bearbeitet</option>
+              </select>
+            )}
+
+            {/* KI search button */}
+            {isKiMode && (
+              <button
+                type="button"
+                onClick={() => void fetchKiResults()}
+                disabled={kiLoading || (!q.trim() && !kiImage)}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium bg-terra-500 text-white hover:bg-terra-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {kiLoading ? "Sucht…" : "Suchen"}
+              </button>
+            )}
+
+            {/* Mobile filter toggle (Volltext only) */}
+            {isVolltextMode && (
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters((v) => !v)}
+                className={`lg:hidden px-3 py-2.5 rounded-xl text-sm border transition-colors ${
+                  hasActiveFilters
+                    ? "border-terra-400 bg-terra-50 dark:bg-terra-950/30 text-terra-700"
+                    : "border-[var(--border-base)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]"
+                }`}
+                aria-label="Filter"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4h18M7 12h10M11 20h2"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         {/* KI: image upload area */}
@@ -571,10 +640,22 @@ export default function SuchePage() {
           <div className="mt-2">
             {kiImage ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-terra-50 dark:bg-terra-950/30 border border-terra-200 dark:border-terra-800 text-sm">
-                <svg className="w-4 h-4 text-terra-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  className="w-4 h-4 text-terra-500 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
-                <span className="text-terra-700 truncate flex-1 text-xs">{kiImage.name}</span>
+                <span className="text-terra-700 truncate flex-1 text-xs">
+                  {kiImage.name}
+                </span>
                 <button
                   type="button"
                   onClick={() => setKiImage(null)}
@@ -591,8 +672,18 @@ export default function SuchePage() {
                 onClick={() => kiImageInputRef.current?.click()}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[var(--border-base)] text-sm text-[var(--text-muted)] hover:border-terra-400 hover:text-terra-600 transition-colors w-full justify-center"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
                 <span>Bild hochladen für visuelle Suche (optional)</span>
               </button>
@@ -645,14 +736,29 @@ export default function SuchePage() {
       {/* No API key banner */}
       {noApiKey && (
         <div className="mx-6 lg:mx-10 mt-4 flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm">
-          <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <svg
+            className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
           <div>
-            <p className="font-semibold text-amber-800">Kein API-Schlüssel hinterlegt</p>
+            <p className="font-semibold text-amber-800">
+              Kein API-Schlüssel hinterlegt
+            </p>
             <p className="text-amber-700 mt-0.5">
               KI-Suche benötigt einen Gemini API-Schlüssel.{" "}
-              <Link href="/einstellungen" className="underline font-medium hover:text-amber-900 transition-colors">
+              <Link
+                href="/einstellungen"
+                className="underline font-medium hover:text-amber-900 transition-colors"
+              >
                 Jetzt in den Einstellungen hinterlegen →
               </Link>
             </p>
@@ -664,12 +770,18 @@ export default function SuchePage() {
       {isVolltextMode && showMobileFilters && (
         <div className="lg:hidden bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] px-6 py-4">
           <FilterSidebar
-            kategorie={kategorie} setKategorie={setKategorie}
-            kueche={kueche} setKueche={setKueche}
-            schwierigkeit={schwierigkeit} setSchwierigkeit={setSchwierigkeit}
-            ernaehrungsform={ernaehrungsform} setErnaehrungsform={setErnaehrungsform}
-            zeitaufwand={zeitaufwand} setZeitaufwand={setZeitaufwand}
-            zutaten={zutaten} setZutaten={setZutaten}
+            kategorie={kategorie}
+            setKategorie={setKategorie}
+            kueche={kueche}
+            setKueche={setKueche}
+            schwierigkeit={schwierigkeit}
+            setSchwierigkeit={setSchwierigkeit}
+            ernaehrungsform={ernaehrungsform}
+            setErnaehrungsform={setErnaehrungsform}
+            zeitaufwand={zeitaufwand}
+            setZeitaufwand={setZeitaufwand}
+            zutaten={zutaten}
+            setZutaten={setZutaten}
             facets={facets}
             hasActiveFilters={hasActiveFilters}
             resetAllFilters={resetAllFilters}
@@ -686,12 +798,18 @@ export default function SuchePage() {
               Filter
             </p>
             <FilterSidebar
-              kategorie={kategorie} setKategorie={setKategorie}
-              kueche={kueche} setKueche={setKueche}
-              schwierigkeit={schwierigkeit} setSchwierigkeit={setSchwierigkeit}
-              ernaehrungsform={ernaehrungsform} setErnaehrungsform={setErnaehrungsform}
-              zeitaufwand={zeitaufwand} setZeitaufwand={setZeitaufwand}
-              zutaten={zutaten} setZutaten={setZutaten}
+              kategorie={kategorie}
+              setKategorie={setKategorie}
+              kueche={kueche}
+              setKueche={setKueche}
+              schwierigkeit={schwierigkeit}
+              setSchwierigkeit={setSchwierigkeit}
+              ernaehrungsform={ernaehrungsform}
+              setErnaehrungsform={setErnaehrungsform}
+              zeitaufwand={zeitaufwand}
+              setZeitaufwand={setZeitaufwand}
+              zutaten={zutaten}
+              setZutaten={setZutaten}
               facets={facets}
               hasActiveFilters={hasActiveFilters}
               resetAllFilters={resetAllFilters}
@@ -739,7 +857,11 @@ export default function SuchePage() {
             <>
               <ul data-testid="result-list" className="space-y-3">
                 {items.map((recipe) => (
-                  <ResultItem key={recipe.id} recipe={recipe} query={debouncedQ} />
+                  <ResultItem
+                    key={recipe.id}
+                    recipe={recipe}
+                    query={debouncedQ}
+                  />
                 ))}
               </ul>
 
@@ -747,7 +869,12 @@ export default function SuchePage() {
                 <div className="mt-6 text-center">
                   <button
                     type="button"
-                    onClick={() => fetchResults(Math.ceil(items.length / PAGE_LIMIT) + 1, true)}
+                    onClick={() =>
+                      fetchResults(
+                        Math.ceil(items.length / PAGE_LIMIT) + 1,
+                        true,
+                      )
+                    }
                     disabled={loadingMore}
                     className="px-6 py-2.5 rounded-xl text-sm font-medium border border-[var(--border-base)] text-[var(--text-secondary)] hover:border-terra-400 hover:text-terra-600 disabled:opacity-50 transition-colors"
                   >
@@ -784,7 +911,13 @@ interface KiResultsProps {
   onReset: () => void;
 }
 
-function KiResults({ results, loading, error, searched, onReset }: KiResultsProps) {
+function KiResults({
+  results,
+  loading,
+  error,
+  searched,
+  onReset,
+}: KiResultsProps) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -803,8 +936,18 @@ function KiResults({ results, loading, error, searched, onReset }: KiResultsProp
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center mb-3">
-          <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <svg
+            className="w-6 h-6 text-red-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
         </div>
         <p className="text-sm text-[var(--text-secondary)] max-w-xs">{error}</p>
@@ -823,15 +966,26 @@ function KiResults({ results, loading, error, searched, onReset }: KiResultsProp
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-16 h-16 rounded-2xl bg-terra-50 dark:bg-terra-950/30 flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-terra-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          <svg
+            className="w-8 h-8 text-terra-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+            />
           </svg>
         </div>
         <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">
           KI-gestützte Suche
         </h3>
         <p className="text-sm text-[var(--text-secondary)] max-w-sm">
-          Beschreiben Sie in natürlicher Sprache, was Sie kochen möchten — oder laden Sie ein Bild hoch, um ähnliche Rezepte zu finden.
+          Beschreiben Sie in natürlicher Sprache, was Sie kochen möchten — oder
+          laden Sie ein Bild hoch, um ähnliche Rezepte zu finden.
         </p>
         <div className="mt-4 flex flex-col gap-2 text-sm text-[var(--text-muted)]">
           <span className="inline-flex items-center gap-2">
@@ -855,15 +1009,26 @@ function KiResults({ results, loading, error, searched, onReset }: KiResultsProp
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className="w-8 h-8 text-[var(--text-muted)]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
         <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-1">
           Keine passenden Rezepte
         </h3>
         <p className="text-sm text-[var(--text-secondary)] max-w-xs">
-          Versuchen Sie andere Begriffe oder fügen Sie zuerst Rezepte hinzu — KI-Suche benötigt gespeicherte Einbettungen.
+          Versuchen Sie andere Begriffe oder fügen Sie zuerst Rezepte hinzu —
+          KI-Suche benötigt gespeicherte Einbettungen.
         </p>
         <button
           type="button"
@@ -879,7 +1044,8 @@ function KiResults({ results, loading, error, searched, onReset }: KiResultsProp
   return (
     <>
       <p className="text-xs text-[var(--text-muted)] mb-3">
-        {results.length} semantisch ähnliche Rezept{results.length !== 1 ? "e" : ""} gefunden
+        {results.length} semantisch ähnliche Rezept
+        {results.length !== 1 ? "e" : ""} gefunden
       </p>
       <ul data-testid="ki-result-list" className="space-y-3">
         {results.map((recipe) => (
@@ -930,13 +1096,19 @@ function KiResultItem({ recipe }: { recipe: KiRecipe }) {
           )}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
             {recipe.category && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.category}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.category}
+              </span>
             )}
             {recipe.cuisine && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.cuisine}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.cuisine}
+              </span>
             )}
             {timeLabel && (
-              <span className="text-xs text-[var(--text-muted)]">⏱ {timeLabel}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                ⏱ {timeLabel}
+              </span>
             )}
             {recipe.difficulty && (
               <span className="text-xs text-[var(--text-muted)]">
@@ -947,7 +1119,9 @@ function KiResultItem({ recipe }: { recipe: KiRecipe }) {
         </div>
 
         {recipe.is_favorite && (
-          <span className="flex-shrink-0 text-terra-500" aria-label="Favorit">♥</span>
+          <span className="flex-shrink-0 text-terra-500" aria-label="Favorit">
+            ♥
+          </span>
         )}
       </Link>
     </li>
@@ -975,13 +1149,21 @@ interface FilterSidebarProps {
 }
 
 function FilterSidebar({
-  kategorie, setKategorie,
-  kueche, setKueche,
-  schwierigkeit, setSchwierigkeit,
-  ernaehrungsform, setErnaehrungsform,
-  zeitaufwand, setZeitaufwand,
-  zutaten, setZutaten,
-  facets, hasActiveFilters, resetAllFilters,
+  kategorie,
+  setKategorie,
+  kueche,
+  setKueche,
+  schwierigkeit,
+  setSchwierigkeit,
+  ernaehrungsform,
+  setErnaehrungsform,
+  zeitaufwand,
+  setZeitaufwand,
+  zutaten,
+  setZutaten,
+  facets,
+  hasActiveFilters,
+  resetAllFilters,
 }: FilterSidebarProps) {
   function facetCount(
     type: "categories" | "cuisines" | "difficulties",
@@ -1008,17 +1190,29 @@ function FilterSidebar({
           <option value="">Alle Kategorien</option>
           {facets
             ? [
-                ...(kategorie && !facets.categories.find((c) => c.value === kategorie)
+                ...(kategorie &&
+                !facets.categories.find((c) => c.value === kategorie)
                   ? [{ value: kategorie, count: 0 }]
                   : []),
                 ...facets.categories,
               ].map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.value}{c.count > 0 ? ` (${c.count})` : ""}
+                  {c.value}
+                  {c.count > 0 ? ` (${c.count})` : ""}
                 </option>
               ))
-            : ["Frühstück", "Hauptgericht", "Dessert", "Snack", "Suppe", "Salat", "Backen"].map((c) => (
-                <option key={c} value={c}>{c}</option>
+            : [
+                "Frühstück",
+                "Hauptgericht",
+                "Dessert",
+                "Snack",
+                "Suppe",
+                "Salat",
+                "Backen",
+              ].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
         </Select>
       </div>
@@ -1028,7 +1222,11 @@ function FilterSidebar({
         <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
           Küche
         </label>
-        <Select name="kueche" value={kueche} onChange={(e) => setKueche(e.target.value)}>
+        <Select
+          name="kueche"
+          value={kueche}
+          onChange={(e) => setKueche(e.target.value)}
+        >
           <option value="">Alle Küchen</option>
           {(facets?.cuisines ?? []).map((c) => (
             <option key={c.value} value={c.value}>
@@ -1047,19 +1245,26 @@ function FilterSidebar({
           {(["einfach", "mittel", "anspruchsvoll"] as const).map((d) => {
             const count = facetCount("difficulties", d);
             return (
-              <label key={d} className="flex items-center gap-2 cursor-pointer group">
+              <label
+                key={d}
+                className="flex items-center gap-2 cursor-pointer group"
+              >
                 <input
                   type="radio"
                   name="schwierigkeit"
                   value={d}
                   checked={schwierigkeit === d}
-                  onChange={() => setSchwierigkeit(schwierigkeit === d ? "" : d)}
+                  onChange={() =>
+                    setSchwierigkeit(schwierigkeit === d ? "" : d)
+                  }
                   className="accent-terra-500"
                 />
                 <span className="text-sm text-[var(--text-primary)] group-hover:text-terra-600 transition-colors">
                   {DIFFICULTY_LABELS[d]}
                   {count !== null && (
-                    <span className="ml-1 text-[var(--text-muted)]">({count})</span>
+                    <span className="ml-1 text-[var(--text-muted)]">
+                      ({count})
+                    </span>
                   )}
                 </span>
               </label>
@@ -1073,10 +1278,15 @@ function FilterSidebar({
         <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
           Zeitaufwand
         </label>
-        <Select value={zeitaufwand} onChange={(e) => setZeitaufwand(e.target.value)}>
+        <Select
+          value={zeitaufwand}
+          onChange={(e) => setZeitaufwand(e.target.value)}
+        >
           <option value="">Beliebig</option>
           {ZEITAUFWAND_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </Select>
       </div>
@@ -1124,7 +1334,9 @@ function FilterSidebar({
 
 function ResultItem({ recipe, query }: { recipe: Recipe; query: string }) {
   const timeLabel =
-    recipe.totalTimeMinutes != null ? formatTime(recipe.totalTimeMinutes) : null;
+    recipe.totalTimeMinutes != null
+      ? formatTime(recipe.totalTimeMinutes)
+      : null;
 
   return (
     <li>
@@ -1145,13 +1357,19 @@ function ResultItem({ recipe, query }: { recipe: Recipe; query: string }) {
           )}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
             {recipe.category && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.category}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.category}
+              </span>
             )}
             {recipe.cuisine && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.cuisine}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.cuisine}
+              </span>
             )}
             {timeLabel && (
-              <span className="text-xs text-[var(--text-muted)]">⏱ {timeLabel}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                ⏱ {timeLabel}
+              </span>
             )}
             {recipe.difficulty && (
               <span className="text-xs text-[var(--text-muted)]">
@@ -1162,7 +1380,9 @@ function ResultItem({ recipe, query }: { recipe: Recipe; query: string }) {
         </div>
 
         {recipe.isFavorite && (
-          <span className="flex-shrink-0 text-terra-500" aria-label="Favorit">♥</span>
+          <span className="flex-shrink-0 text-terra-500" aria-label="Favorit">
+            ♥
+          </span>
         )}
       </Link>
     </li>
@@ -1175,8 +1395,18 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mb-4">
-        <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg
+          className="w-8 h-8 text-[var(--text-muted)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       </div>
       <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-1">
@@ -1271,15 +1501,26 @@ function ZutatenSection({
       ) : !searched ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-terra-50 dark:bg-terra-950/30 flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-terra-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            <svg
+              className="w-8 h-8 text-terra-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+              />
             </svg>
           </div>
           <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">
             Was haben Sie im Kühlschrank?
           </h3>
           <p className="text-sm text-[var(--text-secondary)] max-w-sm">
-            Geben Sie die Zutaten ein, die Sie zu Hause haben. Wir finden Rezepte, die Sie damit kochen können.
+            Geben Sie die Zutaten ein, die Sie zu Hause haben. Wir finden
+            Rezepte, die Sie damit kochen können.
           </p>
           <div className="mt-4 flex flex-col gap-2 text-sm text-[var(--text-muted)]">
             <span className="inline-flex items-center gap-2">
@@ -1293,17 +1534,31 @@ function ZutatenSection({
           </div>
         </div>
       ) : results.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="zutaten-empty">
+        <div
+          className="flex flex-col items-center justify-center py-16 text-center"
+          data-testid="zutaten-empty"
+        >
           <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              className="w-8 h-8 text-[var(--text-muted)]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
           <h3 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-1">
             Keine passenden Rezepte
           </h3>
           <p className="text-sm text-[var(--text-secondary)] max-w-xs">
-            Keines Ihrer Rezepte enthält diese Zutaten. Versuchen Sie andere Zutaten oder erstellen Sie neue Rezepte.
+            Keines Ihrer Rezepte enthält diese Zutaten. Versuchen Sie andere
+            Zutaten oder erstellen Sie neue Rezepte.
           </p>
         </div>
       ) : (
@@ -1340,7 +1595,9 @@ function ZutatenResultItem({
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const timeLabel =
-    recipe.totalTimeMinutes != null ? formatTime(recipe.totalTimeMinutes) : null;
+    recipe.totalTimeMinutes != null
+      ? formatTime(recipe.totalTimeMinutes)
+      : null;
 
   return (
     <li className="rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-terra-300 hover:shadow-warm transition-all overflow-hidden">
@@ -1387,13 +1644,19 @@ function ZutatenResultItem({
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
             {recipe.category && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.category}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.category}
+              </span>
             )}
             {recipe.cuisine && (
-              <span className="text-xs text-[var(--text-muted)]">{recipe.cuisine}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                {recipe.cuisine}
+              </span>
             )}
             {timeLabel && (
-              <span className="text-xs text-[var(--text-muted)]">⏱ {timeLabel}</span>
+              <span className="text-xs text-[var(--text-muted)]">
+                ⏱ {timeLabel}
+              </span>
             )}
             {recipe.difficulty && (
               <span className="text-xs text-[var(--text-muted)]">
@@ -1405,7 +1668,9 @@ function ZutatenResultItem({
 
         <div className="flex-shrink-0 flex flex-col items-end gap-2">
           {recipe.isFavorite && (
-            <span className="text-terra-500" aria-label="Favorit">♥</span>
+            <span className="text-terra-500" aria-label="Favorit">
+              ♥
+            </span>
           )}
           {recipe.missingIngredients.length > 0 && (
             <button
@@ -1431,9 +1696,22 @@ function ZutatenResultItem({
                 </p>
                 <ul className="space-y-0.5">
                   {recipe.matchedIngredients.map((name) => (
-                    <li key={name} className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
-                      <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    <li
+                      key={name}
+                      className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5 text-green-500 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                       {name}
                     </li>
@@ -1450,9 +1728,22 @@ function ZutatenResultItem({
                 </p>
                 <ul className="space-y-0.5">
                   {recipe.missingIngredients.map((ing) => (
-                    <li key={ing.name} className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
-                      <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    <li
+                      key={ing.name}
+                      className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5 text-red-400 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                       {ing.amount && ing.unit
                         ? `${ing.amount} ${ing.unit} ${ing.name}`
@@ -1475,10 +1766,22 @@ function ZutatenResultItem({
               disabled={addingToList}
               className="mt-3 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-terra-500 text-white hover:bg-terra-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 justify-center"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
+                />
               </svg>
-              {addingToList ? "Wird hinzugefügt…" : `Fehlende zur Einkaufsliste (${recipe.missingIngredients.length})`}
+              {addingToList
+                ? "Wird hinzugefügt…"
+                : `Fehlende zur Einkaufsliste (${recipe.missingIngredients.length})`}
             </button>
           )}
         </div>

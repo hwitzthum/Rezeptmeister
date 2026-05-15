@@ -46,12 +46,23 @@ async function loginAdmin(page: import("@playwright/test").Page) {
 async function createRecipeViaApi(
   page: import("@playwright/test").Page,
   suffix: string,
-  ingredientList: { name: string; amount: number; unit: string; isOptional?: boolean }[],
+  ingredientList: {
+    name: string;
+    amount: number;
+    unit: string;
+    isOptional?: boolean;
+  }[],
 ): Promise<string> {
   const resp = await page.evaluate(
     async (args: {
       title: string;
-      ingredients: { name: string; amount: number; unit: string; sortOrder: number; isOptional: boolean }[];
+      ingredients: {
+        name: string;
+        amount: number;
+        unit: string;
+        sortOrder: number;
+        isOptional: boolean;
+      }[];
     }) => {
       const res = await fetch("/api/recipes", {
         method: "POST",
@@ -80,7 +91,8 @@ async function createRecipeViaApi(
       })),
     },
   );
-  if ("error" in resp) throw new Error(`Rezept erstellen fehlgeschlagen: ${resp.error}`);
+  if ("error" in resp)
+    throw new Error(`Rezept erstellen fehlgeschlagen: ${resp.error}`);
   return (resp as { id: string }).id;
 }
 
@@ -126,7 +138,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await expect(dropdown).toBeVisible({ timeout: 5_000 });
 
     // Should contain "kartoffeln" (lowercase normalized)
-    await expect(dropdown.getByRole("option").first()).toContainText(/kartoffeln/i);
+    await expect(dropdown.getByRole("option").first()).toContainText(
+      /kartoffeln/i,
+    );
   });
 
   test("Zutaten-Chips werden angezeigt und entfernt", async ({ page }) => {
@@ -153,7 +167,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await expect(container.getByText("Butter")).toBeVisible();
   });
 
-  test("Matching-Ergebnisse nach Uebereinstimmung sortiert", async ({ page }) => {
+  test("Matching-Ergebnisse nach Uebereinstimmung sortiert", async ({
+    page,
+  }) => {
     // Use unique ingredient names to avoid collisions with other test data
     const u = RUN_ID;
     // Recipe A: 2 of 3 match → 67%
@@ -207,7 +223,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await input.press("Enter");
 
     // Wait for results
-    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Check match info text
     const matchInfo = page.getByTestId("match-info").first();
@@ -216,7 +234,7 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
   });
 
   test("Fehlende Zutaten zur Einkaufsliste hinzufuegen", async ({ page }) => {
-    const recipeId = await createRecipeViaApi(page, "einkauf", [
+    await createRecipeViaApi(page, "einkauf", [
       { name: "Tomaten", amount: 400, unit: "g" },
       { name: "Basilikum", amount: 1, unit: "Bund" },
       { name: "Mozzarella", amount: 200, unit: "g" },
@@ -230,7 +248,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await input.press("Enter");
 
     // Wait for results
-    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Expand details
     await page.getByText("Details").first().click();
@@ -241,7 +261,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await addBtn.click();
 
     // Expect success toast
-    await expect(page.getByText(/zur Einkaufsliste hinzugefügt/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/zur Einkaufsliste hinzugefügt/i)).toBeVisible({
+      timeout: 5_000,
+    });
 
     // Verify via API that items were added
     const shopItems = await page.evaluate(async () => {
@@ -265,7 +287,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await input.press("Enter");
 
     // Should show empty state
-    await expect(page.getByTestId("zutaten-empty")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("zutaten-empty")).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(page.getByText("Keine passenden Rezepte")).toBeVisible();
   });
 
@@ -288,17 +312,26 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     await input.press("Enter");
 
     // Wait for 100% match result
-    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId("match-info").first()).toContainText("2 von 2");
+    await expect(page.getByTestId("zutaten-result-list")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("match-info").first()).toContainText(
+      "2 von 2",
+    );
 
     // Remove "Speck"
     await container.getByLabel("Speck entfernen").click();
 
     // Wait for results to update — now only 1 of 2
-    await expect(page.getByTestId("match-info").first()).toContainText("1 von 2", { timeout: 5_000 });
+    await expect(page.getByTestId("match-info").first()).toContainText(
+      "1 von 2",
+      { timeout: 5_000 },
+    );
   });
 
-  test("API: /api/recipes/ingredient-match gibt korrekte Struktur", async ({ page }) => {
+  test("API: /api/recipes/ingredient-match gibt korrekte Struktur", async ({
+    page,
+  }) => {
     await createRecipeViaApi(page, "api-test", [
       { name: "Mehl", amount: 500, unit: "g" },
       { name: "Zucker", amount: 200, unit: "g" },
@@ -329,7 +362,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
 
   // ── Adversarial-Review Regressionstests ──────────────────────────────────
 
-  test("batch-missing erzeugt keine Duplikate bei Doppelaufruf", async ({ page }) => {
+  test("batch-missing erzeugt keine Duplikate bei Doppelaufruf", async ({
+    page,
+  }) => {
     const u = RUN_ID;
 
     const recipeId = await createRecipeViaApi(page, "dupcheck", [
@@ -354,7 +389,11 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipeId: id, availableIngredients: [] }),
         });
-        return res.json() as Promise<{ added: number; merged: number; total: number }>;
+        return res.json() as Promise<{
+          added: number;
+          merged: number;
+          total: number;
+        }>;
       }, rid);
 
     const r1 = await callBatchMissing(recipeId);
@@ -374,7 +413,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     expect(relevant).toHaveLength(2);
   });
 
-  test("'ei' als verfuegbare Zutat unterdrueckt 'Reis' nicht", async ({ page }) => {
+  test("'ei' als verfuegbare Zutat unterdrueckt 'Reis' nicht", async ({
+    page,
+  }) => {
     const u = RUN_ID;
 
     const recipeId = await createRecipeViaApi(page, "ei-reis", [
@@ -426,7 +467,9 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
     expect(r2.added).toBe(2);
   });
 
-  test("API: /api/ingredients/autocomplete gibt Vorschlaege", async ({ page }) => {
+  test("API: /api/ingredients/autocomplete gibt Vorschlaege", async ({
+    page,
+  }) => {
     await createRecipeViaApi(page, "ac-api", [
       { name: "Paprika", amount: 2, unit: "Stk." },
     ]);
@@ -438,6 +481,8 @@ test.describe("Phase 16 – Was kann ich kochen?", () => {
 
     expect(result.suggestions).toBeDefined();
     expect(result.suggestions.length).toBeGreaterThanOrEqual(1);
-    expect(result.suggestions.some((s: string) => s.includes("paprika"))).toBe(true);
+    expect(result.suggestions.some((s: string) => s.includes("paprika"))).toBe(
+      true,
+    );
   });
 });

@@ -1,12 +1,12 @@
 import { handlers } from "@/auth";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, getClientIp, AUTH_LIMIT } from "@/lib/rate-limit";
 
 // Rate-limit POST requests (login attempts) to prevent brute force attacks.
 // GET requests (session checks, CSRF token) are not rate-limited.
 const originalPOST = handlers.POST;
 
-async function POST(request: Request, context: unknown) {
+async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const rl = checkRateLimit(`nextauth-post:${ip}`, AUTH_LIMIT);
   if (!rl.allowed) {
@@ -20,8 +20,7 @@ async function POST(request: Request, context: unknown) {
       },
     );
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return originalPOST(request, context as any);
+  return originalPOST(request);
 }
 
 export { POST };

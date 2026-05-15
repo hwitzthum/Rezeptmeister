@@ -20,53 +20,52 @@ export function IngredientTagInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [loading, setLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const debouncedQuery = useDebounce(inputValue, 300);
+  const trimmedQuery = debouncedQuery.trim();
 
-  // Fetch autocomplete suggestions
+  // Fetch autocomplete suggestions when there is a query.
   useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
+    if (!trimmedQuery) return;
 
     let cancelled = false;
-    setLoading(true);
 
-    fetch(`/api/ingredients/autocomplete?q=${encodeURIComponent(debouncedQuery)}&limit=10`)
+    fetch(
+      `/api/ingredients/autocomplete?q=${encodeURIComponent(trimmedQuery)}&limit=10`,
+    )
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
         const filtered = (data.suggestions as string[]).filter(
-          (s) => !selectedIngredients.some((sel) => sel.toLowerCase() === s.toLowerCase()),
+          (s) =>
+            !selectedIngredients.some(
+              (sel) => sel.toLowerCase() === s.toLowerCase(),
+            ),
         );
         setSuggestions(filtered);
         setShowDropdown(filtered.length > 0);
         setActiveIndex(-1);
-        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) {
-          setSuggestions([]);
-          setLoading(false);
-        }
+        if (!cancelled) setSuggestions([]);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, selectedIngredients]);
+  }, [trimmedQuery, selectedIngredients]);
 
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setShowDropdown(false);
       }
     }
@@ -79,7 +78,12 @@ export function IngredientTagInput({
       const trimmed = name.trim();
       if (!trimmed) return;
       if (selectedIngredients.length >= maxItems) return;
-      if (selectedIngredients.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+      if (
+        selectedIngredients.some(
+          (s) => s.toLowerCase() === trimmed.toLowerCase(),
+        )
+      )
+        return;
       onIngredientsChange([...selectedIngredients, trimmed]);
       setInputValue("");
       setSuggestions([]);
@@ -107,7 +111,11 @@ export function IngredientTagInput({
         } else if (inputValue.trim()) {
           addIngredient(inputValue);
         }
-      } else if (e.key === "Backspace" && !inputValue && selectedIngredients.length > 0) {
+      } else if (
+        e.key === "Backspace" &&
+        !inputValue &&
+        selectedIngredients.length > 0
+      ) {
         removeIngredient(selectedIngredients.length - 1);
       } else if (e.key === "Escape") {
         setShowDropdown(false);
@@ -123,7 +131,15 @@ export function IngredientTagInput({
         setActiveIndex((prev) => Math.max(prev - 1, -1));
       }
     },
-    [activeIndex, suggestions, inputValue, selectedIngredients, addIngredient, removeIngredient, showDropdown],
+    [
+      activeIndex,
+      suggestions,
+      inputValue,
+      selectedIngredients,
+      addIngredient,
+      removeIngredient,
+      showDropdown,
+    ],
   );
 
   // Scroll active suggestion into view
@@ -135,7 +151,11 @@ export function IngredientTagInput({
   }, [activeIndex]);
 
   return (
-    <div ref={containerRef} className="relative" data-testid="ingredient-tag-input">
+    <div
+      ref={containerRef}
+      className="relative"
+      data-testid="ingredient-tag-input"
+    >
       {/* Selected chips + input */}
       <div
         className={[
@@ -162,8 +182,18 @@ export function IngredientTagInput({
               className="ml-0.5 hover:text-terra-900 dark:hover:text-terra-100 transition-colors"
               aria-label={`${ingredient} entfernen`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </span>
@@ -180,17 +210,22 @@ export function IngredientTagInput({
           placeholder={selectedIngredients.length === 0 ? placeholder : ""}
           className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder:text-warm-400"
           data-testid="ingredient-input"
+          role="combobox"
           aria-autocomplete="list"
           aria-expanded={showDropdown}
-          aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
+          aria-controls="ingredient-autocomplete-listbox"
+          aria-activedescendant={
+            activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined
+          }
           disabled={selectedIngredients.length >= maxItems}
         />
       </div>
 
       {/* Dropdown */}
-      {showDropdown && suggestions.length > 0 && (
+      {showDropdown && trimmedQuery && suggestions.length > 0 && (
         <ul
           ref={dropdownRef}
+          id="ingredient-autocomplete-listbox"
           role="listbox"
           data-testid="autocomplete-dropdown"
           className={[
@@ -226,7 +261,8 @@ export function IngredientTagInput({
       {/* Hint */}
       {selectedIngredients.length === 0 && (
         <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-          Geben Sie Zutaten ein, die Sie zu Hause haben. Drücken Sie Enter zum Hinzufügen.
+          Geben Sie Zutaten ein, die Sie zu Hause haben. Drücken Sie Enter zum
+          Hinzufügen.
         </p>
       )}
     </div>

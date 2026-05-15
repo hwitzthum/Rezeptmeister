@@ -9,6 +9,7 @@
  */
 
 import dns from "node:dns/promises";
+import type { LookupAddress } from "node:dns";
 import net from "node:net";
 
 /** CIDR-style blocked ranges represented as [bigint network, bigint mask] pairs. */
@@ -18,22 +19,29 @@ const BLOCKED_RANGES_V4: [bigint, bigint][] = [
   ["192.168.0.0", "255.255.0.0"],
   ["127.0.0.0", "255.0.0.0"],
   ["169.254.0.0", "255.255.0.0"], // link-local / AWS metadata (169.254.169.254)
-  ["100.64.0.0", "255.192.0.0"],  // shared address space (RFC 6598)
-  ["0.0.0.0", "255.0.0.0"],       // "this" network
+  ["100.64.0.0", "255.192.0.0"], // shared address space (RFC 6598)
+  ["0.0.0.0", "255.0.0.0"], // "this" network
   ["192.0.2.0", "255.255.255.0"], // TEST-NET-1 (RFC 5737)
   ["198.51.100.0", "255.255.255.0"], // TEST-NET-2
-  ["203.0.113.0", "255.255.255.0"],  // TEST-NET-3
-  ["240.0.0.0", "240.0.0.0"],    // reserved
+  ["203.0.113.0", "255.255.255.0"], // TEST-NET-3
+  ["240.0.0.0", "240.0.0.0"], // reserved
 ].map(([net, mask]) => [ipv4ToBigInt(net), ipv4ToBigInt(mask)]);
 
 function ipv4ToBigInt(ip: string): bigint {
-  return ip.split(".").reduce((acc, octet) => (acc << 8n) | BigInt(parseInt(octet, 10)), 0n);
+  return ip
+    .split(".")
+    .reduce(
+      (acc, octet) => (acc << BigInt(8)) | BigInt(parseInt(octet, 10)),
+      BigInt(0),
+    );
 }
 
 function isPrivateIpv4(ip: string): boolean {
   if (!net.isIPv4(ip)) return false;
   const addr = ipv4ToBigInt(ip);
-  return BLOCKED_RANGES_V4.some(([network, mask]) => (addr & mask) === (network & mask));
+  return BLOCKED_RANGES_V4.some(
+    ([network, mask]) => (addr & mask) === (network & mask),
+  );
 }
 
 function isPrivateIpv6(ip: string): boolean {
@@ -42,7 +50,13 @@ function isPrivateIpv6(ip: string): boolean {
   // Loopback ::1
   if (lower === "::1") return true;
   // Link-local fe80::/10
-  if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) return true;
+  if (
+    lower.startsWith("fe8") ||
+    lower.startsWith("fe9") ||
+    lower.startsWith("fea") ||
+    lower.startsWith("feb")
+  )
+    return true;
   // Unique Local fc00::/7 (fc:: and fd::)
   if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
   // IPv4-mapped ::ffff:x.x.x.x
@@ -62,7 +76,7 @@ async function isHostnameSafe(hostname: string): Promise<boolean> {
   if (net.isIPv4(hostname)) return !isPrivateIpv4(hostname);
   if (net.isIPv6(hostname)) return !isPrivateIpv6(hostname);
 
-  let records: dns.LookupAddress[];
+  let records: LookupAddress[];
   try {
     records = await dns.lookup(hostname, { all: true });
   } catch {
@@ -87,7 +101,8 @@ async function isHostnameSafe(hostname: string): Promise<boolean> {
 export async function isSafeExternalUrl(url: string): Promise<boolean> {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return false;
     let hostname = parsed.hostname;
     // Strip IPv6 brackets
     if (hostname.startsWith("[") && hostname.endsWith("]")) {
