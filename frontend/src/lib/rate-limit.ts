@@ -12,6 +12,12 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>();
 const MAX_STORE_SIZE = 10_000;
 
+// Validate DISABLE_RATE_LIMIT at module initialization time so misconfiguration
+// is caught at startup rather than silently failing per-request in production.
+if (process.env.DISABLE_RATE_LIMIT === "true" && process.env.NODE_ENV === "production") {
+  throw new Error("DISABLE_RATE_LIMIT=true ist in Produktion nicht erlaubt.");
+}
+
 // Purge stale entries every 5 minutes to prevent memory leaks
 if (typeof setInterval !== "undefined") {
   setInterval(
@@ -66,9 +72,6 @@ export function checkRateLimit(
 ): RateLimitResult {
   // Disable rate limiting in test/development when explicitly opted out
   if (process.env.DISABLE_RATE_LIMIT === "true") {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("DISABLE_RATE_LIMIT=true ist in Produktion nicht erlaubt.");
-    }
     return { allowed: true, remaining: config.max };
   }
 

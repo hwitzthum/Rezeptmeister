@@ -12,9 +12,15 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 export async function GET(request: Request) {
+  // Fail closed if CRON_SECRET is not configured
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: "Not configured." }, { status: 503 });
+  }
+
   // Verify the request comes from Vercel Cron using constant-time comparison
   const authHeader = request.headers.get("authorization");
-  if (!safeCompare(authHeader ?? "", `Bearer ${process.env.CRON_SECRET ?? ""}`)) {
+  if (!safeCompare(authHeader ?? "", `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
   }
 
