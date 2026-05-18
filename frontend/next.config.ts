@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
-const supabaseHostname = process.env.SUPABASE_URL
-  ? new URL(process.env.SUPABASE_URL).hostname
-  : "aaghjfmstezmxyxyrfri.supabase.co"; // fallback for build time
+if (!process.env.SUPABASE_URL) throw new Error("SUPABASE_URL is required");
+const supabaseHostname = new URL(process.env.SUPABASE_URL).hostname;
 
 const nextConfig: NextConfig = {
   images: {

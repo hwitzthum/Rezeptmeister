@@ -27,6 +27,15 @@ export const authConfig: NextAuthConfig = {
     signIn: "/auth/anmelden",
     error: "/auth/fehler",
   },
+  cookies: {
+    sessionToken: {
+      options: {
+        sameSite: "strict",
+        httpOnly: true,
+        secure: true,
+      },
+    },
+  },
   providers: [
     Credentials({
       id: "credentials",

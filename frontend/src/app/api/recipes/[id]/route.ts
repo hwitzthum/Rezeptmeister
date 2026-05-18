@@ -10,6 +10,8 @@ import { USER_ROLE } from "@/lib/auth";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import { decrypt } from "@/lib/crypto";
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ── GET /api/recipes/[id] ─────────────────────────────────────────────────────
 
 export async function GET(
@@ -17,6 +19,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = checkRateLimit(`recipes-get:${ip}`);
@@ -62,6 +68,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = checkRateLimit(`recipes-update:${ip}`);
@@ -200,6 +210,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = checkRateLimit(`recipes-delete:${ip}`);

@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         userId: session.user.id,
         recipeId,
         filePath,
-        fileName: file.name,
+        fileName: file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 255),
         mimeType: file.type,
         fileSizeBytes: file.size,
         width: meta.width ?? null,
