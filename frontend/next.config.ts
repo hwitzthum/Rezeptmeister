@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
+              // Next.js App Router requires 'unsafe-inline' for inline hydration scripts.
+              // Nonce-based CSP (strict-dynamic) would eliminate this but requires
+              // per-request nonce injection via middleware. Track in security backlog.
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               `img-src 'self' data: blob: https://${supabaseHostname}`,
@@ -43,6 +46,12 @@ const nextConfig: NextConfig = {
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
+              // Explicitly block object/embed elements (Flash, plugins)
+              "object-src 'none'",
+              // Block worker scripts from external origins
+              "worker-src 'self' blob:",
+              // Block loading manifests from external origins
+              "manifest-src 'self'",
             ].join("; "),
           },
           {

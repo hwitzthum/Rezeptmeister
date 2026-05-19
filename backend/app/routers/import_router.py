@@ -6,7 +6,7 @@ POST /import/url  – Fetcht eine Rezept-URL, extrahiert strukturierte Daten und
 import logging
 
 from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.services.url_import_service import fetch_and_parse
@@ -17,7 +17,7 @@ settings = get_settings()
 
 
 class ImportUrlRequest(BaseModel):
-    url: str
+    url: str = Field(max_length=2048)
 
 
 @router.post("/url")

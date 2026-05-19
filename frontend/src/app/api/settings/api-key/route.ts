@@ -36,7 +36,10 @@ export async function GET(request: Request) {
   });
 
   if (!user?.apiKeyEncrypted) {
-    return NextResponse.json({ hasKey: false, masked: null, provider: null });
+    return NextResponse.json(
+      { hasKey: false, masked: null, provider: null },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
   }
 
   let masked: string;
@@ -48,11 +51,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ hasKey: false, masked: null, provider: null });
   }
 
-  return NextResponse.json({
-    hasKey: true,
-    masked,
-    provider: user.apiProvider,
-  });
+  return NextResponse.json(
+    { hasKey: true, masked, provider: user.apiProvider },
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }
 
 export async function PUT(request: Request) {

@@ -80,10 +80,8 @@ export async function GET(request: Request) {
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
-  return NextResponse.json({
-    users: rows,
-    total,
-    page,
-    pages: Math.ceil(total / pageSize),
-  });
+  return NextResponse.json(
+    { users: rows, total, page, pages: Math.ceil(total / pageSize) },
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }

@@ -40,13 +40,28 @@ if (isProduction && process.env.DB_PASSWORD && weakDbPasswords.includes(process.
   );
 }
 
-if (
-  isProduction &&
-  process.env.ENCRYPTION_KEY &&
-  /^0+$/.test(process.env.ENCRYPTION_KEY)
-) {
+if (isProduction && process.env.ENCRYPTION_KEY) {
+  if (/^0+$/.test(process.env.ENCRYPTION_KEY)) {
+    throw new Error(
+      "ENCRYPTION_KEY besteht nur aus Nullen – in Produktion nicht erlaubt. " +
+        "Generieren: openssl rand -hex 32",
+    );
+  }
+  if (process.env.ENCRYPTION_KEY.length !== 64) {
+    throw new Error(
+      "ENCRYPTION_KEY muss exakt 64 Hex-Zeichen lang sein (32 Bytes). " +
+        "Generieren: openssl rand -hex 32",
+    );
+  }
+  if (!/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY)) {
+    throw new Error(
+      "ENCRYPTION_KEY muss ein gültiger Hex-String sein. " +
+        "Generieren: openssl rand -hex 32",
+    );
+  }
+} else if (isProduction && !process.env.ENCRYPTION_KEY) {
   throw new Error(
-    "ENCRYPTION_KEY besteht nur aus Nullen – in Produktion nicht erlaubt. " +
+    "ENCRYPTION_KEY ist nicht gesetzt – in Produktion erforderlich. " +
       "Generieren: openssl rand -hex 32",
   );
 }

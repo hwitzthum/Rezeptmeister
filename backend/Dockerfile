@@ -12,6 +12,14 @@ RUN uv sync --no-dev
 # Anwendungscode
 COPY . .
 
+# Nicht-root-Benutzer erstellen und Berechtigungen setzen
+# Der Prozess soll nicht als root laufen (Dockerfile-Sicherheitspflicht).
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/false --create-home appuser && \
+    chown -R appuser:appgroup /app
+
+USER appuser
+
 EXPOSE 8000
 
 CMD ["sh", "-c", "uv run alembic upgrade head || uv run alembic stamp head; uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
