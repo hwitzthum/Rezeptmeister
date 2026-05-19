@@ -96,35 +96,30 @@ export function checkRateLimit(
   return { allowed: true, remaining: config.max - entry.count };
 }
 
-/** Extract client IP from Next.js request headers.
- * Uses the leftmost (first) entry of x-forwarded-for, which represents the
- * original client IP as appended by the first proxy in the chain.
- * Prefers x-real-ip when set by a trusted reverse proxy (e.g., nginx).
- * Falls back to a URL+User-Agent hash when no IP header is present,
- * to avoid all unknown clients sharing a single rate-limit bucket.
+/**
+ * Extract the verified client IP from request headers.
  *
- * Note: in deployments without a trusted reverse proxy, x-forwarded-for
- * can be spoofed by clients. For production, ensure a reverse proxy (Vercel,
- * nginx, etc.) strips or overwrites these headers before forwarding. */
+ * On Vercel the edge network appends the real client IP as the RIGHTMOST entry
+ * in x-forwarded-for. The leftmost entry is client-supplied and trivially
+ * spoofable — using it allows a complete rate-limit bypass by prepending a
+ * fake IP. Always consume the rightmost (proxy-appended) entry.
+ *
+ * x-real-ip is kept as a secondary fallback for nginx-style reverse proxies in
+ * non-Vercel deployments; it is not set by Vercel's edge.
+ */
 export function getClientIp(request: Request): string {
-  // Prefer x-real-ip as it is typically set by a single trusted proxy
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp?.trim()) return realIp.trim();
-
+  // Rightmost XFF entry = IP appended by the trusted Vercel edge.
+  // The leftmost entry is attacker-controlled and must NOT be used.
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    // Use leftmost IP = original client address
     const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
-    const ip = ips[0];
+    const ip = ips[ips.length - 1];
     if (ip) return ip;
   }
 
-  // Fallback: hash URL + User-Agent to avoid a shared "unknown" bucket
-  const ua = request.headers.get("user-agent") ?? "";
-  const url = new URL(request.url);
-  let hash = 0;
-  for (const ch of ua) {
-    hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
-  }
-  return `unknown:${url.pathname}:${hash}`;
+  // x-real-ip: set by nginx / other trusted reverse proxies (not Vercel)
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp?.trim()) return realIp.trim();
+
+  return "unknown";
 }
