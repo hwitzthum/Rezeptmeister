@@ -11,13 +11,13 @@ POST /ai/nutrition        – Nährwertberechnung pro Portion
 import io
 import logging
 import uuid
-from typing import Optional
+from typing import Annotated, Optional
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from google.genai import types
 from PIL import Image as PilImage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select, update, not_, exists
 
 from app.config import get_settings
@@ -36,11 +36,11 @@ settings = get_settings()
 # ── /ai/suggest ────────────────────────────────────────────────────────────────
 
 class SuggestRequest(BaseModel):
-    ingredients: list[str] = []
-    cuisine: str = ""
-    time_budget_minutes: int = 60
-    dietary: list[str] = []
-    season: str = ""
+    ingredients: list[Annotated[str, Field(max_length=100)]] = Field(default=[], max_length=50)
+    cuisine: Annotated[str, Field(max_length=100)] = ""
+    time_budget_minutes: Annotated[int, Field(ge=5, le=480)] = 60
+    dietary: list[Annotated[str, Field(max_length=50)]] = Field(default=[], max_length=20)
+    season: Annotated[str, Field(max_length=50)] = ""
 
 
 class RecipeSuggestion(BaseModel):
@@ -96,11 +96,11 @@ async def suggest_recipes(
 # ── /ai/generate-recipe ────────────────────────────────────────────────────────
 
 class GenerateRecipeRequest(BaseModel):
-    suggestion_title: str
-    suggestion_description: str
-    servings: int = 4
-    cuisine: str = ""
-    dietary: list[str] = []
+    suggestion_title: Annotated[str, Field(min_length=1, max_length=200)]
+    suggestion_description: Annotated[str, Field(max_length=500)]
+    servings: Annotated[int, Field(ge=1, le=100)] = 4
+    cuisine: Annotated[str, Field(max_length=100)] = ""
+    dietary: list[Annotated[str, Field(max_length=50)]] = Field(default=[], max_length=20)
 
 
 @router.post("/generate-recipe", response_model=OcrResult)
@@ -145,11 +145,11 @@ async def generate_recipe(
 # ── /ai/generate-image ─────────────────────────────────────────────────────────
 
 class GenerateImageRequest(BaseModel):
-    recipe_id: str
-    title: str
-    ingredients: list[str] = []
-    category: str = ""
-    user_id: str
+    recipe_id: Annotated[str, Field(min_length=36, max_length=36)]  # UUID
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    ingredients: list[Annotated[str, Field(max_length=100)]] = Field(default=[], max_length=20)
+    category: Annotated[str, Field(max_length=100)] = ""
+    user_id: Annotated[str, Field(min_length=36, max_length=36)]  # UUID
 
 
 @router.post("/generate-image")
@@ -361,16 +361,16 @@ async def generate_image(
 # ── /ai/scale-recipe ───────────────────────────────────────────────────────────
 
 class IngredientItem(BaseModel):
-    name: str
+    name: Annotated[str, Field(max_length=200)]
     amount: Optional[float] = None
-    unit: str = ""
+    unit: Annotated[str, Field(max_length=20)] = ""
 
 
 class ScaleRecipeRequest(BaseModel):
-    ingredients: list[IngredientItem]
-    instructions: str
-    original_servings: int
-    target_servings: int
+    ingredients: list[IngredientItem] = Field(max_length=200)
+    instructions: Annotated[str, Field(max_length=50_000)]
+    original_servings: Annotated[int, Field(ge=1, le=1000)]
+    target_servings: Annotated[int, Field(ge=1, le=1000)]
 
 
 class ScaledIngredient(BaseModel):
@@ -456,8 +456,8 @@ async def scale_recipe(
 # ── /ai/nutrition ──────────────────────────────────────────────────────────────
 
 class NutritionRequest(BaseModel):
-    ingredients: list[IngredientItem]
-    servings: int = 4
+    ingredients: list[IngredientItem] = Field(max_length=200)
+    servings: Annotated[int, Field(ge=1, le=1000)] = 4
 
 
 class NutritionPerServing(BaseModel):

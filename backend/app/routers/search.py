@@ -16,7 +16,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 
 from app.database import AsyncSessionLocal
@@ -29,9 +29,9 @@ router = APIRouter(prefix="/search", tags=["Suche"])
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
 class SemanticSearchRequest(BaseModel):
-    query: str = ""
+    query: str = Field(default="", max_length=1000)
     limit: int = 10
-    user_id: str
+    user_id: UUID  # typed as UUID so Pydantic validates format before any DB call
     image_base64: Optional[str] = None  # Cross-Modal: Base64-kodiertes Bild
 
     @field_validator("limit")
@@ -49,12 +49,12 @@ class SemanticSearchRequest(BaseModel):
 
 
 class HybridSearchRequest(BaseModel):
-    query: str
+    query: str = Field(max_length=1000)
     limit: int = 10
-    user_id: str
-    kategorie: Optional[str] = None
-    kueche: Optional[str] = None
-    schwierigkeit: Optional[str] = None
+    user_id: UUID  # typed as UUID so Pydantic validates format before any DB call
+    kategorie: Optional[str] = Field(default=None, max_length=100)
+    kueche: Optional[str] = Field(default=None, max_length=100)
+    schwierigkeit: Optional[str] = Field(default=None, max_length=50)
 
     @field_validator("query")
     @classmethod

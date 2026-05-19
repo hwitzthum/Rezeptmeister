@@ -2,31 +2,28 @@ import "@/lib/env-check";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const checks: Record<string, string> = {
-    app: "ok",
-    env_nextauth_secret: process.env.NEXTAUTH_SECRET ? "ok" : "missing",
-    env_database_url: process.env.DATABASE_URL ? "ok" : "missing",
-  };
+  // Perform checks internally but only expose aggregate status to the caller.
+  // Detailed check names are intentionally omitted from the response to avoid
+  // leaking configuration details (e.g. which env vars are missing) to
+  // unauthenticated callers or external probes.
+  let dbOk = true;
 
   if (process.env.DATABASE_URL) {
     try {
       const { db } = await import("@/lib/db");
       const { sql } = await import("drizzle-orm");
       await db.execute(sql`SELECT 1`);
-      checks.database = "ok";
     } catch (err) {
       console.error("DB-Verbindungsfehler:", err);
-      checks.database = "error";
+      dbOk = false;
     }
-  } else {
-    checks.database = "skipped (no DATABASE_URL)";
   }
 
-  const hasError = Object.values(checks).some((v) => v === "error");
+  const hasError = !dbOk;
 
   // "degraded" (not 5xx) so load-balancers still route to the app during DB outages
   return NextResponse.json(
-    { status: hasError ? "degraded" : "ok", checks },
+    { status: hasError ? "degraded" : "ok" },
     { status: 200 },
   );
 }

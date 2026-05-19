@@ -8,12 +8,12 @@ import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 const bodySchema = z.object({
   ingredients: z.array(
     z.object({
-      name: z.string(),
+      name: z.string().max(200),
       amount: z.number().nullable(),
-      unit: z.string(),
+      unit: z.string().max(20),
     }),
-  ),
-  servings: z.number().int().min(1).default(4),
+  ).max(200),
+  servings: z.number().int().min(1).max(1000).default(4),
 });
 
 export async function POST(request: Request) {

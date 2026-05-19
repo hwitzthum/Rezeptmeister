@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Header, HTTPException
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.config import get_settings
 from app.services._utils import get_gemini_client
@@ -24,6 +24,16 @@ settings = get_settings()
 
 class WebSearchRequest(BaseModel):
     query: str
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Suchanfrage darf nicht leer sein.")
+        if len(v) > 200:
+            raise ValueError("Suchanfrage darf maximal 200 Zeichen lang sein.")
+        return v
 
 
 class WebSearchResult(BaseModel):
@@ -69,6 +79,20 @@ async def search_web(
         logger.error(f"Web-Suche-Fehler: {type(e).__name__}: {e}")
         raise HTTPException(status_code=502, detail="Web-Suche momentan nicht verfügbar.")
 
+    def _safe_web_url(url: str) -> str | None:
+        """Validates that a URL from search results uses http/https only.
+        Rejects javascript:, data:, and other dangerous schemes to prevent
+        XSS via open-redirect or rendered anchor tags in the frontend."""
+        try:
+            parsed = urlparse(url)
+            if parsed.scheme not in ("http", "https"):
+                return None
+            if not parsed.netloc:
+                return None
+            return url
+        except Exception:
+            return None
+
     results: list[WebSearchResult] = []
 
     # Ergebnisse aus Grounding-Metadata extrahieren
@@ -80,36 +104,43 @@ async def search_web(
             for chunk in chunks:
                 web = getattr(chunk, "web", None)
                 if web and getattr(web, "uri", None):
-                    url = web.uri
-                    title = getattr(web, "title", "") or url
+                    raw_url = web.uri
+                    safe_url = _safe_web_url(raw_url)
+                    if not safe_url:
+                        logger.warning(f"Unsichere URL aus Grounding-Metadata verworfen: {raw_url!r}")
+                        continue
+                    title = getattr(web, "title", "") or safe_url
                     domain = ""
                     try:
-                        domain = urlparse(url).netloc
+                        domain = urlparse(safe_url).netloc
                     except Exception:
                         pass
                     results.append(WebSearchResult(
                         title=title,
-                        url=url,
+                        url=safe_url,
                         description="",
                         source_domain=domain,
                     ))
     except Exception as e:
         logger.warning(f"Grounding-Metadata-Extraktion fehlgeschlagen: {e}")
 
-    # Fallback: Antworttext nach URLs durchsuchen
+    # Fallback: Antworttext nach https-URLs durchsuchen (http only via regex already)
     if not results:
         try:
             text = response.text or ""
-            urls = re.findall(r'https?://[^\s\)\]"]+', text)
-            for url in urls[:5]:
+            urls = re.findall(r'https://[^\s\)\]"]+', text)
+            for raw_url in urls[:5]:
+                safe_url = _safe_web_url(raw_url)
+                if not safe_url:
+                    continue
                 domain = ""
                 try:
-                    domain = urlparse(url).netloc
+                    domain = urlparse(safe_url).netloc
                 except Exception:
                     pass
                 results.append(WebSearchResult(
                     title=domain,
-                    url=url,
+                    url=safe_url,
                     description="",
                     source_domain=domain,
                 ))

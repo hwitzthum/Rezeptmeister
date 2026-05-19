@@ -6,11 +6,11 @@ import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
-  suggestion_title: z.string().min(1),
-  suggestion_description: z.string(),
+  suggestion_title: z.string().min(1).max(200),
+  suggestion_description: z.string().max(500),
   servings: z.number().int().min(1).max(100).default(4),
-  cuisine: z.string().default(""),
-  dietary: z.array(z.string()).default([]),
+  cuisine: z.string().max(100).default(""),
+  dietary: z.array(z.string().max(50)).max(20).default([]),
 });
 
 export async function POST(request: Request) {

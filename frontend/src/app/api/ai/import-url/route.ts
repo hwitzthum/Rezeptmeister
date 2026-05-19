@@ -24,7 +24,7 @@ import { uploadToStorage } from "@/lib/supabase-storage";
 import { isSafeExternalUrl } from "@/lib/ssrf-guard";
 
 const bodySchema = z.object({
-  url: z.string().url(),
+  url: z.string().url().max(2048),
 });
 
 /** Fetch an external image URL, store it locally, return the imageId or null on failure. */
