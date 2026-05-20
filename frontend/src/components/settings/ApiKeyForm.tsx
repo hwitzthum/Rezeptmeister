@@ -2,21 +2,11 @@
 
 import { useState, useEffect } from "react";
 
-type Provider = "gemini" | "openai" | "claude";
-
-const PROVIDER_LABELS: Record<Provider, string> = {
-  gemini: "Google Gemini",
-  openai: "OpenAI",
-  claude: "Anthropic Claude",
-};
-
 export default function ApiKeyForm() {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [masked, setMasked] = useState<string | null>(null);
-  const [currentProvider, setCurrentProvider] = useState<Provider | null>(null);
 
   const [apiKey, setApiKey] = useState("");
-  const [provider, setProvider] = useState<Provider>("gemini");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -32,7 +22,6 @@ export default function ApiKeyForm() {
           const data = await res.json();
           setHasKey(data.hasKey);
           setMasked(data.masked);
-          setCurrentProvider(data.provider);
         }
       } catch {
         // Silent — will show "kein Schlüssel" state
@@ -58,7 +47,7 @@ export default function ApiKeyForm() {
       const res = await fetch("/api/settings/api-key", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey, provider }),
+        body: JSON.stringify({ apiKey, provider: "gemini" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -67,7 +56,6 @@ export default function ApiKeyForm() {
       }
       setHasKey(true);
       setMasked(data.masked);
-      setCurrentProvider(provider);
       setApiKey("");
       setSuccess("API-Schlüssel gespeichert.");
       setTimeout(() => setSuccess(null), 3_000);
@@ -87,7 +75,6 @@ export default function ApiKeyForm() {
       if (res.ok) {
         setHasKey(false);
         setMasked(null);
-        setCurrentProvider(null);
         setSuccess("API-Schlüssel entfernt.");
         setTimeout(() => setSuccess(null), 3_000);
       }
@@ -113,7 +100,7 @@ export default function ApiKeyForm() {
             </svg>
             <div>
               <p className="text-sm font-medium text-green-800">
-                {currentProvider ? PROVIDER_LABELS[currentProvider] : "API-Schlüssel"} gespeichert
+                Google Gemini API-Schlüssel gespeichert
               </p>
               <p className="text-xs text-green-700 font-mono mt-0.5">{masked}</p>
             </div>
@@ -140,40 +127,20 @@ export default function ApiKeyForm() {
 
       {/* Form to update */}
       <form onSubmit={handleSave} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Provider */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="provider" className="text-sm font-medium text-warm-700">
-              Anbieter
-            </label>
-            <select
-              id="provider"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as Provider)}
-              className="w-full appearance-none rounded-lg border border-[var(--border-base)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] focus:border-terra-500 focus:outline-none focus:ring-2 focus:ring-terra-500"
-            >
-              <option value="gemini">Google Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="claude">Anthropic Claude</option>
-            </select>
-          </div>
-
-          {/* Key input */}
-          <div className="sm:col-span-2 flex flex-col gap-1.5">
-            <label htmlFor="api-key" className="text-sm font-medium text-warm-700">
-              {hasKey ? "Neuen API-Schlüssel eingeben" : "API-Schlüssel"}{" "}
-              <span className="text-terra-500">*</span>
-            </label>
-            <input
-              id="api-key"
-              type="password"
-              autoComplete="off"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={hasKey ? "Aktuellen Schlüssel ersetzen…" : "sk-..."}
-              className="w-full rounded-lg border border-[var(--border-base)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-warm-400 focus:border-terra-500 focus:outline-none focus:ring-2 focus:ring-terra-500"
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="api-key" className="text-sm font-medium text-warm-700">
+            {hasKey ? "Neuen Google Gemini API-Schlüssel eingeben" : "Google Gemini API-Schlüssel"}{" "}
+            <span className="text-terra-500">*</span>
+          </label>
+          <input
+            id="api-key"
+            type="password"
+            autoComplete="off"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={hasKey ? "Aktuellen Schlüssel ersetzen…" : "AIza..."}
+            className="w-full rounded-lg border border-[var(--border-base)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-warm-400 focus:border-terra-500 focus:outline-none focus:ring-2 focus:ring-terra-500"
+          />
         </div>
 
         {error && (

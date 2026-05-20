@@ -12,7 +12,7 @@ const apiKeySchema = z.object({
     .string()
     .min(10, "API-Schlüssel zu kurz.")
     .max(500, "API-Schlüssel zu lang."),
-  provider: z.enum(["gemini", "openai", "claude"]).default("gemini"),
+  provider: z.enum(["gemini"]).default("gemini"),
 });
 
 export async function GET(request: Request) {
