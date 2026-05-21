@@ -49,6 +49,15 @@ class Settings(BaseSettings):
         return [o.strip() for o in v.split(",") if o.strip()]
 
     @model_validator(mode="after")
+    def check_cors_no_wildcard(self) -> "Settings":
+        if "*" in self.cors_origins:
+            raise ValueError(
+                "CORS_ORIGINS_RAW must not contain '*' when allow_credentials=True. "
+                "Specify explicit origins, e.g. https://example.com"
+            )
+        return self
+
+    @model_validator(mode="after")
     def check_internal_secret(self) -> "Settings":
         if os.environ.get("NEXT_PHASE") != "phase-production-build":
             if not self.internal_secret or len(self.internal_secret) < 32:
