@@ -4,6 +4,7 @@ if (!process.env.SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 const supabaseHostname = new URL(process.env.SUPABASE_URL).hostname;
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     formats: ["image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200],
@@ -32,6 +33,10 @@ const nextConfig: NextConfig = {
             value: "camera=(), microphone=(), geolocation=()",
           },
           { key: "X-DNS-Prefetch-Control", value: "off" },
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
           {
             key: "Content-Security-Policy",
             value: [
