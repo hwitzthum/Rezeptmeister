@@ -224,6 +224,7 @@ async def hybrid_search(
 
         # :vec wird über eine qvec-CTE einmal materialisiert – verhindert asyncpg-Fehler
         # bei doppelt verwendeten Named-Parameters in vector_ranked und ORDER BY.
+        # Optional filters use IS NULL short-circuit so omitted params match all rows.
         search_sql = text("""
             WITH qvec AS (
                 SELECT (:vec)::halfvec(3072) AS v
@@ -237,6 +238,9 @@ async def hybrid_search(
                 FROM recipes
                 WHERE user_id = CAST(:uid AS uuid)
                   AND embedding IS NOT NULL
+                  AND (:kategorie IS NULL OR category = :kategorie)
+                  AND (:kueche    IS NULL OR cuisine   = :kueche)
+                  AND (:schwierigkeit IS NULL OR difficulty = :schwierigkeit)
                 LIMIT 60
             ),
             fts_ranked AS (
@@ -248,6 +252,9 @@ async def hybrid_search(
                 FROM recipes
                 WHERE user_id = CAST(:uid AS uuid)
                   AND fts_vector @@ websearch_to_tsquery('german', :query)
+                  AND (:kategorie IS NULL OR category = :kategorie)
+                  AND (:kueche    IS NULL OR cuisine   = :kueche)
+                  AND (:schwierigkeit IS NULL OR difficulty = :schwierigkeit)
                 LIMIT 60
             ),
             combined AS (
@@ -286,6 +293,9 @@ async def hybrid_search(
                 "query": body.query,
                 "uid": body.user_id,
                 "lim": body.limit,
+                "kategorie": body.kategorie,
+                "kueche": body.kueche,
+                "schwierigkeit": body.schwierigkeit,
             },
         )
         rows = result.fetchall()
