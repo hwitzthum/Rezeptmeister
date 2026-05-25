@@ -6,8 +6,15 @@ export async function GET(
 ) {
   const { path: segments } = await params;
 
-  // Validate path segments — only allow alphanumeric, hyphens, dots, underscores
-  if (segments.some((s) => !/^[\w\-.]+$/.test(s))) {
+  // Validate path segments — only allow alphanumeric, hyphens, dots, underscores.
+  // Explicitly reject "." and ".." before the regex: ^[\w\-.]+$ matches ".." (two
+  // dots), which would assemble a traversal path like "originals/../other-bucket"
+  // and redirect to a different Supabase bucket via the normalised Location URL.
+  if (
+    segments.some(
+      (s) => s === "." || s === ".." || !/^[\w\-.]+$/.test(s),
+    )
+  ) {
     return new Response(null, { status: 404 });
   }
 
