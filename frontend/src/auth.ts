@@ -63,13 +63,21 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        if (!user || !user.passwordHash) return null;
+        // Always run bcrypt even when the user is not found or not approved.
+        // Skipping it creates a timing oracle: an attacker who observes the fast
+        // "no bcrypt" path can distinguish "email unknown" from "email known but
+        // not approved", or "approved" from "pending/rejected", purely by latency.
+        const dummyHash =
+          "$2b$12$invalid.hash.for.timing.normalization.xxxxxxxxxxxxxxxxxxxxxx";
+        const valid = await bcrypt.compare(
+          credentials.password,
+          user?.passwordHash ?? dummyHash,
+        );
+
+        if (!user || !user.passwordHash || !valid) return null;
 
         // Nur freigegebene Benutzer dürfen sich einloggen
         if (user.status !== "approved") return null;
-
-        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!valid) return null;
 
         return {
           id: user.id,
