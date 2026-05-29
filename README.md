@@ -233,13 +233,13 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 ### Database Schema (10 Tabellen)
 
 | Table | Purpose |
-|-------|---------|
+|-------|-------|
 | `users` | Registration, roles (`admin`/`user`), status (`pending`/`approved`/`rejected`), encrypted API key column (`api_key_encrypted`) |
 | `recipes` | Recipe metadata, source type, nutrition |
 | `ingredients` | Recipe ingredients with amounts and Swiss units |
 | `images` | Recipe photos, source type (`upload`/`ai_generated`/`ocr`), image embeddings |
-| `notes` | User notes and star ratings on recipes |
-| `shopping_list` | Shopping items, checked status, aisle categories |
+| `recipe_notes` | User notes and star ratings on recipes |
+| `shopping_list_items` | Shopping items, checked status, aisle categories |
 | `meal_plans` | Weekly slots (breakfast/lunch/dinner/snack) |
 | `collections` | User-created recipe collections / cookbooks |
 
@@ -248,7 +248,7 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 ## Tech Stack
 
 | Layer | Technology | Version |
-|-------|------------|---------|
+|-------|------------|--------|
 | **Frontend framework** | Next.js App Router (TypeScript) | 16.2.2 |
 | **UI runtime** | React | 19.2.4 |
 | **Styling** | Tailwind CSS | v4 |
@@ -355,7 +355,7 @@ open http://localhost:8000/docs
 There are three `.env` locations, each for a different runtime. Merging them into one root file would not work cleanly — the three runtimes have different loading mechanisms, different path roots, and even different `DATABASE_URL` formats for the same database.
 
 | File | Read by | Why it lives here |
-|------|---------|-------------------|
+|------|---------|------------------|
 | `frontend/.env.local` | Next.js (Node.js process) | Next.js's native convention. `.env.local` is auto-excluded from git by Next.js's default `.gitignore` — a security feature you get for free. |
 | `backend/.env` | FastAPI / Python (`python-dotenv`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
 | `.env` (project root) | `docker-compose.yml` + test suites | Docker Compose reads it for `DB_PASSWORD` and `INTERNAL_SECRET`. Playwright and Pytest tests read it for `GEMINI_TEST_KEY` and admin credentials. Not read by Next.js or FastAPI at runtime. |
@@ -369,7 +369,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 > Copy from `.env.example` and fill in the three generated secrets before first run.
 
 | Variable | Description | How to generate / Example |
-|----------|-------------|--------------------------|
+|----------|-------------|---------------------------|
 | `DATABASE_URL` | PostgreSQL connection string for Drizzle ORM (postgres.js driver) | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` — note port **5434** (host-mapped from Docker's 5432) |
 | `NEXTAUTH_SECRET` | Signs and verifies JWT session tokens | `openssl rand -base64 48` |
 | `NEXTAUTH_URL` | Canonical app URL — must match the browser origin exactly | `http://localhost:3001` |
