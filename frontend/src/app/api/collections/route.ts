@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { collections, collectionRecipes, images } from "@/lib/db/schema";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -151,6 +151,17 @@ export async function POST(request: Request) {
   }
 
   const { name, description, coverImageId } = parsed.data;
+
+  if (coverImageId) {
+    const img = await db
+      .select({ id: images.id })
+      .from(images)
+      .where(and(eq(images.id, coverImageId), eq(images.userId, session.user.id)))
+      .limit(1);
+    if (!img[0]) {
+      return NextResponse.json({ error: "Bild nicht gefunden." }, { status: 404 });
+    }
+  }
 
   try {
     const [collection] = await db
