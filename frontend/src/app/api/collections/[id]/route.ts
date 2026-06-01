@@ -167,6 +167,17 @@ export async function PUT(
     );
   }
 
+  if (parsed.data.coverImageId) {
+    const img = await db
+      .select({ id: images.id })
+      .from(images)
+      .where(and(eq(images.id, parsed.data.coverImageId), eq(images.userId, session.user.id)))
+      .limit(1);
+    if (!img[0]) {
+      return NextResponse.json({ error: "Bild nicht gefunden." }, { status: 404 });
+    }
+  }
+
   const updates: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.description !== undefined)
