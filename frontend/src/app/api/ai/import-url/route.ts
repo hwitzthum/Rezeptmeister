@@ -49,20 +49,35 @@ async function fetchAndStoreImage(
       redirect: "manual", // handle redirects manually to re-check each hop
     });
 
-    // Follow redirects manually, re-checking each hop for SSRF
+    // Follow at most one redirect, but only to the same hostname.
+    // Cross-host redirects are blocked entirely: they require a fresh DNS
+    // resolution for a new hostname, which opens a TOCTOU window that a
+    // DNS-rebinding attack can exploit (initial DNS check passes for a
+    // public IP; attacker flips DNS to a private address before the
+    // subsequent fetch resolves the same name).  Same-host redirects
+    // (e.g. HTTP → HTTPS) are safe because the hostname was already
+    // verified by isSafeExternalUrl above and no new DNS target is introduced.
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
       if (!location) return null;
       const redirectUrl = location.startsWith("http")
         ? location
         : new URL(location, imageUrl).href;
-      if (!(await isSafeExternalUrl(redirectUrl))) {
+
+      let redirectHostname: string;
+      try {
+        redirectHostname = new URL(redirectUrl).hostname;
+      } catch {
+        return null;
+      }
+      if (redirectHostname !== new URL(imageUrl).hostname) {
         console.warn(
-          "fetchAndStoreImage: blocked redirect to internal address:",
+          "fetchAndStoreImage: cross-host redirect blocked:",
           redirectUrl,
         );
         return null;
       }
+
       const finalRes = await fetch(redirectUrl, {
         signal: AbortSignal.timeout(10_000),
         headers: {
