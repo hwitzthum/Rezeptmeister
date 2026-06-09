@@ -22,7 +22,7 @@ export async function GET(
   const { recipeId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-get:${ip}`);
+  const rl = await checkRateLimit(`notes-get:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -61,7 +61,7 @@ export async function POST(
   const { recipeId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-create:${ip}`);
+  const rl = await checkRateLimit(`notes-create:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

@@ -19,7 +19,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-re-embed-status:${ip}`, DEFAULT_LIMIT);
+  const rl = await checkRateLimit(`admin-re-embed-status:${ip}`, DEFAULT_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen." },

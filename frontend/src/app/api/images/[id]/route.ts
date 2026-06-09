@@ -21,7 +21,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-patch:${ip}`);
+  const rl = await checkRateLimit(`images-patch:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -134,7 +134,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-delete:${ip}`);
+  const rl = await checkRateLimit(`images-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

@@ -44,7 +44,7 @@ export async function POST(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-add-recipe:${ip}`);
+  const rl = await checkRateLimit(`collections-add-recipe:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -133,7 +133,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-remove-recipe:${ip}`);
+  const rl = await checkRateLimit(`collections-remove-recipe:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -200,7 +200,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-reorder:${ip}`);
+  const rl = await checkRateLimit(`collections-reorder:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

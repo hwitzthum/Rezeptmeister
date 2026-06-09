@@ -20,7 +20,7 @@ import { uploadToStorage, deleteFromStorage } from "@/lib/supabase-storage";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-upload:${ip}`);
+  const rl = await checkRateLimit(`images-upload:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

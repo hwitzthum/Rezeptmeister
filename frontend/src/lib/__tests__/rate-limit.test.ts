@@ -11,7 +11,10 @@ describe("checkRateLimit", () => {
 
   it("allows first request", async () => {
     const { checkRateLimit } = await import("../rate-limit");
-    const result = checkRateLimit("test-ip-1", { windowMs: 60_000, max: 5 });
+    const result = await checkRateLimit("test-ip-1", {
+      windowMs: 60_000,
+      max: 5,
+    });
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
@@ -19,9 +22,9 @@ describe("checkRateLimit", () => {
   it("counts consecutive requests", async () => {
     const { checkRateLimit } = await import("../rate-limit");
     const config = { windowMs: 60_000, max: 3 };
-    checkRateLimit("ip-count", config);
-    checkRateLimit("ip-count", config);
-    const third = checkRateLimit("ip-count", config);
+    await checkRateLimit("ip-count", config);
+    await checkRateLimit("ip-count", config);
+    const third = await checkRateLimit("ip-count", config);
     expect(third.allowed).toBe(true);
     expect(third.remaining).toBe(0);
   });
@@ -29,9 +32,9 @@ describe("checkRateLimit", () => {
   it("blocks when limit exceeded", async () => {
     const { checkRateLimit } = await import("../rate-limit");
     const config = { windowMs: 60_000, max: 2 };
-    checkRateLimit("ip-block", config);
-    checkRateLimit("ip-block", config);
-    const over = checkRateLimit("ip-block", config);
+    await checkRateLimit("ip-block", config);
+    await checkRateLimit("ip-block", config);
+    const over = await checkRateLimit("ip-block", config);
     expect(over.allowed).toBe(false);
     expect(over.remaining).toBe(0);
     expect(over.retryAfterMs).toBeGreaterThan(0);
@@ -40,8 +43,8 @@ describe("checkRateLimit", () => {
   it("uses independent counters per key", async () => {
     const { checkRateLimit } = await import("../rate-limit");
     const config = { windowMs: 60_000, max: 1 };
-    const a = checkRateLimit("key-a", config);
-    const b = checkRateLimit("key-b", config);
+    const a = await checkRateLimit("key-a", config);
+    const b = await checkRateLimit("key-b", config);
     expect(a.allowed).toBe(true);
     expect(b.allowed).toBe(true);
   });
@@ -50,12 +53,12 @@ describe("checkRateLimit", () => {
     vi.useFakeTimers();
     const { checkRateLimit } = await import("../rate-limit");
     const config = { windowMs: 1_000, max: 1 };
-    checkRateLimit("ip-expire", config);
-    expect(checkRateLimit("ip-expire", config).allowed).toBe(false);
+    await checkRateLimit("ip-expire", config);
+    expect((await checkRateLimit("ip-expire", config)).allowed).toBe(false);
 
     // Advance past the window
     vi.advanceTimersByTime(1_001);
-    expect(checkRateLimit("ip-expire", config).allowed).toBe(true);
+    expect((await checkRateLimit("ip-expire", config)).allowed).toBe(true);
     vi.useRealTimers();
   });
 });

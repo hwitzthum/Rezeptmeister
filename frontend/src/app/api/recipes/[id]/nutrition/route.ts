@@ -25,7 +25,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`nutrition-patch:${ip}`);
+  const rl = await checkRateLimit(`nutrition-patch:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },

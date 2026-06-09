@@ -23,7 +23,7 @@ const querySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-users:${ip}`);
+  const rl = await checkRateLimit(`admin-users:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

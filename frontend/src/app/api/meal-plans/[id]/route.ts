@@ -24,7 +24,7 @@ export async function PUT(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`meal-plans-update:${ip}`);
+  const rl = await checkRateLimit(`meal-plans-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -164,7 +164,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`meal-plans-delete:${ip}`);
+  const rl = await checkRateLimit(`meal-plans-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

@@ -12,7 +12,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-favorite:${ip}`);
+  const rl = await checkRateLimit(`recipes-favorite:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

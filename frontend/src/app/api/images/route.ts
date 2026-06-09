@@ -17,7 +17,7 @@ const listQuerySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-list:${ip}`);
+  const rl = await checkRateLimit(`images-list:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

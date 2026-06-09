@@ -22,7 +22,7 @@ const registerSchema = z.object({
 export async function POST(request: Request) {
   // Rate limit: 10 registration attempts per IP per 15 min
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`register:${ip}`, AUTH_LIMIT);
+  const rl = await checkRateLimit(`register:${ip}`, AUTH_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },

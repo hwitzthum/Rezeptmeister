@@ -15,7 +15,7 @@ interface JobResult {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-re-embed:${ip}`, AI_LIMIT);
+  const rl = await checkRateLimit(`admin-re-embed:${ip}`, AI_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },

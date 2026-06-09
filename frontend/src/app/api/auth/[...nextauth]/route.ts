@@ -8,7 +8,7 @@ const originalPOST = handlers.POST;
 
 async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`nextauth-post:${ip}`, AUTH_LIMIT);
+  const rl = await checkRateLimit(`nextauth-post:${ip}`, AUTH_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anmeldeversuche. Bitte warten Sie einen Moment." },

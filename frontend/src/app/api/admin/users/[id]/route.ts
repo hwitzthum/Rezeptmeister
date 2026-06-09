@@ -23,7 +23,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-user-put:${ip}`);
+  const rl = await checkRateLimit(`admin-user-put:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -82,7 +82,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-user-delete:${ip}`);
+  const rl = await checkRateLimit(`admin-user-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

@@ -16,7 +16,7 @@ const createCollectionSchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-list:${ip}`);
+  const rl = await checkRateLimit(`collections-list:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -122,7 +122,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-create:${ip}`);
+  const rl = await checkRateLimit(`collections-create:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

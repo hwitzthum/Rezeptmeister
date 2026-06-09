@@ -173,7 +173,7 @@ async function fetchImageResponse(
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`import-url:${ip}`, AI_LIMIT);
+  const rl = await checkRateLimit(`import-url:${ip}`, AI_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },

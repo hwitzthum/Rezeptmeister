@@ -22,7 +22,7 @@ export async function PUT(
   const { noteId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-update:${ip}`);
+  const rl = await checkRateLimit(`notes-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -93,7 +93,7 @@ export async function DELETE(
   const { noteId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-delete:${ip}`);
+  const rl = await checkRateLimit(`notes-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

@@ -23,7 +23,7 @@ export async function PUT(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-update:${ip}`);
+  const rl = await checkRateLimit(`shopping-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -89,7 +89,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-delete:${ip}`);
+  const rl = await checkRateLimit(`shopping-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

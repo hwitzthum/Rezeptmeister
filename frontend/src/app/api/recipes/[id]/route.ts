@@ -25,7 +25,7 @@ export async function GET(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-get:${ip}`);
+  const rl = await checkRateLimit(`recipes-get:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -74,7 +74,7 @@ export async function PUT(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-update:${ip}`);
+  const rl = await checkRateLimit(`recipes-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -216,7 +216,7 @@ export async function DELETE(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-delete:${ip}`);
+  const rl = await checkRateLimit(`recipes-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

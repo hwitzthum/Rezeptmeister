@@ -12,7 +12,7 @@ const querySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`ingredients-autocomplete:${ip}`);
+  const rl = await checkRateLimit(`ingredients-autocomplete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
