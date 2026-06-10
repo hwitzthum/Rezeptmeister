@@ -216,10 +216,13 @@ export async function GET(request: Request) {
   if (ernaehrungsform)
     // scalar = ANY(array_column): correct PostgreSQL idiom — "is this value in the array?"
     alwaysConditions.push(sql`${ernaehrungsform} = ANY(${recipes.tags})`);
-  if (zutaten)
+  if (zutaten) {
+    // Escape LIKE metacharacters so user input cannot widen the match pattern.
+    const zutatenEscaped = zutaten.replace(/!/g, "!!").replace(/%/g, "!%").replace(/_/g, "!_");
     alwaysConditions.push(
-      sql`${recipes.id} IN (SELECT recipe_id FROM ingredients WHERE name ILIKE ${`%${zutaten}%`})`,
+      sql`${recipes.id} IN (SELECT recipe_id FROM ingredients WHERE name ILIKE ${`%${zutatenEscaped}%`} ESCAPE '!')`,
     );
+  }
 
   // Dimension conditions for the main query
   const categoryCond = kategorie ? eq(recipes.category, kategorie) : null;

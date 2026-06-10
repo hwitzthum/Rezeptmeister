@@ -38,13 +38,18 @@ export async function GET(request: Request) {
   const userId = session.user.id;
 
   try {
+    // Escape LIKE metacharacters so user input cannot widen the prefix-match pattern.
+    const qEscaped = q
+      ? q.toLowerCase().trim().replace(/!/g, "!!").replace(/%/g, "!%").replace(/_/g, "!_")
+      : undefined;
+
     const rows = await db.execute<{ name: string }>(
       sql`
         SELECT DISTINCT LOWER(TRIM(i.name)) AS name
         FROM ingredients i
         JOIN recipes r ON i.recipe_id = r.id
         WHERE r.user_id = ${userId}
-        ${q ? sql`AND LOWER(TRIM(i.name)) LIKE ${q.toLowerCase().trim() + "%"}` : sql``}
+        ${qEscaped !== undefined ? sql`AND LOWER(TRIM(i.name)) LIKE ${qEscaped + "%"} ESCAPE '!'` : sql``}
         ORDER BY name
         LIMIT ${limit}
       `,
