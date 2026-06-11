@@ -116,7 +116,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }
 
-  await db.delete(recipeNotes).where(eq(recipeNotes.id, noteId));
+  // Include userId in the WHERE clause for non-admin users so the delete is
+  // atomic with the ownership check above (eliminates TOCTOU window).
+  // Admins can delete any note, so they only filter by noteId.
+  await db.delete(recipeNotes).where(
+    session.user.role === USER_ROLE.admin
+      ? eq(recipeNotes.id, noteId)
+      : and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)),
+  );
 
   return new Response(null, { status: 204 });
 }
