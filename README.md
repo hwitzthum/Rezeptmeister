@@ -3,7 +3,7 @@
 **AI-powered recipe management for the Swiss market.**  
 *Bring Your Own Key (BYOK) — your API keys, your data, your privacy.*
 
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.2-black?logo=nextdotjs)](https://nextjs.org)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.7-black?logo=nextdotjs)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009485?logo=fastapi)](https://fastapi.tiangolo.com)
 [![PostgreSQL + pgvector](https://img.shields.io/badge/PostgreSQL-16%2Bpgvector-4169E1?logo=postgresql)](https://www.postgresql.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -42,7 +42,7 @@ All 18 implementation phases are complete with Playwright E2E, Vitest unit, and 
 |------|----------------|
 | Docker & Docker Compose | Docker 24+ |
 | Node.js & npm | Node 20+ |
-| Python & uv | Python 3.12+ (backend dev only) |
+| Python & uv | Python 3.11+ (backend dev only) |
 
 ### Setup (60 seconds)
 
@@ -249,11 +249,10 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 
 | Layer | Technology | Version |
 |-------|------------|--------|
-| **Frontend framework** | Next.js App Router (TypeScript) | 16.2.2 |
+| **Frontend framework** | Next.js App Router (TypeScript) | 16.2.7 |
 | **UI runtime** | React | 19.2.4 |
 | **Styling** | Tailwind CSS | v4 |
 | **Icons** | Lucide React | 1.7.0 |
-| **Server state** | TanStack React Query | 5.96+ |
 | **ORM (frontend)** | Drizzle ORM + drizzle-kit | 0.45.2 |
 | **Auth** | NextAuth.js v5 (JWT, Credential) | 5.0.0-beta.30 |
 | **DB driver** | postgres (native) | 3.4.8 |
