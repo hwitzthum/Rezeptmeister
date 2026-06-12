@@ -1,8 +1,11 @@
 /**
- * In-memory sliding window rate limiter.
- * Suitable for single-instance / self-hosted deployments.
- * For multi-instance production, replace with @upstash/ratelimit.
+ * Rate limiting utilities.
+ * In-memory limiter: suitable for single-instance / self-hosted deployments.
+ * Redis limiter (checkAuthRateLimitRedis): required for multi-instance Vercel
+ * deployments where in-memory state does not persist across cold-start containers.
  */
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 interface RateLimitEntry {
   count: number;
@@ -122,4 +125,56 @@ export function getClientIp(request: Request): string {
   if (realIp?.trim()) return realIp.trim();
 
   return "unknown";
+}
+
+// ---------------------------------------------------------------------------
+// Redis-backed rate limiter for auth endpoints
+// ---------------------------------------------------------------------------
+
+// Lazy-initialized: only created on first call to avoid module-load failures
+// during the Next.js build when env vars are absent.
+let _authLimiter: Ratelimit | null | undefined;
+
+function getAuthLimiter(): Ratelimit | null {
+  if (_authLimiter !== undefined) return _authLimiter;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not configured — " +
+          "auth rate limiting falls back to in-memory only (ineffective " +
+          "across Vercel serverless instances).",
+      );
+    }
+    return (_authLimiter = null);
+  }
+  return (_authLimiter = new Ratelimit({
+    redis: new Redis({ url, token }),
+    limiter: Ratelimit.slidingWindow(AUTH_LIMIT.max, "15 m"),
+    analytics: false,
+    prefix: "rl:rezeptmeister:auth",
+  }));
+}
+
+/**
+ * Redis-backed rate limit check for auth endpoints.
+ *
+ * Must be called BEFORE the in-memory checkRateLimit on Vercel, where each
+ * cold-start gets a fresh in-memory store. Without a shared Redis counter,
+ * an attacker can distribute requests across instances to bypass per-instance
+ * limits entirely.
+ *
+ * Returns { limited: true } when the key exceeds AUTH_LIMIT in Redis.
+ * Returns { limited: false } when Upstash is not configured (falls through
+ * to the in-memory limiter as a best-effort backup).
+ */
+export async function checkAuthRateLimitRedis(
+  key: string,
+): Promise<{ limited: boolean }> {
+  if (process.env.DISABLE_RATE_LIMIT === "true") return { limited: false };
+  const limiter = getAuthLimiter();
+  if (!limiter) return { limited: false };
+  const { success } = await limiter.limit(key);
+  return { limited: !success };
 }
