@@ -1,0 +1,3 @@
+# Authored manually, not in Prettier's default style — keep its formatting intact
+# (the PostToolUse `prettier --write` hook would otherwise reflow the whole file).
+README.md
