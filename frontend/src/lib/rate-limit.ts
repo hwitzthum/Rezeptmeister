@@ -17,7 +17,10 @@ const MAX_STORE_SIZE = 10_000;
 
 // Validate DISABLE_RATE_LIMIT at module initialization time so misconfiguration
 // is caught at startup rather than silently failing per-request in production.
-if (process.env.DISABLE_RATE_LIMIT === "true" && process.env.NODE_ENV === "production") {
+if (
+  process.env.DISABLE_RATE_LIMIT === "true" &&
+  process.env.NODE_ENV === "production"
+) {
   throw new Error("DISABLE_RATE_LIMIT=true ist in Produktion nicht erlaubt.");
 }
 
@@ -115,7 +118,10 @@ export function getClientIp(request: Request): string {
   // The leftmost entry is attacker-controlled and must NOT be used.
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const ips = forwarded
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const ip = ips[ips.length - 1];
     if (ip) return ip;
   }
@@ -137,8 +143,15 @@ let _authLimiter: Ratelimit | null | undefined;
 
 function getAuthLimiter(): Ratelimit | null {
   if (_authLimiter !== undefined) return _authLimiter;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Vercel's Upstash Marketplace integration provisions the REST credentials
+  // under KV-prefixed names; fall back to those when the Upstash SDK defaults
+  // (UPSTASH_REDIS_REST_URL/TOKEN) are not present.
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL ??
+    process.env.UPSTASH_REDIS_KV_REST_API_URL;
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN ??
+    process.env.UPSTASH_REDIS_KV_REST_API_TOKEN;
   if (!url || !token) {
     if (process.env.NODE_ENV === "production") {
       console.error(
