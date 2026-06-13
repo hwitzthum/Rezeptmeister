@@ -376,6 +376,8 @@ There are three `.env` locations, each for a different runtime. Merging them int
 | `UPLOAD_DIR` | Where uploaded images are stored, relative to `frontend/` | `./uploads` |
 | `ENCRYPTION_KEY` | AES-256-GCM key used to encrypt user API keys at rest. **Must be exactly 64 hex characters (32 bytes).** | `openssl rand -hex 32` |
 | `INTERNAL_SECRET` | Shared secret that Next.js sends to FastAPI on every AI request, so FastAPI can reject unauthenticated calls. Must match `backend/.env`. | `openssl rand -hex 32` |
+| `UPSTASH_REDIS_REST_URL` | *(Optional)* Upstash Redis REST URL for distributed auth rate limiting. Omit locally to use the in-memory limiter. | Upstash console, or the Vercel integration |
+| `UPSTASH_REDIS_REST_TOKEN` | *(Optional)* Upstash Redis REST token, paired with the URL above. | Upstash console, or the Vercel integration |
 | `GEMINI_TEST_KEY` | *(Optional)* Gemini API key used only during live E2E tests. Never used in the running app. | Gemini API key from Google AI Studio |
 | `TEST_ADMIN_EMAIL` | *(Optional)* Admin email injected into Playwright tests | `test-admin@example.com` |
 | `TEST_ADMIN_PASSWORD` | *(Optional)* Admin password injected into Playwright tests | A strong test password — never a real production credential |
@@ -442,10 +444,12 @@ Frontend shows only the last 4 characters (`sk-...abc1`). The plaintext key neve
 
 ### Rate Limiting
 
-- **Default:** 100 requests / 15 min per IP (custom in-memory sliding window rate limiter in `frontend/src/lib/rate-limit.ts`)
-- **Auth routes** (`/api/auth/*`): stricter limit to prevent brute force
-- **AI routes** (`/api/ai/*`): stricter limit to prevent Gemini quota exhaustion
-- Configuration: `frontend/src/lib/rate-limit.ts`
+Two layers, both configured in `frontend/src/lib/rate-limit.ts`:
+
+- **In-memory sliding window** on every API route — **100 requests / 15 min per IP** by default, stricter on `/api/auth/*` (**10 / 15 min**, brute-force protection) and `/api/ai/*` (Gemini quota protection). Sufficient for single-instance / self-hosted deployments. Responses expose `RateLimit-Remaining` / `RateLimit-Reset` headers.
+- **Distributed (Redis-backed)** limiting on the auth routes (`/api/auth/[...nextauth]`, `/api/auth/register`) via [Upstash](https://upstash.com) (`@upstash/ratelimit`). On Vercel's serverless platform the in-memory store is per-instance and bypassable by spreading requests across cold-start containers; the Redis limiter enforces the limit **across all instances**. It runs *before* the in-memory check, returns `429` with `Retry-After: 900`, and falls back gracefully to in-memory when Upstash is not configured.
+
+> **Production requires Upstash credentials** (see [Environment Variables (Production)](#environment-variables-production)). Without them, auth rate limiting silently degrades to the per-instance in-memory limiter on serverless. The limiter reads `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, falling back to the `UPSTASH_REDIS_KV_REST_API_URL` / `UPSTASH_REDIS_KV_REST_API_TOKEN` names that the Vercel Upstash Marketplace integration provisions.
 
 ### Semantic Search Pipeline
 
@@ -650,6 +654,10 @@ In local development, the backend falls back to local filesystem (`uploads/`) wh
 | `INTERNAL_SECRET` | Generated with `openssl rand -hex 32` (must match Render) |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API |
+| `UPSTASH_REDIS_KV_REST_API_URL` | Auto-provisioned by the Vercel **Upstash for Redis** Marketplace integration — REST endpoint for distributed auth rate limiting |
+| `UPSTASH_REDIS_KV_REST_API_TOKEN` | Auto-provisioned by the same integration — REST token (paired with the URL above) |
+
+> **Upstash for Redis** is added via the project's Storage tab (Marketplace → Upstash → Pay-As-You-Go, Frankfurt). The integration injects the `UPSTASH_REDIS_*` variables automatically for Production + Preview — you do not set them by hand. Required for the distributed auth rate limiter (see [Rate Limiting](#rate-limiting)).
 
 **Render Dashboard** (`backend`):
 
@@ -686,6 +694,7 @@ No manual steps needed. To verify:
 - [x] `INTERNAL_SECRET` shared between frontend and backend
 - [x] API keys encrypted at rest (AES-256)
 - [x] Rate limiting on all API endpoints
+- [x] Distributed (Upstash Redis) rate limiting on auth routes — survives Vercel serverless cold starts
 - [ ] Daily automated database backups (Supabase free tier: weekly point-in-time)
 
 ---
