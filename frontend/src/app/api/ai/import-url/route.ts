@@ -213,6 +213,18 @@ export async function POST(request: Request) {
   if (!keyResult.ok) return keyResult.response;
   const geminiKey = keyResult.key;
 
+  // SSRF guard: validate the user-supplied recipe URL in the Next.js proxy
+  // before forwarding to the FastAPI backend. The backend has its own
+  // connect-time guard (_SafeTransport), but we check here as well so that
+  // internal-network URLs are rejected at the outermost layer and never
+  // reach the container network.
+  if (!(await isSafeExternalUrl(parsed.data.url))) {
+    return NextResponse.json(
+      { error: "URL nicht erlaubt oder nicht erreichbar." },
+      { status: 400 },
+    );
+  }
+
   const backendRes = await fetchBackendWithRetry("/import/url", {
     method: "POST",
     headers: buildAiHeaders(geminiKey),
