@@ -32,7 +32,10 @@ export const authConfig: NextAuthConfig = {
       options: {
         sameSite: "strict",
         httpOnly: true,
-        secure: true,
+        // secure: true unconditionally breaks local HTTP dev. NextAuth v5
+        // derives this automatically from NEXTAUTH_URL, so we only override
+        // in production to ensure the flag is always set there.
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },

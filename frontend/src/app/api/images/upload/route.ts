@@ -68,6 +68,10 @@ export async function POST(request: Request) {
     );
   }
 
+  // Early rejection using the client-reported size — saves a full read for
+  // legitimately large files. But file.size is multipart metadata supplied
+  // by the client and can be falsified, so we re-verify against the actual
+  // buffer length below.
   if (file.size > MAX_IMAGE_BYTES) {
     return NextResponse.json(
       { error: "Bild zu gross. Maximum: 10 MB." },
@@ -84,6 +88,14 @@ export async function POST(request: Request) {
   const thumbStoragePath = `thumbnails/${thumbFileName}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Re-check using the actual byte count — a client can lie in file.size.
+  if (buffer.length > MAX_IMAGE_BYTES) {
+    return NextResponse.json(
+      { error: "Bild zu gross. Maximum: 10 MB." },
+      { status: 413 },
+    );
+  }
 
   // Single sharp instance: get metadata and generate thumbnail concurrently.
   // metadata() reads only the image header; clone() runs the resize pipeline.
