@@ -4,7 +4,11 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { checkRateLimit, checkAuthRateLimitRedis, getClientIp, AUTH_LIMIT } from "@/lib/rate-limit";
+import {
+  checkRateLimitDistributed,
+  getClientIp,
+  AUTH_LIMIT,
+} from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name muss mindestens 2 Zeichen haben.").max(100),
@@ -20,19 +24,11 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  // Rate limit: Redis check first (cross-instance on Vercel), in-memory fallback.
+  // Rate limit: distributed (Redis) check, cross-instance on Vercel, in-memory fallback.
   const ip = getClientIp(request);
   const key = `register:${ip}`;
 
-  const redis = await checkAuthRateLimitRedis(key);
-  if (redis.limited) {
-    return NextResponse.json(
-      { error: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },
-      { status: 429, headers: { "Retry-After": "900" } },
-    );
-  }
-
-  const rl = checkRateLimit(key, AUTH_LIMIT);
+  const rl = await checkRateLimitDistributed(key, AUTH_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte versuchen Sie es später erneut." },

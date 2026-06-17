@@ -5,7 +5,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { encrypt, decrypt, maskApiKey } from "@/lib/crypto";
-import { checkRateLimit, getClientIp, AUTH_LIMIT } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp, AUTH_LIMIT } from "@/lib/rate-limit";
 
 const apiKeySchema = z.object({
   apiKey: z
@@ -17,7 +17,7 @@ const apiKeySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const { allowed } = checkRateLimit(`api-key-get:${ip}`, AUTH_LIMIT);
+  const { allowed } = await checkRateLimitDistributed(`api-key-get:${ip}`, AUTH_LIMIT);
   if (!allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte später erneut versuchen." },
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`api-key:${ip}`, AUTH_LIMIT);
+  const rl = await checkRateLimitDistributed(`api-key:${ip}`, AUTH_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen." },
@@ -107,7 +107,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`api-key-delete:${ip}`, AUTH_LIMIT);
+  const rl = await checkRateLimitDistributed(`api-key-delete:${ip}`, AUTH_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

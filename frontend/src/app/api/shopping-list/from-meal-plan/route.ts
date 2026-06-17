@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { shoppingListItems, mealPlans, ingredients, recipes } from "@/lib/db/schema";
 import { and, eq, gte, lte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { getAisleCategory } from "@/lib/shopping/aisle-categories";
 
 const fromMealPlanSchema = z.object({
@@ -18,7 +18,7 @@ const fromMealPlanSchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-from-plan:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-from-plan:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

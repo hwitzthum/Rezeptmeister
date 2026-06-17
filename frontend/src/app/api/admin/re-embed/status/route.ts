@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildBackendHeaders } from "@/lib/backend";
-import { checkRateLimit, getClientIp, DEFAULT_LIMIT } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp, DEFAULT_LIMIT } from "@/lib/rate-limit";
 import { USER_ROLE } from "@/lib/auth";
 import { z } from "zod";
 
@@ -19,7 +19,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-re-embed-status:${ip}`, DEFAULT_LIMIT);
+  const rl = await checkRateLimitDistributed(`admin-re-embed-status:${ip}`, DEFAULT_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen." },

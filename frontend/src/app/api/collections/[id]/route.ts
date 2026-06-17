@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
 const updateCollectionSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -26,7 +26,7 @@ export async function GET(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-detail:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-detail:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -123,7 +123,7 @@ export async function PUT(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-update:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -218,7 +218,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

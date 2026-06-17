@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { shoppingListItems, ingredients } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import { getAisleCategory } from "@/lib/shopping/aisle-categories";
 
@@ -20,7 +20,7 @@ const batchActionSchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-batch-add:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-batch-add:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-batch-action:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-batch-action:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -166,7 +166,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-batch-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-batch-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

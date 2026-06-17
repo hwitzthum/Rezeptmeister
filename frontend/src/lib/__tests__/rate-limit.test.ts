@@ -60,6 +60,29 @@ describe("checkRateLimit", () => {
   });
 });
 
+describe("checkRateLimitDistributed", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.UPSTASH_REDIS_KV_REST_API_URL;
+    delete process.env.UPSTASH_REDIS_KV_REST_API_TOKEN;
+  });
+
+  it("falls back to the in-memory limiter when Upstash is not configured", async () => {
+    const { checkRateLimitDistributed } = await import("../rate-limit");
+    const config = { windowMs: 60_000, max: 2 };
+    const first = await checkRateLimitDistributed("dist-fallback", config);
+    expect(first.allowed).toBe(true);
+    expect(first.remaining).toBe(1);
+
+    await checkRateLimitDistributed("dist-fallback", config);
+    const over = await checkRateLimitDistributed("dist-fallback", config);
+    expect(over.allowed).toBe(false);
+    expect(over.retryAfterMs).toBeGreaterThan(0);
+  });
+});
+
 describe("getClientIp", () => {
   it("extracts rightmost IP from x-forwarded-for (set by trusted proxy)", async () => {
     const { getClientIp } = await import("../rate-limit");

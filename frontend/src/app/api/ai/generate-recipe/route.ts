@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { z } from "zod";
 import { buildAiHeaders, fetchBackendWithRetry } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
-import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   suggestion_title: z.string().min(1).max(200),
@@ -15,7 +15,7 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`generate-recipe:${ip}`, AI_LIMIT);
+  const rl = await checkRateLimitDistributed(`generate-recipe:${ip}`, AI_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },

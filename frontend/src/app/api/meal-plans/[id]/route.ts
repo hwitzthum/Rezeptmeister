@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { mealPlans, recipes } from "@/lib/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
 const mealPlanUpdateSchema = z.object({
@@ -24,7 +24,7 @@ export async function PUT(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`meal-plans-update:${ip}`);
+  const rl = await checkRateLimitDistributed(`meal-plans-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -164,7 +164,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`meal-plans-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`meal-plans-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

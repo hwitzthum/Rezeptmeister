@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
 const querySchema = z.object({
   q: z.string().max(100).optional(),
@@ -12,7 +12,7 @@ const querySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`ingredients-autocomplete:${ip}`);
+  const rl = await checkRateLimitDistributed(`ingredients-autocomplete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

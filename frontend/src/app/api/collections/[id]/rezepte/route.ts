@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { collections, collectionRecipes } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
 const addRecipeSchema = z.object({
@@ -44,7 +44,7 @@ export async function POST(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-add-recipe:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-add-recipe:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -133,7 +133,7 @@ export async function DELETE(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-remove-recipe:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-remove-recipe:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -200,7 +200,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`collections-reorder:${ip}`);
+  const rl = await checkRateLimitDistributed(`collections-reorder:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

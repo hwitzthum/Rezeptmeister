@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { images } from "@/lib/db/schema";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { thumbnailUrl } from "@/lib/images";
 
 const listQuerySchema = z.object({
@@ -17,7 +17,7 @@ const listQuerySchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-list:${ip}`);
+  const rl = await checkRateLimitDistributed(`images-list:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

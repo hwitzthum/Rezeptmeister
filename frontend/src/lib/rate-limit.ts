@@ -1,8 +1,11 @@
 /**
  * Rate limiting utilities.
- * In-memory limiter: suitable for single-instance / self-hosted deployments.
- * Redis limiter (checkAuthRateLimitRedis): required for multi-instance Vercel
- * deployments where in-memory state does not persist across cold-start containers.
+ * In-memory limiter (checkRateLimit): suitable for single-instance / self-hosted
+ * deployments.
+ * Distributed limiter (checkRateLimitDistributed): Redis-backed, required for
+ * multi-instance Vercel deployments where in-memory state does not persist
+ * across cold-start containers. Falls back to the in-memory limiter when Upstash
+ * env vars are absent.
  */
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -134,15 +137,15 @@ export function getClientIp(request: Request): string {
 }
 
 // ---------------------------------------------------------------------------
-// Redis-backed rate limiter for auth endpoints
+// Redis-backed distributed rate limiter (all API routes)
 // ---------------------------------------------------------------------------
 
-// Lazy-initialized: only created on first call to avoid module-load failures
-// during the Next.js build when env vars are absent.
-let _authLimiter: Ratelimit | null | undefined;
+// Lazy-initialized shared Redis connection, created on first use to avoid
+// module-load failures during the Next.js build when env vars are absent.
+let _redis: Redis | null | undefined;
 
-function getAuthLimiter(): Ratelimit | null {
-  if (_authLimiter !== undefined) return _authLimiter;
+function getRedis(): Redis | null {
+  if (_redis !== undefined) return _redis;
   // Vercel's Upstash Marketplace integration provisions the REST credentials
   // under KV-prefixed names; fall back to those when the Upstash SDK defaults
   // (UPSTASH_REDIS_REST_URL/TOKEN) are not present.
@@ -156,38 +159,66 @@ function getAuthLimiter(): Ratelimit | null {
     if (process.env.NODE_ENV === "production") {
       console.error(
         "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not configured — " +
-          "auth rate limiting falls back to in-memory only (ineffective " +
+          "rate limiting falls back to in-memory only (ineffective " +
           "across Vercel serverless instances).",
       );
     }
-    return (_authLimiter = null);
+    return (_redis = null);
   }
-  return (_authLimiter = new Ratelimit({
-    redis: new Redis({ url, token }),
-    limiter: Ratelimit.slidingWindow(AUTH_LIMIT.max, "15 m"),
+  return (_redis = new Redis({ url, token }));
+}
+
+// One Ratelimit instance per distinct (max, windowMs) config. The sliding
+// window is fixed at construction time, so different limit tiers need
+// separate instances; they are cached and keyed by the config values.
+const _limiters = new Map<string, Ratelimit>();
+
+function getDistributedLimiter(config: RateLimitConfig): Ratelimit | null {
+  const redis = getRedis();
+  if (!redis) return null;
+  const cacheKey = `${config.max}:${config.windowMs}`;
+  const existing = _limiters.get(cacheKey);
+  if (existing) return existing;
+  const limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(
+      config.max,
+      `${Math.ceil(config.windowMs / 1_000)} s`,
+    ),
     analytics: false,
-    prefix: "rl:rezeptmeister:auth",
-  }));
+    // Namespace by window so distinct tiers sharing a route key never collide.
+    prefix: `rl:rezeptmeister:${cacheKey}`,
+  });
+  _limiters.set(cacheKey, limiter);
+  return limiter;
 }
 
 /**
- * Redis-backed rate limit check for auth endpoints.
+ * Distributed rate limit check backed by Upstash Redis, with a graceful
+ * in-memory fallback.
  *
- * Must be called BEFORE the in-memory checkRateLimit on Vercel, where each
- * cold-start gets a fresh in-memory store. Without a shared Redis counter,
- * an attacker can distribute requests across instances to bypass per-instance
- * limits entirely.
+ * On Vercel each cold-start container gets a fresh in-memory store, so the
+ * synchronous checkRateLimit alone is bypassable by distributing requests
+ * across instances. This routes the check through a shared Redis counter when
+ * UPSTASH_REDIS_REST_URL/TOKEN are configured, and falls back to the
+ * per-instance in-memory limiter (best effort) when they are not.
  *
- * Returns { limited: true } when the key exceeds AUTH_LIMIT in Redis.
- * Returns { limited: false } when Upstash is not configured (falls through
- * to the in-memory limiter as a best-effort backup).
+ * Returns the same RateLimitResult shape as checkRateLimit, so call sites only
+ * need to add `await`.
  */
-export async function checkAuthRateLimitRedis(
+export async function checkRateLimitDistributed(
   key: string,
-): Promise<{ limited: boolean }> {
-  if (process.env.DISABLE_RATE_LIMIT === "true") return { limited: false };
-  const limiter = getAuthLimiter();
-  if (!limiter) return { limited: false };
-  const { success } = await limiter.limit(key);
-  return { limited: !success };
+  config: RateLimitConfig = DEFAULT_LIMIT,
+): Promise<RateLimitResult> {
+  if (process.env.DISABLE_RATE_LIMIT === "true") {
+    return { allowed: true, remaining: config.max };
+  }
+  const limiter = getDistributedLimiter(config);
+  if (!limiter) return checkRateLimit(key, config);
+  const { success, remaining, reset } = await limiter.limit(key);
+  return {
+    allowed: success,
+    remaining,
+    retryAfterMs: success ? undefined : Math.max(0, reset - Date.now()),
+  };
 }

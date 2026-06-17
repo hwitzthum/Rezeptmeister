@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { recipes, ingredients, images, users, recipeNotes } from "@/lib/db/schema";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
 import { thumbnailUrl } from "@/lib/images";
@@ -31,7 +31,7 @@ const listQuerySchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-create:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-create:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-list:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-list:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
