@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
-if (!process.env.SUPABASE_URL) throw new Error("SUPABASE_URL is required");
-const supabaseHostname = new URL(process.env.SUPABASE_URL).hostname;
+// SUPABASE_URL is required at runtime but not during `next build`
+// (NEXT_PHASE=phase-production-build).  Throwing at module load breaks local
+// dev builds and preview deployments that set env vars only at runtime.
+// Instead: derive the hostname when present, fall back to a safe placeholder
+// that allows the build to succeed; the runtime guard in env-check.ts will
+// catch a missing URL in production before any request is served.
+const supabaseHostname = process.env.SUPABASE_URL
+  ? new URL(process.env.SUPABASE_URL).hostname
+  : "placeholder.supabase.co";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
