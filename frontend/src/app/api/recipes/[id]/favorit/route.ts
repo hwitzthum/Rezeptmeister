@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipes } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
 export async function PATCH(
   request: Request,
@@ -12,7 +12,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-favorite:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-favorite:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

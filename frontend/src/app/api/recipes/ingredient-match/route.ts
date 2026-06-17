@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { recipes } from "@/lib/db/schema";
 import { sql, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
 const matchSchema = z.object({
   ingredients: z.array(z.string().min(1).max(255)).min(1).max(30),
@@ -14,7 +14,7 @@ const matchSchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`ingredient-match:${ip}`);
+  const rl = await checkRateLimitDistributed(`ingredient-match:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

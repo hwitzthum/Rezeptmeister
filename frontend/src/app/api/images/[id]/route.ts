@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { images, recipes } from "@/lib/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { thumbnailUrl, stripImageColumns, UPLOAD_API_PREFIX } from "@/lib/images";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 
@@ -21,7 +21,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-patch:${ip}`);
+  const rl = await checkRateLimitDistributed(`images-patch:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -134,7 +134,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`images-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

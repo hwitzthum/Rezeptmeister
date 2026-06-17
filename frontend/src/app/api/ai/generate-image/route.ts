@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { buildAiHeaders, fetchBackendWithRetry } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
-import { checkRateLimit, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
 const bodySchema = z.object({
@@ -16,7 +16,7 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`generate-image:${ip}`, AI_LIMIT);
+  const rl = await checkRateLimitDistributed(`generate-image:${ip}`, AI_LIMIT);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },

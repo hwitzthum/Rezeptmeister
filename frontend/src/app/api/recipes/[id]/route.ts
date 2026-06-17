@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipes, ingredients, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
 import { USER_ROLE } from "@/lib/auth";
@@ -25,7 +25,7 @@ export async function GET(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-get:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-get:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -74,7 +74,7 @@ export async function PUT(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-update:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-update:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -216,7 +216,7 @@ export async function DELETE(
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`recipes-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`recipes-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

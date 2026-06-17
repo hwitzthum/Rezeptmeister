@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { recipeNotes } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
 const noteBodySchema = z.object({
@@ -22,7 +22,7 @@ export async function GET(
   const { recipeId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-get:${ip}`);
+  const rl = await checkRateLimitDistributed(`notes-get:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -61,7 +61,7 @@ export async function POST(
   const { recipeId } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`notes-create:${ip}`);
+  const rl = await checkRateLimitDistributed(`notes-create:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

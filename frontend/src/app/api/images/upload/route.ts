@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { images, recipes, users } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
 import { decrypt } from "@/lib/crypto";
 import {
@@ -20,7 +20,7 @@ import { uploadToStorage, deleteFromStorage } from "@/lib/supabase-storage";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`images-upload:${ip}`);
+  const rl = await checkRateLimitDistributed(`images-upload:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

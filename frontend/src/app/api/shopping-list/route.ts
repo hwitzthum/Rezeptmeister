@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { shoppingListItems } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { getAisleCategory } from "@/lib/shopping/aisle-categories";
 
 const addItemSchema = z.object({
@@ -19,7 +19,7 @@ const addItemSchema = z.object({
 
 export async function GET(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-get:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-get:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`shopping-create:${ip}`);
+  const rl = await checkRateLimitDistributed(`shopping-create:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

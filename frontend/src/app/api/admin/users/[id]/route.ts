@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { USER_ROLE } from "@/lib/auth";
 
 const updateSchema = z.object({
@@ -23,7 +23,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-user-put:${ip}`);
+  const rl = await checkRateLimitDistributed(`admin-user-put:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }
@@ -82,7 +82,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`admin-user-delete:${ip}`);
+  const rl = await checkRateLimitDistributed(`admin-user-delete:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
   }

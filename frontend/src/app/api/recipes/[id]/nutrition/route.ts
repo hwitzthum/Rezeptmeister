@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { recipes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   nutritionInfo: z.object({
@@ -25,7 +25,7 @@ export async function PATCH(
   const { id } = await params;
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`nutrition-patch:${ip}`);
+  const rl = await checkRateLimitDistributed(`nutrition-patch:${ip}`);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Zu viele Anfragen. Bitte warten Sie einen Moment." },
