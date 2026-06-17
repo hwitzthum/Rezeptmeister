@@ -70,6 +70,12 @@ if (isProduction && process.env.DISABLE_RATE_LIMIT === "true") {
   throw new Error("DISABLE_RATE_LIMIT=true ist in Produktion nicht erlaubt.");
 }
 
+if (isProduction && !process.env.SUPABASE_URL) {
+  throw new Error(
+    "SUPABASE_URL ist nicht gesetzt – in Produktion erforderlich für Supabase Storage.",
+  );
+}
+
 if (!process.env.INTERNAL_SECRET && !isBuildPhase) {
   console.warn(
     "[env-check] INTERNAL_SECRET ist nicht gesetzt. " +

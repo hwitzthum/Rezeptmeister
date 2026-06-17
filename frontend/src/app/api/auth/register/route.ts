@@ -60,27 +60,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
-  // Check for existing account
+  // Always hash the password unconditionally to normalise timing across the
+  // "email already exists" and "new registration" code paths.  Skipping the
+  // hash when the email is taken creates a timing oracle: an attacker can
+  // distinguish existing vs. new addresses purely by response latency.
+  const passwordHash = await bcrypt.hash(data.password, 12);
+
+  // Check for existing account AFTER hashing so the timing is the same.
   const existing = await db.query.users.findFirst({
     where: eq(users.email, data.email),
     columns: { id: true },
   });
-  if (existing) {
-    return NextResponse.json(
-      { error: "Diese E-Mail-Adresse ist bereits registriert." },
-      { status: 409 },
-    );
+
+  // Return the same 201 response whether the address is already registered or
+  // not.  A 409 Conflict leaks whether a given e-mail exists in the system —
+  // an unauthenticated caller should never be able to enumerate accounts.
+  if (!existing) {
+    await db.insert(users).values({
+      name: data.name,
+      email: data.email,
+      passwordHash,
+      role: "user",
+      status: "pending",
+    });
   }
-
-  const passwordHash = await bcrypt.hash(data.password, 12);
-
-  await db.insert(users).values({
-    name: data.name,
-    email: data.email,
-    passwordHash,
-    role: "user",
-    status: "pending",
-  });
 
   return NextResponse.json(
     {
