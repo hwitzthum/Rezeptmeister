@@ -20,7 +20,14 @@ export async function GET(
 
   // storagePath: e.g. "originals/uuid.jpg" or "thumbnails/uuid.webp"
   const storagePath = segments.join("/");
-  const publicUrl = getPublicUrl(storagePath);
+
+  let publicUrl: string;
+  try {
+    publicUrl = getPublicUrl(storagePath);
+  } catch {
+    // SUPABASE_URL is not configured — storage unavailable
+    return new Response(null, { status: 503 });
+  }
 
   // 302 redirect to Supabase Storage CDN
   return new Response(null, {
