@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * Vercel Cron endpoint that pings the Render backend /health endpoint
@@ -7,8 +7,15 @@ import { timingSafeEqual } from "node:crypto";
  */
 
 function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+  // Hash both inputs to fixed 32-byte HMAC-SHA256 digests before comparing.
+  // A raw length pre-check (a.length !== b.length) followed by timingSafeEqual
+  // leaks the expected token length via timing: wrong-length inputs return
+  // immediately while correct-length inputs enter the comparison branch.
+  // Hashing to a fixed-length output removes that side channel entirely.
+  const key = "cron-compare";
+  const aHash = createHmac("sha256", key).update(a).digest();
+  const bHash = createHmac("sha256", key).update(b).digest();
+  return timingSafeEqual(aHash, bHash);
 }
 
 export async function GET(request: Request) {
