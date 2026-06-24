@@ -54,17 +54,27 @@ export async function deleteFromStorage(storagePath: string): Promise<void> {
 }
 
 /**
- * Get the public URL for a file in the bucket.
- * @param storagePath - e.g. "originals/uuid.jpg"
+ * Create a short-lived signed URL for a file in the bucket.
  *
- * Reads SUPABASE_URL at call time (not at module load time) so that a missing
- * or late-set env var is detected immediately and never silently produces an
- * "undefined/..." URL string that would become a malformed Location header.
+ * Signed URLs are scoped to a single path and expire after `expiresIn` seconds
+ * (default 3600 = 1 hour), so an attacker who learns the URL cannot use it
+ * after expiry.  The service-role key (held server-side only) is required to
+ * sign — the browser never receives it.
+ *
+ * @param storagePath - e.g. "originals/uuid.jpg"
+ * @param expiresIn   - seconds until expiry (default 3600)
  */
-export function getPublicUrl(storagePath: string): string {
-  const url = process.env.SUPABASE_URL;
-  if (!url) {
-    throw new Error("SUPABASE_URL must be set");
+export async function createSignedUrl(
+  storagePath: string,
+  expiresIn = 3600,
+): Promise<string> {
+  const { data, error } = await getClient()
+    .storage.from(BUCKET)
+    .createSignedUrl(storagePath, expiresIn);
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      `Supabase Storage signed URL failed: ${error?.message ?? "no URL returned"}`,
+    );
   }
-  return `${url}/storage/v1/object/public/${BUCKET}/${storagePath}`;
+  return data.signedUrl;
 }
