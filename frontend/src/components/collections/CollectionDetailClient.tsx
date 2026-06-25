@@ -93,7 +93,12 @@ function SortableRecipeCard({
         {...attributes}
         {...listeners}
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -113,6 +118,7 @@ function SortableRecipeCard({
             height={56}
             sizes="56px"
             className="w-full h-full object-cover"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -156,8 +162,18 @@ function SortableRecipeCard({
         title="Aus Sammlung entfernen"
         aria-label="Aus Sammlung entfernen"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </div>
@@ -318,7 +334,7 @@ export default function CollectionDetailClient({
 
       if (failedRecipes.length > 0) {
         toast.error(
-          `${failedRecipes.length} Rezept(e) konnten nicht geladen werden: ${failedRecipes.join(", ")}. Export abgebrochen.`
+          `${failedRecipes.length} Rezept(e) konnten nicht geladen werden: ${failedRecipes.join(", ")}. Export abgebrochen.`,
         );
         return;
       }
@@ -328,9 +344,8 @@ export default function CollectionDetailClient({
         return;
       }
 
-      const { generateCollectionPdf } = await import(
-        "@/components/recipes/RecipePdf"
-      );
+      const { generateCollectionPdf } =
+        await import("@/components/recipes/RecipePdf");
       const blob = await generateCollectionPdf({
         collectionName: collection.name,
         recipes: fullRecipes.map((r) => ({
@@ -370,8 +385,18 @@ export default function CollectionDetailClient({
         href="/sammlungen"
         className="inline-flex items-center gap-1 text-sm text-[var(--text-muted)] hover:text-terra-500 transition-colors mb-4"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
         Zurück zu Sammlungen
       </Link>
@@ -542,7 +567,12 @@ export default function CollectionDetailClient({
 
 function PencilIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -555,7 +585,12 @@ function PencilIcon() {
 
 function TrashIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -568,7 +603,12 @@ function TrashIcon() {
 
 function RecipeIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

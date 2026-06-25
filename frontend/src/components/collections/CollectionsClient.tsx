@@ -79,7 +79,9 @@ export default function CollectionsClient({
       toast.success("Sammlung erstellt.");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Sammlung konnte nicht erstellt werden.",
+        err instanceof Error
+          ? err.message
+          : "Sammlung konnte nicht erstellt werden.",
       );
     } finally {
       setSaving(false);
@@ -153,12 +155,13 @@ export default function CollectionsClient({
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div data-testid="collections-page" className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+    <div
+      data-testid="collections-page"
+      className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1
-          className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]"
-        >
+        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
           Sammlungen
         </h1>
         <Button
@@ -202,6 +205,7 @@ export default function CollectionsClient({
                       fill
                       sizes="(max-width: 640px) 100vw, 50vw"
                       className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -214,9 +218,7 @@ export default function CollectionsClient({
               {/* Content */}
               <div className="p-4">
                 <Link href={`/sammlungen/${collection.id}`}>
-                  <h2
-                    className="text-lg font-semibold text-[var(--text-primary)] hover:text-terra-500 transition-colors line-clamp-1"
-                  >
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)] hover:text-terra-500 transition-colors line-clamp-1">
                     {collection.name}
                   </h2>
                 </Link>
@@ -403,15 +405,30 @@ export default function CollectionsClient({
 
 function PlusIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4v16m8-8H4"
+      />
     </svg>
   );
 }
 
 function FolderIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -424,7 +441,12 @@ function FolderIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 function PencilIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -437,7 +459,12 @@ function PencilIcon() {
 
 function TrashIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

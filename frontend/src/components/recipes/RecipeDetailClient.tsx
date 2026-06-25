@@ -81,7 +81,9 @@ export default function RecipeDetailClient({
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showOverflow, setShowOverflow] = useState(false);
   // Track generated image URL so we can show it without a full page reload
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
+    null,
+  );
 
   const hasPrimaryImage =
     !!generatedImageUrl ||
@@ -153,8 +155,18 @@ export default function RecipeDetailClient({
             href="/rezepte"
             className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 19.5L8.25 12l7.5-7.5" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15.75 19.5L8.25 12l7.5-7.5"
+              />
             </svg>
             Meine Rezepte
           </Link>
@@ -164,7 +176,11 @@ export default function RecipeDetailClient({
             {/* Primary — always visible */}
             <button
               onClick={toggleFavorite}
-              aria-label={isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+              aria-label={
+                isFavorite
+                  ? "Aus Favoriten entfernen"
+                  : "Zu Favoriten hinzufügen"
+              }
               aria-pressed={isFavorite}
               className={[
                 "w-9 h-9 rounded-xl flex items-center justify-center",
@@ -177,7 +193,10 @@ export default function RecipeDetailClient({
               <HeartIcon filled={isFavorite} className="w-4 h-4" />
             </button>
 
-            <AddToShoppingListButton recipeId={recipe.id} recipeTitle={recipe.title} />
+            <AddToShoppingListButton
+              recipeId={recipe.id}
+              recipeTitle={recipe.title}
+            />
 
             <Link
               href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}
@@ -224,19 +243,38 @@ export default function RecipeDetailClient({
                 className="w-9 h-9 rounded-xl flex items-center justify-center border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                 aria-label="Weitere Aktionen"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
+                  />
                 </svg>
               </button>
               {showOverflow && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowOverflow(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowOverflow(false)}
+                  />
                   <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--bg-surface)] border border-[var(--border-base)] rounded-xl shadow-[var(--shadow-warm-lg)] z-50 py-1 animate-scale-in">
-                    <div onClick={() => setShowOverflow(false)} className="[&>button]:w-full [&>button]:justify-start [&>button]:rounded-none [&>button]:border-0 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-normal hover:bg-[var(--bg-subtle)]">
+                    <div
+                      onClick={() => setShowOverflow(false)}
+                      className="[&>button]:w-full [&>button]:justify-start [&>button]:rounded-none [&>button]:border-0 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-normal hover:bg-[var(--bg-subtle)]"
+                    >
                       <AddToCollectionButton recipeId={recipe.id} />
                     </div>
                     <button
-                      onClick={() => { setShowOverflow(false); setShowPrintModal(true); }}
+                      onClick={() => {
+                        setShowOverflow(false);
+                        setShowPrintModal(true);
+                      }}
                       className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     >
                       Drucken
@@ -248,7 +286,10 @@ export default function RecipeDetailClient({
                       Bearbeiten
                     </Link>
                     <button
-                      onClick={() => { setShowOverflow(false); setShowDeleteDialog(true); }}
+                      onClick={() => {
+                        setShowOverflow(false);
+                        setShowDeleteDialog(true);
+                      }}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[var(--bg-subtle)]"
                     >
                       Löschen
@@ -264,7 +305,8 @@ export default function RecipeDetailClient({
       {/* Hero */}
       <div className="relative h-64 sm:h-80 bg-gradient-to-br from-terra-100 via-cream-100 to-warm-100 dark:from-terra-950/40 dark:via-warm-900 dark:to-warm-900 overflow-hidden">
         {(() => {
-          const heroImg = recipe.images.find((i) => i.isPrimary) ?? recipe.images[0];
+          const heroImg =
+            recipe.images.find((i) => i.isPrimary) ?? recipe.images[0];
           const rawSrc = generatedImageUrl ?? heroImg?.filePath;
           const displaySrc = rawSrc ? normaliseImageSrc(rawSrc) : undefined;
           return displaySrc ? (
@@ -275,18 +317,31 @@ export default function RecipeDetailClient({
               sizes="100vw"
               priority
               className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="relative w-24 h-24 mb-4">
                 <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-terra-200 dark:border-terra-800" />
                 <div className="absolute inset-3 rounded-full bg-cream-50 dark:bg-warm-800 flex items-center justify-center shadow-inner">
-                  <svg className="w-8 h-8 text-terra-300 dark:text-terra-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <svg
+                    className="w-8 h-8 text-terra-300 dark:text-terra-700"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                 </div>
               </div>
-              <p className="text-sm text-terra-400 dark:text-terra-600 font-medium mb-3">Noch kein Bild</p>
+              <p className="text-sm text-terra-400 dark:text-terra-600 font-medium mb-3">
+                Noch kein Bild
+              </p>
             </div>
           );
         })()}
@@ -306,9 +361,7 @@ export default function RecipeDetailClient({
 
         {/* Titel im Hero */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <h1
-            className="text-2xl sm:text-3xl font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5),0_1px_3px_rgba(0,0,0,0.4)]"
-          >
+          <h1 className="text-2xl sm:text-3xl font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5),0_1px_3px_rgba(0,0,0,0.4)]">
             {recipe.title}
           </h1>
         </div>
@@ -318,7 +371,9 @@ export default function RecipeDetailClient({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Meta-Chips */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {recipe.difficulty && <DifficultyBadge difficulty={recipe.difficulty} />}
+          {recipe.difficulty && (
+            <DifficultyBadge difficulty={recipe.difficulty} />
+          )}
           {recipe.category && (
             <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
               {recipe.category}
@@ -362,9 +417,7 @@ export default function RecipeDetailClient({
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Linke Spalte: Zubereitung */}
           <section className="flex-1 min-w-0">
-            <h2
-              className="text-xl font-semibold text-[var(--text-primary)] mb-4"
-            >
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">
               Zubereitung
             </h2>
             {recipe.instructions ? (
@@ -385,9 +438,7 @@ export default function RecipeDetailClient({
           {/* Rechte Spalte: Zutaten */}
           <aside className="lg:w-72 xl:w-80 shrink-0">
             <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)] shadow-warm p-5 lg:sticky lg:top-20">
-              <h2
-                className="text-lg font-semibold text-[var(--text-primary)] mb-4"
-              >
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
                 Zutaten
               </h2>
 
@@ -398,15 +449,23 @@ export default function RecipeDetailClient({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() =>
-                      setTargetServings((v) => Math.max(1, v - 1))
-                    }
+                    onClick={() => setTargetServings((v) => Math.max(1, v - 1))}
                     disabled={targetServings <= 1}
                     className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] disabled:opacity-40 transition-colors"
                     aria-label="Portionen verringern"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 12H4"
+                      />
                     </svg>
                   </button>
                   <span
@@ -422,8 +481,18 @@ export default function RecipeDetailClient({
                     className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                     aria-label="Portionen erhöhen"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -517,12 +586,13 @@ export default function RecipeDetailClient({
 
         {/* Bilderverwaltung */}
         <section className="mt-10 pt-6 border-t border-[var(--border-subtle)]">
-          <h2
-            className="text-xl font-semibold text-[var(--text-primary)] mb-4"
-          >
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">
             Bilder
           </h2>
-          <RecipeImageManager recipeId={recipe.id} initialImages={recipe.images} />
+          <RecipeImageManager
+            recipeId={recipe.id}
+            initialImages={recipe.images}
+          />
         </section>
 
         {/* Notizen & Bewertungen */}
@@ -549,7 +619,9 @@ export default function RecipeDetailClient({
         cancelLabel="Abbrechen"
         variant="danger"
         loading={deleting}
-        onConfirm={() => { void handleDelete(); }}
+        onConfirm={() => {
+          void handleDelete();
+        }}
         onClose={() => setShowDeleteDialog(false)}
       />
     </div>
@@ -558,22 +630,48 @@ export default function RecipeDetailClient({
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
-function HeartIcon({ filled, className }: { filled: boolean; className?: string }) {
+function HeartIcon({
+  filled,
+  className,
+}: {
+  filled: boolean;
+  className?: string;
+}) {
   return filled ? (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     </svg>
   ) : (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+      />
     </svg>
   );
 }
 
 function ClockIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+      />
     </svg>
   );
 }
