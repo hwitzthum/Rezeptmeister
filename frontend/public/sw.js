@@ -1,7 +1,7 @@
 /// Rezeptmeister Service Worker
 /// Hand-written — no build step required.
 
-const CACHE_NAME = "rezeptmeister-v1";
+const CACHE_NAME = "rezeptmeister-v2";
 const OFFLINE_URL = "/offline";
 
 // Assets to pre-cache on install
@@ -133,6 +133,8 @@ self.addEventListener("message", (event) => {
 
   // On logout: wipe all cached responses so no auth data leaks across sessions.
   if (event.data?.type === "CLEAR_CACHES") {
-    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
   }
 });
