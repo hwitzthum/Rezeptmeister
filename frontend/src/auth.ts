@@ -92,10 +92,29 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
+        // Initial sign-in: bake id + role into the token.
         token.id = user.id as string;
         token.role = user.role;
+      } else if (token.id) {
+        // Subsequent calls (token refresh): re-read role from DB so that
+        // admin promotions / demotions take effect without requiring a
+        // full re-login. Also re-validate that the account still exists
+        // and is still approved — if not, return null to invalidate the session.
+        try {
+          const dbUser = await db.query.users.findFirst({
+            where: eq(users.id, token.id as string),
+          });
+          if (!dbUser || dbUser.status !== "approved") {
+            // Returning null forces NextAuth to invalidate this JWT.
+            return null as unknown as typeof token;
+          }
+          token.role = dbUser.role;
+        } catch {
+          // DB temporarily unavailable — keep existing token rather than
+          // invalidating healthy sessions.
+        }
       }
       return token;
     },
