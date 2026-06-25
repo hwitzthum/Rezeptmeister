@@ -1,7 +1,12 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { images } from "@/lib/db/schema";
-import { createSignedUrl } from "@/lib/supabase-storage";
+import {
+  createSignedUrl,
+  isSupabaseConfigured,
+  readLocalStorageFile,
+} from "@/lib/supabase-storage";
+import { EXT_TO_MIME } from "@/lib/images";
 import { and, eq } from "drizzle-orm";
 
 // Signed-URL TTL in seconds — must match Cache-Control max-age below.
@@ -17,11 +22,7 @@ export async function GET(
   // Explicitly reject "." and ".." before the regex: ^[\w\-.]+$ matches ".." (two
   // dots), which would assemble a traversal path like "originals/../other-bucket"
   // and redirect to a different Supabase bucket via the normalised Location URL.
-  if (
-    segments.some(
-      (s) => s === "." || s === ".." || !/^[\w\-.]+$/.test(s),
-    )
-  ) {
+  if (segments.some((s) => s === "." || s === ".." || !/^[\w\-.]+$/.test(s))) {
     return new Response(null, { status: 404 });
   }
 
@@ -67,6 +68,27 @@ export async function GET(
 
   if (!owned) {
     return new Response(null, { status: 404 });
+  }
+
+  // Dev: stream the file from the local uploads/ directory. The auth + ownership
+  // checks above already gated access, so local serving is no less safe than the
+  // signed-URL path below.
+  if (!isSupabaseConfigured()) {
+    let data: Buffer;
+    try {
+      data = await readLocalStorageFile(storagePath);
+    } catch {
+      return new Response(null, { status: 404 });
+    }
+    const ext = (filename.match(/\.[^.]+$/)?.[0] ?? "").toLowerCase();
+    const contentType = EXT_TO_MIME[ext] ?? "application/octet-stream";
+    return new Response(new Uint8Array(data), {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": `private, max-age=${SIGNED_URL_TTL}`,
+      },
+    });
   }
 
   let signedUrl: string;

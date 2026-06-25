@@ -1,6 +1,10 @@
 // ── MIME / Extension constants ────────────────────────────────────────────────
 
-export const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+export const ALLOWED_IMAGE_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 export type AllowedImageMime = (typeof ALLOWED_IMAGE_MIME)[number];
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -9,6 +13,14 @@ export const MIME_TO_EXT: Record<AllowedImageMime, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
+};
+
+export const EXT_TO_MIME: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
 };
 
 // ── Path utilities ────────────────────────────────────────────────────────────

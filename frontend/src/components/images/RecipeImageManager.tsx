@@ -45,8 +45,14 @@ function SortableImageCard({
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: image.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -60,7 +66,9 @@ function SortableImageCard({
       style={style}
       className={[
         "relative group rounded-xl overflow-hidden border-2 transition-all",
-        isSelected ? "border-terra-500" : "border-transparent hover:border-warm-200",
+        isSelected
+          ? "border-terra-500"
+          : "border-transparent hover:border-warm-200",
         isDragging ? "shadow-warm z-50" : "",
       ].join(" ")}
     >
@@ -77,6 +85,7 @@ function SortableImageCard({
           sizes="150px"
           className="object-cover"
           draggable={false}
+          unoptimized
         />
       </div>
 
@@ -134,13 +143,17 @@ export default function RecipeImageManager({
   const dndId = useId();
   const [imageList, setImageList] = useState<UploadedImage[]>(initialImages);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [imageToDelete, setImageToDelete] = useState<UploadedImage | null>(null);
+  const [imageToDelete, setImageToDelete] = useState<UploadedImage | null>(
+    null,
+  );
   const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   // ── Upload ────────────────────────────────────────────────────────────────
@@ -193,7 +206,9 @@ export default function RecipeImageManager({
     if (!imageToDelete) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/images/${imageToDelete.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/images/${imageToDelete.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error();
       setImageList((prev) => prev.filter((img) => img.id !== imageToDelete.id));
       setSelectedIds((prev) => {
@@ -238,9 +253,13 @@ export default function RecipeImageManager({
     setShowBatchDeleteDialog(false);
 
     if (failedCount === 0) {
-      toast.success(`${ids.length} Bild${ids.length !== 1 ? "er" : ""} gelöscht.`);
+      toast.success(
+        `${ids.length} Bild${ids.length !== 1 ? "er" : ""} gelöscht.`,
+      );
     } else {
-      toast.error(`${failedCount} Bild${failedCount !== 1 ? "er" : ""} konnten nicht gelöscht werden.`);
+      toast.error(
+        `${failedCount} Bild${failedCount !== 1 ? "er" : ""} konnten nicht gelöscht werden.`,
+      );
     }
   }
 
@@ -280,7 +299,9 @@ export default function RecipeImageManager({
             <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={selectedIds.size === imageList.length && imageList.length > 0}
+                checked={
+                  selectedIds.size === imageList.length && imageList.length > 0
+                }
                 onChange={toggleSelectAll}
                 aria-label="Alle Bilder auswählen"
                 className="w-4 h-4 rounded accent-terra-500"
@@ -346,7 +367,9 @@ export default function RecipeImageManager({
         cancelLabel="Abbrechen"
         variant="danger"
         loading={deleting}
-        onConfirm={() => { void confirmDeleteSingle(); }}
+        onConfirm={() => {
+          void confirmDeleteSingle();
+        }}
         onClose={() => setImageToDelete(null)}
       />
 
@@ -359,7 +382,9 @@ export default function RecipeImageManager({
         cancelLabel="Abbrechen"
         variant="danger"
         loading={deleting}
-        onConfirm={() => { void confirmBatchDelete(); }}
+        onConfirm={() => {
+          void confirmBatchDelete();
+        }}
         onClose={() => setShowBatchDeleteDialog(false)}
       />
     </div>
@@ -370,7 +395,12 @@ export default function RecipeImageManager({
 
 function TrashIcon() {
   return (
-    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-3.5 h-3.5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

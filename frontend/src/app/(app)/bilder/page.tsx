@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import ImageUploadZone, { type UploadedImage } from "@/components/images/ImageUploadZone";
+import ImageUploadZone, {
+  type UploadedImage,
+} from "@/components/images/ImageUploadZone";
 import { ConfirmDialog, Button, Modal, PageHeader } from "@/components/ui";
 import { formatDate, formatBytes } from "@/lib/format";
 import { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
@@ -27,8 +29,12 @@ export default function BilderPage() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<FilterMode>("alle");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<UploadedImage | null>(null);
-  const [imageToDelete, setImageToDelete] = useState<UploadedImage | null>(null);
+  const [selectedImage, setSelectedImage] = useState<UploadedImage | null>(
+    null,
+  );
+  const [imageToDelete, setImageToDelete] = useState<UploadedImage | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [assigning, setAssigning] = useState(false);
@@ -51,13 +57,20 @@ export default function BilderPage() {
     async (pageNum: number, currentFilter: FilterMode, append: boolean) => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ seite: String(pageNum), limit: "20" });
-        if (currentFilter === "unzugeordnet") params.set("unzugeordnet", "true");
+        const params = new URLSearchParams({
+          seite: String(pageNum),
+          limit: "20",
+        });
+        if (currentFilter === "unzugeordnet")
+          params.set("unzugeordnet", "true");
         if (currentFilter === "zugeordnet") params.set("unzugeordnet", "false");
 
         const res = await fetch(`/api/images?${params.toString()}`);
         if (!res.ok) throw new Error();
-        const data = await res.json() as { images: UploadedImage[]; hasMore: boolean };
+        const data = (await res.json()) as {
+          images: UploadedImage[];
+          hasMore: boolean;
+        };
 
         setImages((prev) => (append ? [...prev, ...data.images] : data.images));
         setHasMore(data.hasMore);
@@ -91,7 +104,9 @@ export default function BilderPage() {
     if (!imageToDelete) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/images/${imageToDelete.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/images/${imageToDelete.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error();
       setImages((prev) => prev.filter((img) => img.id !== imageToDelete.id));
       if (selectedImage?.id === imageToDelete.id) setSelectedImage(null);
@@ -114,7 +129,9 @@ export default function BilderPage() {
       });
       if (!res.ok) throw new Error();
       const updated = (await res.json()) as UploadedImage;
-      setImages((prev) => prev.map((img) => (img.id === imageId ? updated : img)));
+      setImages((prev) =>
+        prev.map((img) => (img.id === imageId ? updated : img)),
+      );
       if (selectedImage?.id === imageId) setSelectedImage(updated);
       toast.success(recipeId ? "Bild zugeordnet." : "Zuordnung aufgehoben.");
     } catch {
@@ -165,7 +182,11 @@ export default function BilderPage() {
         subtitle="Medien"
         title="Bildergalerie"
         action={
-          <Button variant="primary" size="sm" onClick={() => setShowUploadModal(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowUploadModal(true)}
+          >
             Bild hochladen
           </Button>
         }
@@ -185,7 +206,11 @@ export default function BilderPage() {
                   : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-warm-100 dark:hover:bg-warm-800",
               ].join(" ")}
             >
-              {f === "alle" ? "Alle" : f === "zugeordnet" ? "Zugeordnet" : "Nicht zugeordnet"}
+              {f === "alle"
+                ? "Alle"
+                : f === "zugeordnet"
+                  ? "Zugeordnet"
+                  : "Nicht zugeordnet"}
             </button>
           ))}
         </div>
@@ -194,7 +219,10 @@ export default function BilderPage() {
         {loading && images.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-xl overflow-hidden border border-[var(--border-subtle)]">
+              <div
+                key={i}
+                className="aspect-square rounded-xl overflow-hidden border border-[var(--border-subtle)]"
+              >
                 <div className="skeleton w-full h-full" />
               </div>
             ))}
@@ -211,9 +239,14 @@ export default function BilderPage() {
               Ihre Galerie ist leer
             </h3>
             <p className="text-sm text-[var(--text-secondary)] max-w-sm mx-auto mb-6 leading-relaxed">
-              Laden Sie Fotos Ihrer Gerichte hoch oder lassen Sie die KI Bilder generieren.
+              Laden Sie Fotos Ihrer Gerichte hoch oder lassen Sie die KI Bilder
+              generieren.
             </p>
-            <Button variant="primary" size="sm" onClick={() => setShowUploadModal(true)}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowUploadModal(true)}
+            >
               Erstes Bild hochladen
             </Button>
           </div>
@@ -227,7 +260,9 @@ export default function BilderPage() {
                   className={[
                     "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
                     "hover:shadow-warm focus:outline-none focus:ring-2 focus:ring-terra-400",
-                    selectedImage?.id === image.id ? "border-terra-500" : "border-transparent",
+                    selectedImage?.id === image.id
+                      ? "border-terra-500"
+                      : "border-transparent",
                   ].join(" ")}
                 >
                   <Image
@@ -236,6 +271,7 @@ export default function BilderPage() {
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover"
+                    unoptimized
                   />
                   {image.isPrimary && (
                     <div className="absolute top-1 left-1">
@@ -275,6 +311,7 @@ export default function BilderPage() {
                 fill
                 sizes="(max-width: 1024px) 100vw, 80vw"
                 className="object-contain"
+                unoptimized
               />
             </div>
 
@@ -283,7 +320,8 @@ export default function BilderPage() {
               {selectedImage.width && selectedImage.height
                 ? ` · ${selectedImage.width} × ${selectedImage.height} px`
                 : ""}
-              {" · "}{formatDate(selectedImage.createdAt)}
+              {" · "}
+              {formatDate(selectedImage.createdAt)}
             </p>
 
             <div>
@@ -292,13 +330,17 @@ export default function BilderPage() {
               </label>
               <select
                 value={selectedImage.recipeId ?? ""}
-                onChange={(e) => assignToRecipe(selectedImage.id, e.target.value || null)}
+                onChange={(e) =>
+                  assignToRecipe(selectedImage.id, e.target.value || null)
+                }
                 disabled={assigning}
                 className="mt-1 w-full text-sm border border-[var(--border-base)] rounded-lg px-3 py-2 bg-[var(--bg-surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
               >
                 <option value="">Keinem Rezept zugeordnet</option>
                 {recipes.map((r) => (
-                  <option key={r.id} value={r.id}>{r.title}</option>
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
                 ))}
               </select>
             </div>
@@ -306,13 +348,19 @@ export default function BilderPage() {
             {/* OCR-Aktion */}
             <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)]">
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">Rezept aus Bild extrahieren</p>
-                <p className="text-xs text-[var(--text-muted)]">KI liest den Rezepttext und erstellt ein neues Rezept</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Rezept aus Bild extrahieren
+                </p>
+                <p className="text-xs text-[var(--text-muted)]">
+                  KI liest den Rezepttext und erstellt ein neues Rezept
+                </p>
               </div>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { void runOcr(selectedImage); }}
+                onClick={() => {
+                  void runOcr(selectedImage);
+                }}
                 disabled={ocrState === "running"}
               >
                 {ocrState === "running" ? "Wird analysiert …" : "OCR starten"}
@@ -357,14 +405,17 @@ export default function BilderPage() {
             </p>
           </div>
         )}
-        {ocrState === "done" && ocrResults && ocrResults.length > 0 && selectedImage && (
-          <OcrMultiPreview
-            recipes={ocrResults}
-            imageId={selectedImage.id}
-            onAllDone={handleOcrAllDone}
-            onRecipeSaved={() => {}}
-          />
-        )}
+        {ocrState === "done" &&
+          ocrResults &&
+          ocrResults.length > 0 &&
+          selectedImage && (
+            <OcrMultiPreview
+              recipes={ocrResults}
+              imageId={selectedImage.id}
+              onAllDone={handleOcrAllDone}
+              onRecipeSaved={() => {}}
+            />
+          )}
       </Modal>
 
       {/* Upload-Modal */}
@@ -386,7 +437,9 @@ export default function BilderPage() {
         cancelLabel="Abbrechen"
         variant="danger"
         loading={deleting}
-        onConfirm={() => { void confirmDelete(); }}
+        onConfirm={() => {
+          void confirmDelete();
+        }}
         onClose={() => setImageToDelete(null)}
       />
     </div>
@@ -395,7 +448,12 @@ export default function BilderPage() {
 
 function PhotoIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
