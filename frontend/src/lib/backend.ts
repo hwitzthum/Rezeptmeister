@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 /**
  * Shared utilities for Next.js → FastAPI internal calls.
  * The INTERNAL_SECRET env var gates all backend requests so the FastAPI
@@ -62,4 +63,47 @@ export async function fetchBackendWithRetry(
   } catch {
     return null;
   }
+}
+
+/**
+ * Proxies a POST to the FastAPI AI backend: injects the Gemini key, handles the
+ * 503 (backend unreachable) and non-OK (forwarded detail) cases, and returns
+ * the parsed JSON. Consolidates the identical tail of every /api/ai/* route.
+ */
+export async function proxyAiRequest(
+  path: string,
+  geminiKey: string,
+  payload: unknown,
+  fallbackError: string,
+  timeoutMs?: number,
+): Promise<NextResponse> {
+  const backendRes = await fetchBackendWithRetry(
+    path,
+    {
+      method: "POST",
+      headers: buildAiHeaders(geminiKey),
+      body: JSON.stringify(payload),
+    },
+    timeoutMs,
+  );
+  if (!backendRes) {
+    return NextResponse.json(
+      { error: "Verbindung zum KI-Backend fehlgeschlagen." },
+      { status: 503 },
+    );
+  }
+
+  if (!backendRes.ok) {
+    let detail = fallbackError;
+    try {
+      const err = (await backendRes.json()) as { detail?: string };
+      if (err.detail) detail = err.detail;
+    } catch {
+      /* ignore */
+    }
+    return NextResponse.json({ error: detail }, { status: backendRes.status });
+  }
+
+  const result: unknown = await backendRes.json();
+  return NextResponse.json(result);
 }

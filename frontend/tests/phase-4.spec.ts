@@ -15,7 +15,9 @@ function loadEnvVar(varName: string): string {
   if (process.env[varName]) return process.env[varName]!;
   const envPath = path.resolve(__dirname, "../../.env");
   if (fs.existsSync(envPath)) {
-    const m = fs.readFileSync(envPath, "utf-8").match(new RegExp(`^${varName}=(.+)$`, "m"));
+    const m = fs
+      .readFileSync(envPath, "utf-8")
+      .match(new RegExp(`^${varName}=(.+)$`, "m"));
     if (m) return m[1].trim();
   }
   return "";
@@ -61,7 +63,13 @@ async function createRecipeViaApi(
         servings: 4,
         instructions: "Testanleitung für Playwright.",
         ingredients: [
-          { name: "Mehl", amount: 500, unit: "g", sortOrder: 0, isOptional: false },
+          {
+            name: "Mehl",
+            amount: 500,
+            unit: "g",
+            sortOrder: 0,
+            isOptional: false,
+          },
         ],
         tags: ["test"],
         difficulty: "einfach",
@@ -107,7 +115,9 @@ async function uploadTestImageViaApi(
 // ── Tests: 4.1 Bild-Upload ────────────────────────────────────────────────────
 
 test.describe("4.1 – Bild-Upload", () => {
-  test("API POST /api/images/upload – unauthenticated → 401", async ({ request }) => {
+  test("API POST /api/images/upload – unauthenticated → 401", async ({
+    request,
+  }) => {
     const res = await request.post("/api/images/upload", {
       multipart: {
         file: {
@@ -120,12 +130,21 @@ test.describe("4.1 – Bild-Upload", () => {
     expect(res.status()).toBe(401);
   });
 
-  test("API POST /api/images/upload – falsches Format → 415", async ({ page }) => {
+  test("API POST /api/images/upload – falsches Format → 415", async ({
+    page,
+  }) => {
     await loginAdmin(page);
     const status = await page.evaluate(async () => {
       const fd = new FormData();
-      fd.append("file", new Blob(["hello"], { type: "text/plain" }), "test.txt");
-      const res = await fetch("/api/images/upload", { method: "POST", body: fd });
+      fd.append(
+        "file",
+        new Blob(["hello"], { type: "text/plain" }),
+        "test.txt",
+      );
+      const res = await fetch("/api/images/upload", {
+        method: "POST",
+        body: fd,
+      });
       return res.status;
     });
     expect(status).toBe(415);
@@ -145,26 +164,31 @@ test.describe("4.1 – Bild-Upload", () => {
 
   test("Thumbnail wird unter thumbnailUrl serviert (200 + image/webp)", async ({
     page,
-    request,
   }) => {
     await loginAdmin(page);
     const { thumbnailUrl } = await uploadTestImageViaApi(page);
 
-    const res = await request.get(thumbnailUrl);
+    // page.request teilt die Session-Cookies des eingeloggten Browser-Contexts.
+    // Der eigenständige `request`-Fixture-Context ist cookie-los → die
+    // (korrekt) auth-gated Serving-Route antwortet sonst mit 401.
+    const res = await page.request.get(thumbnailUrl);
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("image/webp");
   });
 
-  test("Original wird unter filePath serviert (200)", async ({ page, request }) => {
+  test("Original wird unter filePath serviert (200)", async ({ page }) => {
     await loginAdmin(page);
     const { filePath } = await uploadTestImageViaApi(page);
 
-    const res = await request.get(filePath);
+    const res = await page.request.get(filePath);
     expect(res.status()).toBe(200);
   });
 
-  test("Datei-Serving mit ungültigem Pfad → 404", async ({ request }) => {
-    const res = await request.get("/api/uploads/originals/nichtvorhanden.jpg");
+  test("Datei-Serving mit ungültigem Pfad → 404", async ({ page }) => {
+    await loginAdmin(page);
+    const res = await page.request.get(
+      "/api/uploads/originals/nichtvorhanden.jpg",
+    );
     expect(res.status()).toBe(404);
   });
 
@@ -173,8 +197,15 @@ test.describe("4.1 – Bild-Upload", () => {
     await loginAdmin(page);
     const status = await page.evaluate(async () => {
       const fd = new FormData();
-      fd.append("file", new Blob(["GIF89a\x01\x00"], { type: "image/gif" }), "anim.gif");
-      const res = await fetch("/api/images/upload", { method: "POST", body: fd });
+      fd.append(
+        "file",
+        new Blob(["GIF89a\x01\x00"], { type: "image/gif" }),
+        "anim.gif",
+      );
+      const res = await fetch("/api/images/upload", {
+        method: "POST",
+        body: fd,
+      });
       return res.status;
     });
     // GIF is not in ALLOWED_MIME → 415
@@ -269,7 +300,6 @@ test.describe("4.2 – Bilder verwalten", () => {
 
   test("DELETE /api/images/[id] → 204 und Thumbnail danach 404", async ({
     page,
-    request,
   }) => {
     await loginAdmin(page);
     const { id: imageId, thumbnailUrl } = await uploadTestImageViaApi(page);
@@ -281,8 +311,8 @@ test.describe("4.2 – Bilder verwalten", () => {
     }, imageId);
     expect(deleteStatus).toBe(204);
 
-    // Thumbnail nicht mehr vorhanden
-    const thumbRes = await request.get(thumbnailUrl);
+    // Thumbnail nicht mehr vorhanden (authentifiziert via page.request, sonst 401)
+    const thumbRes = await page.request.get(thumbnailUrl);
     expect(thumbRes.status()).toBe(404);
   });
 
@@ -308,11 +338,14 @@ test.describe("4.2 – Bilder verwalten", () => {
     await loginAdmin(page);
     // Try to PATCH with a nonexistent ID
     const status = await page.evaluate(async () => {
-      const res = await fetch("/api/images/00000000-0000-0000-0000-000000000000", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ altText: "test" }),
-      });
+      const res = await fetch(
+        "/api/images/00000000-0000-0000-0000-000000000000",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ altText: "test" }),
+        },
+      );
       return res.status;
     });
     expect([403, 404]).toContain(status);
@@ -326,7 +359,9 @@ test.describe("4.3 – UI", () => {
     await loginAdmin(page);
     await page.goto("/bilder");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: "Bildergalerie" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Bildergalerie" }),
+    ).toBeVisible();
   });
 
   test("Rezeptdetailseite zeigt Bilder-Sektion", async ({ page }) => {

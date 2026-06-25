@@ -16,7 +16,9 @@ function loadEnvVar(varName: string): string {
   if (process.env[varName]) return process.env[varName]!;
   const envPath = path.resolve(__dirname, "../../.env");
   if (fs.existsSync(envPath)) {
-    const m = fs.readFileSync(envPath, "utf-8").match(new RegExp(`^${varName}=(.+)$`, "m"));
+    const m = fs
+      .readFileSync(envPath, "utf-8")
+      .match(new RegExp(`^${varName}=(.+)$`, "m"));
     if (m) return m[1].trim();
   }
   return "";
@@ -54,7 +56,9 @@ async function registerUser(
 test.describe("2.1 – Registrierung & Login", () => {
   test("Registrierungsseite lädt korrekt", async ({ page }) => {
     await page.goto("/auth/registrieren");
-    await expect(page.getByRole("heading", { name: "Konto erstellen" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Konto erstellen" }),
+    ).toBeVisible();
     await expect(page.getByLabel(/Name/)).toBeVisible();
     await expect(page.getByLabel(/E-Mail/)).toBeVisible();
   });
@@ -72,9 +76,10 @@ test.describe("2.1 – Registrierung & Login", () => {
     await page.locator("#password").fill("wrongpassword");
     await page.getByRole("button", { name: "Anmelden" }).click();
     // Exclude Next.js route announcer (also has role="alert") — use specific class
-    await expect(
-      page.locator('[role="alert"].text-red-700'),
-    ).toContainText(/Ungültige/i, { timeout: 8_000 });
+    await expect(page.locator('[role="alert"].text-red-700')).toContainText(
+      /Ungültige/i,
+      { timeout: 8_000 },
+    );
   });
 
   test("API: Registrierung → 201 status=pending", async ({ request }) => {
@@ -85,11 +90,16 @@ test.describe("2.1 – Registrierung & Login", () => {
     expect(body.message).toMatch(/Registrierung erfolgreich/i);
   });
 
-  test("API: Doppelte Registrierung → 409", async ({ request }) => {
+  test("API: Doppelte Registrierung → 201 (Anti-Enumeration)", async ({
+    request,
+  }) => {
     const email = testEmail("dup");
     await registerUser(request, email);
+    // Anti-Enumeration: eine zweite Registrierung derselben Adresse liefert
+    // bewusst dieselbe 201-Antwort wie eine neue — ein 409 würde leaken, dass
+    // die E-Mail bereits existiert.
     const res = await registerUser(request, email);
-    expect(res.status()).toBe(409);
+    expect(res.status()).toBe(201);
   });
 
   test("API: Zu kurzes Passwort → 400", async ({ request }) => {
@@ -163,11 +173,14 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await expect(page).toHaveURL(/\/auth\/anmelden/);
   });
 
-  test("API GET /api/admin/users – unauthenticated → 403", async ({
+  test("API GET /api/admin/users – unauthenticated → 401", async ({
     request,
   }) => {
+    // Unauthenticated requests are rejected by the auth middleware with 401
+    // before they ever reach the route (whose own 403 is for authenticated
+    // non-admin users). 401 is the correct status for "not authenticated".
     const res = await request.get("/api/admin/users");
-    expect(res.status()).toBe(403);
+    expect(res.status()).toBe(401);
   });
 
   test("Admin sieht pending Benutzer und kann freigeben", async ({
@@ -188,7 +201,9 @@ test.describe("2.2 – Admin-Dashboard", () => {
     // Go to admin and wait for dashboard to fully render
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: "Benutzerverwaltung" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Benutzerverwaltung" }),
+    ).toBeVisible();
 
     // Switch to "Ausstehend" filter
     await page.getByRole("button", { name: "Ausstehend" }).click();
@@ -202,11 +217,15 @@ test.describe("2.2 – Admin-Dashboard", () => {
     await approveBtn.click();
 
     // Toast confirms action
-    await expect(page.getByRole("status")).toContainText(/aktualisiert/i, { timeout: 8_000 });
+    await expect(page.getByRole("status")).toContainText(/aktualisiert/i, {
+      timeout: 8_000,
+    });
 
     // Verify the user's status changed in the API (same session, no sign-out needed)
     const statusRes = await page.evaluate(async (userEmail: string) => {
-      const res = await fetch(`/api/admin/users?q=${encodeURIComponent(userEmail)}&status=approved`);
+      const res = await fetch(
+        `/api/admin/users?q=${encodeURIComponent(userEmail)}&status=approved`,
+      );
       const data = await res.json();
       return { status: res.status, count: data.users?.length ?? 0 };
     }, email);
@@ -231,7 +250,9 @@ test.describe("2.2 – Admin-Dashboard", () => {
     const userRow = page.locator("tr").filter({ hasText: email });
     await expect(userRow).toBeVisible({ timeout: 8_000 });
     await userRow.locator('[title="Ablehnen"]').click();
-    await expect(page.getByRole("status")).toContainText(/aktualisiert/i, { timeout: 8_000 });
+    await expect(page.getByRole("status")).toContainText(/aktualisiert/i, {
+      timeout: 8_000,
+    });
   });
 
   test("Suchfilter funktioniert", async ({ page }) => {
@@ -244,12 +265,12 @@ test.describe("2.2 – Admin-Dashboard", () => {
 
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
-    await page
-      .getByPlaceholder(/Name oder E-Mail/)
-      .fill(ADMIN_EMAIL);
+    await page.getByPlaceholder(/Name oder E-Mail/).fill(ADMIN_EMAIL);
 
     // Admin row should appear
-    await expect(page.locator("td").filter({ hasText: ADMIN_EMAIL })).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page.locator("td").filter({ hasText: ADMIN_EMAIL }),
+    ).toBeVisible({ timeout: 8_000 });
   });
 });
 
@@ -267,8 +288,12 @@ test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
   test("Einstellungsseite lädt korrekt", async ({ page }) => {
     await loginAdmin(page);
     await page.goto("/einstellungen");
-    await expect(page.getByRole("heading", { name: "Einstellungen" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "KI-API-Schlüssel" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Einstellungen" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "KI-API-Schlüssel" }),
+    ).toBeVisible();
   });
 
   test("Einstellungsseite zeigt API-Schlüssel-Status", async ({ page }) => {
@@ -276,7 +301,9 @@ test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
     await page.goto("/einstellungen");
     await page.waitForLoadState("networkidle");
     // Either "KI-Funktionen sind deaktiviert." span (no key) or "gespeichert" in green status (has key)
-    const noKey = page.locator("span.text-terra-600", { hasText: "KI-Funktionen sind deaktiviert." });
+    const noKey = page.locator("span.text-terra-600", {
+      hasText: "KI-Funktionen sind deaktiviert.",
+    });
     const hasKey = page.locator(".bg-green-50", { hasText: "gespeichert" });
     await expect(noKey.or(hasKey)).toBeVisible({ timeout: 8_000 });
   });
@@ -299,7 +326,9 @@ test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
     await page.getByRole("button", { name: /Schlüssel speichern/ }).click();
 
     // Success feedback (role="status" in the form)
-    await expect(page.getByRole("status")).toContainText(/gespeichert/i, { timeout: 8_000 });
+    await expect(page.getByRole("status")).toContainText(/gespeichert/i, {
+      timeout: 8_000,
+    });
   });
 
   test("API PUT /api/settings/api-key – nicht angemeldet → 401", async ({

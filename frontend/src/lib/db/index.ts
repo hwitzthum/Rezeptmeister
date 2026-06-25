@@ -18,19 +18,17 @@ function getDb() {
     );
   }
 
+  // Cache the client/db singleton on globalThis in ALL environments. Under
+  // serverless (Vercel) globalThis persists across invocations on a warm
+  // instance, so this lets connections be reused instead of opening a fresh
+  // pool per invocation — which otherwise exhausts Postgres connections.
   const client =
     globalForDb.pgClient ??
     postgres(url, { max: 10, idle_timeout: 30, connect_timeout: 10 });
+  globalForDb.pgClient = client;
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.pgClient = client;
-  }
-
-  const instance = drizzle(client, { schema });
-
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.db = instance;
-  }
+  const instance = globalForDb.db ?? drizzle(client, { schema });
+  globalForDb.db = instance;
 
   return instance;
 }

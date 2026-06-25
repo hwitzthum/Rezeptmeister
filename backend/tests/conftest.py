@@ -57,11 +57,15 @@ import os
 import pathlib
 import pytest
 
+# Muss >= 32 Zeichen sein, sonst lehnt der Validator in app.config (check_internal_secret)
+# die Settings-Instanziierung ab und app.main kann nicht importiert werden.
+TEST_INTERNAL_SECRET = "a" * 32
+
 
 @pytest.fixture(autouse=True)
 def _set_internal_secret(monkeypatch):
     """Setzt INTERNAL_SECRET fuer alle Tests, da die Middleware jetzt fail-closed ist."""
-    monkeypatch.setenv("INTERNAL_SECRET", "test-secret")
+    monkeypatch.setenv("INTERNAL_SECRET", TEST_INTERNAL_SECRET)
     from app.config import get_settings
     get_settings.cache_clear()
     yield

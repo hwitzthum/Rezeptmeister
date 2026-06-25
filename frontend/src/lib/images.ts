@@ -32,13 +32,11 @@ export const EXT_TO_MIME: Record<string, string> = {
 export const UPLOAD_API_PREFIX = "/api/uploads";
 
 /**
- * Derives the thumbnail API URL from a stored filePath.
- * filePath: /api/uploads/originals/uuid.jpg → /api/uploads/thumbnails/uuid.webp
- *
- * Also normalises legacy paths stored without leading /api/uploads/ prefix
+ * Normalises a DB-stored image path to a leading-slash, /api/uploads-prefixed
+ * form. Handles legacy paths stored without the /api/uploads/ prefix
  * (e.g. "uploads/originals/..." from older AI-generated images).
  */
-export function thumbnailUrl(filePath: string): string {
+function normalizeImagePath(filePath: string): string {
   let normalised = filePath;
   if (!normalised.startsWith("/")) {
     normalised = `/${normalised}`;
@@ -46,7 +44,15 @@ export function thumbnailUrl(filePath: string): string {
   if (normalised.startsWith("/uploads/")) {
     normalised = `/api${normalised}`;
   }
-  return normalised
+  return normalised;
+}
+
+/**
+ * Derives the thumbnail API URL from a stored filePath.
+ * filePath: /api/uploads/originals/uuid.jpg → /api/uploads/thumbnails/uuid.webp
+ */
+export function thumbnailUrl(filePath: string): string {
+  return normalizeImagePath(filePath)
     .replace("/originals/", "/thumbnails/")
     .replace(/\.(jpg|jpeg|png|webp)$/i, ".webp");
 }
@@ -56,14 +62,7 @@ export function thumbnailUrl(filePath: string): string {
  * Handles legacy paths stored without the /api/uploads/ prefix.
  */
 export function normaliseImageSrc(filePath: string): string {
-  let normalised = filePath;
-  if (!normalised.startsWith("/")) {
-    normalised = `/${normalised}`;
-  }
-  if (normalised.startsWith("/uploads/")) {
-    normalised = `/api${normalised}`;
-  }
-  return normalised;
+  return normalizeImagePath(filePath);
 }
 
 /**

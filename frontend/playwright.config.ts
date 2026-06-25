@@ -23,6 +23,13 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       DISABLE_RATE_LIMIT: "true",
+      // The test server listens on 3002, but .env.local pins NEXTAUTH_URL to the
+      // normal dev port (3001). Without this override, the auth middleware
+      // redirects unauthenticated requests to localhost:3001 — which isn't
+      // running during a standalone test run — so every redirect-based test
+      // fails with ERR_CONNECTION_REFUSED. Align the auth origin with the test
+      // port so redirects stay same-origin and reachable.
+      NEXTAUTH_URL: "http://localhost:3002",
     },
   },
 });

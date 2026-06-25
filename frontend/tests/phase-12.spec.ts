@@ -124,9 +124,9 @@ test.describe("Phase 12 -- Sammlungen", () => {
     });
 
     await page.getByTestId("create-collection-button").click();
-    await expect(
-      page.getByTestId("collection-name-input"),
-    ).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByTestId("collection-name-input")).toBeVisible({
+      timeout: 3_000,
+    });
 
     const collectionName = `Testsammlung-${RUN_ID}`;
     await page.getByTestId("collection-name-input").fill(collectionName);
@@ -152,9 +152,9 @@ test.describe("Phase 12 -- Sammlungen", () => {
     // Create first
     const collectionName = `Edit-${RUN_ID}`;
     await page.getByTestId("create-collection-button").click();
-    await expect(
-      page.getByTestId("collection-name-input"),
-    ).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByTestId("collection-name-input")).toBeVisible({
+      timeout: 3_000,
+    });
     await page.getByTestId("collection-name-input").fill(collectionName);
     await page.getByTestId("collection-save-button").click();
     await expect(page.getByText(collectionName)).toBeVisible({
@@ -185,9 +185,9 @@ test.describe("Phase 12 -- Sammlungen", () => {
     // Create
     const collectionName = `Delete-${RUN_ID}`;
     await page.getByTestId("create-collection-button").click();
-    await expect(
-      page.getByTestId("collection-name-input"),
-    ).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByTestId("collection-name-input")).toBeVisible({
+      timeout: 3_000,
+    });
     await page.getByTestId("collection-name-input").fill(collectionName);
     await page.getByTestId("collection-save-button").click();
     await expect(page.getByText(collectionName)).toBeVisible({
@@ -197,12 +197,12 @@ test.describe("Phase 12 -- Sammlungen", () => {
     // Hover and click delete
     const card = page.getByText(collectionName).first();
     await card.hover();
-    await page.getByRole("button", { name: "Loeschen" }).first().click();
+    await page.getByRole("button", { name: "Löschen" }).first().click();
 
     // Wait for confirm dialog and click its confirm button
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 3_000 });
-    await dialog.getByRole("button", { name: "Loeschen" }).click();
+    await dialog.getByRole("button", { name: "Löschen" }).click();
 
     // Wait for dialog to close, then verify card is gone
     await expect(dialog).not.toBeVisible({ timeout: 5_000 });
@@ -242,9 +242,9 @@ test.describe("Phase 12 -- Sammlungen", () => {
     });
 
     // Recipe listed
-    await expect(
-      page.getByTestId(`collection-recipe-${recipeId}`),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId(`collection-recipe-${recipeId}`)).toBeVisible(
+      { timeout: 5_000 },
+    );
   });
 
   // 12.6 -- Rezept aus Sammlung entfernen
@@ -271,20 +271,18 @@ test.describe("Phase 12 -- Sammlungen", () => {
     await expect(page.getByTestId("collection-detail-page")).toBeVisible({
       timeout: 8_000,
     });
-    await expect(
-      page.getByTestId(`collection-recipe-${recipeId}`),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId(`collection-recipe-${recipeId}`)).toBeVisible(
+      { timeout: 5_000 },
+    );
 
     // Remove
     const recipeCard = page.getByTestId(`collection-recipe-${recipeId}`);
     await recipeCard.hover();
-    await page
-      .getByTestId(`remove-recipe-button-${recipeId}`)
-      .click();
+    await page.getByTestId(`remove-recipe-button-${recipeId}`).click();
 
     // Empty state
     await expect(
-      page.getByText("Diese Sammlung enthaelt noch keine Rezepte."),
+      page.getByText("Diese Sammlung enthält noch keine Rezepte."),
     ).toBeVisible({ timeout: 5_000 });
   });
 
@@ -352,20 +350,20 @@ test.describe("Phase 12 -- Sammlungen", () => {
       const res = await fetch("/api/collections");
       return {
         status: res.status,
-        data: await res.json() as { collections: { id: string }[] },
+        data: (await res.json()) as { collections: { id: string }[] },
       };
     });
     expect(listResult.status).toBe(200);
-    expect(
-      listResult.data.collections.some((c) => c.id === collId),
-    ).toBe(true);
+    expect(listResult.data.collections.some((c) => c.id === collId)).toBe(true);
 
     // READ detail
     const detailResult = await page.evaluate(async (id: string) => {
       const res = await fetch(`/api/collections/${id}`);
       return {
         status: res.status,
-        data: await res.json() as { collection: { id: string; name: string } },
+        data: (await res.json()) as {
+          collection: { id: string; name: string };
+        },
       };
     }, collId);
     expect(detailResult.status).toBe(200);
@@ -380,7 +378,7 @@ test.describe("Phase 12 -- Sammlungen", () => {
       });
       return {
         status: res.status,
-        data: await res.json() as { name: string },
+        data: (await res.json()) as { name: string },
       };
     }, collId);
     expect(updateResult.status).toBe(200);
@@ -393,7 +391,7 @@ test.describe("Phase 12 -- Sammlungen", () => {
       });
       return {
         status: res.status,
-        data: await res.json() as { success: boolean },
+        data: (await res.json()) as { success: boolean },
       };
     }, collId);
     expect(deleteResult.status).toBe(200);

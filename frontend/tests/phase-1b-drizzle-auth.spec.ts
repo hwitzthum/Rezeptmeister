@@ -15,22 +15,28 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Phase 1.2 – Drizzle ORM Schema", () => {
   test("Schema-Datei exportiert alle 9 Kerntabellen", async ({ request }) => {
-    // Indirekter Test: /api/health lädt erfolgreich (importiert db-Modul)
+    // Indirekter Test: /api/health lädt erfolgreich (importiert das db-Modul,
+    // das alle Schema-Tabellen einbindet). Der Endpoint ist öffentlich und
+    // liefert bewusst nur einen Aggregat-Status (keine Detail-Checks, um keine
+    // Konfigurationsdetails an unauthentifizierte Probes zu leaken).
     const res = await request.get("/api/health");
-    // Auch ohne DB muss die Route ohne Crash antworten
-    expect([200, 503]).toContain(res.status());
+    expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body).toHaveProperty("status");
-    expect(body).toHaveProperty("checks");
-    expect(body.checks.app).toBe("ok");
+    expect(["ok", "degraded"]).toContain(body.status);
   });
 
-  test("NEXTAUTH_SECRET ist im Build gesetzt (env_nextauth_secret: ok)", async ({
+  test("NEXTAUTH_SECRET ist gesetzt (CSRF-Token wird ausgestellt)", async ({
     request,
   }) => {
-    const res = await request.get("/api/health");
+    // Der Health-Endpoint exponiert aus Sicherheitsgründen keine Env-Checks
+    // mehr. NextAuth stellt nur dann ein gültiges CSRF-Token aus, wenn
+    // NEXTAUTH_SECRET gesetzt ist — das ist der funktionale Nachweis.
+    const res = await request.get("/api/auth/csrf");
+    expect(res.status()).toBe(200);
     const body = await res.json();
-    expect(body.checks.env_nextauth_secret).toBe("ok");
+    expect(typeof body.csrfToken).toBe("string");
+    expect(body.csrfToken.length).toBeGreaterThan(10);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui";
 import { SWISS_UNITS } from "@/lib/units";
 import toast from "react-hot-toast";
@@ -31,21 +31,28 @@ export default function ShoppingListClient({ initialItems }: Props) {
   const [amount, setAmount] = useState("");
   const [unit, setUnit] = useState("");
   const [adding, setAdding] = useState(false);
-  const [collapsedAisles, setCollapsedAisles] = useState<Set<string>>(new Set());
+  const [collapsedAisles, setCollapsedAisles] = useState<Set<string>>(
+    new Set(),
+  );
 
   // -- Derived values ------------------------------------------------------
 
   const uncheckedCount = items.filter((i) => !i.isChecked).length;
 
-  // Group items by aisle category
-  const grouped = items.reduce<Record<string, ShoppingItem[]>>((acc, item) => {
-    const cat = item.aisleCategory ?? "Sonstiges";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
-    return acc;
-  }, {});
-
-  const aisleKeys = Object.keys(grouped).sort();
+  // Group items by aisle category. Memoised so unrelated state changes (e.g.
+  // the add-item form fields) don't re-run the reduce + sort on every render.
+  const { grouped, aisleKeys } = useMemo(() => {
+    const grouped = items.reduce<Record<string, ShoppingItem[]>>(
+      (acc, item) => {
+        const cat = item.aisleCategory ?? "Sonstiges";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(item);
+        return acc;
+      },
+      {},
+    );
+    return { grouped, aisleKeys: Object.keys(grouped).sort() };
+  }, [items]);
 
   // -- Handlers ------------------------------------------------------------
 
@@ -103,17 +110,22 @@ export default function ShoppingListClient({ initialItems }: Props) {
     }
   }, []);
 
-  const handleDelete = useCallback(async (id: string) => {
-    const prev = items;
-    setItems((cur) => cur.filter((i) => i.id !== id));
-    try {
-      const res = await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-    } catch {
-      setItems(prev);
-      toast.error("Eintrag konnte nicht gelöscht werden.");
-    }
-  }, [items]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      const prev = items;
+      setItems((cur) => cur.filter((i) => i.id !== id));
+      try {
+        const res = await fetch(`/api/shopping-list/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error();
+      } catch {
+        setItems(prev);
+        toast.error("Eintrag konnte nicht gelöscht werden.");
+      }
+    },
+    [items],
+  );
 
   const handleCheckAll = useCallback(async () => {
     setItems((prev) => prev.map((i) => ({ ...i, isChecked: true })));
@@ -170,14 +182,15 @@ export default function ShoppingListClient({ initialItems }: Props) {
   // -- Render --------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]" data-testid="shopping-list-page">
+    <div
+      className="min-h-screen bg-[var(--bg-base)]"
+      data-testid="shopping-list-page"
+    >
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1
-              className="text-xl font-bold text-[var(--text-primary)]"
-            >
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
               Einkaufsliste
             </h1>
             <span
@@ -296,9 +309,7 @@ export default function ShoppingListClient({ initialItems }: Props) {
               aria-expanded={!collapsedAisles.has(aisle)}
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--bg-base)]/50 transition-colors"
             >
-              <span
-                className="text-sm font-semibold text-[var(--text-primary)] font-display"
-              >
+              <span className="text-sm font-semibold text-[var(--text-primary)] font-display">
                 {aisle}
               </span>
               <svg
@@ -338,9 +349,19 @@ export default function ShoppingListClient({ initialItems }: Props) {
                           ? "bg-terra-500 border-terra-500 text-white"
                           : "border-warm-300 text-transparent hover:border-terra-300"
                       }`}
-                      style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        minWidth: 44,
+                        minHeight: 44,
+                      }}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -353,13 +374,17 @@ export default function ShoppingListClient({ initialItems }: Props) {
                     {/* Name + amount */}
                     <div
                       className={`flex-1 min-w-0 ${
-                        item.isChecked ? "line-through text-[var(--text-muted)]" : "text-[var(--text-primary)]"
+                        item.isChecked
+                          ? "line-through text-[var(--text-muted)]"
+                          : "text-[var(--text-primary)]"
                       }`}
                     >
                       <span className="text-sm font-medium">
                         {item.amount ? `${item.amount}` : ""}
-                        {item.amount && item.unit ? ` ${item.unit}` : item.unit ?? ""}
-                        {(item.amount || item.unit) ? " " : ""}
+                        {item.amount && item.unit
+                          ? ` ${item.unit}`
+                          : (item.unit ?? "")}
+                        {item.amount || item.unit ? " " : ""}
                         {item.ingredientName}
                       </span>
                     </div>
@@ -372,7 +397,12 @@ export default function ShoppingListClient({ initialItems }: Props) {
                       className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                       aria-label={`${item.ingredientName} löschen`}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"

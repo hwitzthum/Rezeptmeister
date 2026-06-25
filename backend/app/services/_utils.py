@@ -5,6 +5,8 @@ Gemeinsame Hilfsfunktionen für KI-Services.
 import mimetypes
 import os
 import tempfile
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
 import httpx
 from google import genai
@@ -44,16 +46,22 @@ def safe_image_path(file_path: str, upload_dir: str) -> str:
     return resolved
 
 
-async def resolve_image_path(file_path: str, upload_dir: str) -> str:
+@asynccontextmanager
+async def resolved_image_path(file_path: str, upload_dir: str) -> AsyncIterator[str]:
     """
-    Resolves a DB-stored file_path to an actual file on disk.
-    1. Tries local filesystem first (for dev).
-    2. If not found, downloads from Supabase Storage to a temp file.
+    Async context manager that yields an on-disk path to the image.
+
+    1. Tries the local filesystem first (for dev) and yields it unchanged.
+    2. If not found, downloads from Supabase Storage to a temp file, yields
+       that path, and deletes the temp file on exit.
+
+    Local files are never deleted — only the temp files this function creates.
     Raises FileNotFoundError if the image cannot be resolved.
     """
     local_path = safe_image_path(file_path, upload_dir)
     if os.path.exists(local_path):
-        return local_path
+        yield local_path
+        return
 
     # Download from Supabase Storage
     settings = get_settings()
@@ -73,9 +81,15 @@ async def resolve_image_path(file_path: str, upload_dir: str) -> str:
 
     ext = os.path.splitext(filename)[1] or ".jpg"
     tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
-    tmp.write(resp.content)
-    tmp.close()
-    return tmp.name
+    try:
+        tmp.write(resp.content)
+        tmp.close()
+        yield tmp.name
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
 
 def get_gemini_client(api_key: str) -> genai.Client:

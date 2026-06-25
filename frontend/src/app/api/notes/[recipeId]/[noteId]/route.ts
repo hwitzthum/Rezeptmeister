@@ -66,16 +66,22 @@ export async function PUT(
   if (parsed.data.rating !== undefined) updates.rating = parsed.data.rating ?? null;
 
   try {
+    // Mirror the DELETE handler: admins may edit any note (filter by noteId
+    // only), non-admins are restricted to their own. Without this, an admin
+    // editing a foreign note matched zero rows and silently returned 200.
     const [updated] = await db
       .update(recipeNotes)
       .set(updates)
       .where(
-        and(
-          eq(recipeNotes.id, noteId),
-          eq(recipeNotes.userId, session.user.id),
-        ),
+        session.user.role === USER_ROLE.admin
+          ? eq(recipeNotes.id, noteId)
+          : and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)),
       )
       .returning();
+
+    if (!updated) {
+      return NextResponse.json({ error: "Notiz nicht gefunden." }, { status: 404 });
+    }
 
     return NextResponse.json(updated);
   } catch (err) {

@@ -8,6 +8,7 @@ POST /ai/scale-recipe     – Rezept auf Portionsgrösse skalieren (mit Gemini-H
 POST /ai/nutrition        – Nährwertberechnung pro Portion
 """
 
+import asyncio
 import io
 import logging
 import uuid
@@ -31,6 +32,41 @@ from app.services.ocr_service import OcrResult
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["AI"])
 settings = get_settings()
+
+
+def _process_generated_image(
+    image_bytes: bytes, thumbnail_size: tuple[int, int]
+) -> tuple[bytes, bytes, int, int, int]:
+    """
+    CPU-gebundene PIL-Verarbeitung: dekodiert das Bild und kodiert Original
+    sowie 300×300-Thumbnail als WebP. Läuft via asyncio.to_thread im
+    Thread-Pool, um den Event-Loop nicht zu blockieren.
+
+    Gibt (orig_bytes, thumb_bytes, file_size, width, height) zurück.
+    """
+    img = PilImage.open(io.BytesIO(image_bytes)).convert("RGB")
+    file_size = len(image_bytes)
+    width, height = img.size
+
+    # Original als WebP-Bytes
+    orig_buf = io.BytesIO()
+    img.save(orig_buf, format="WEBP", quality=90)
+    orig_bytes = orig_buf.getvalue()
+
+    # Thumbnail 300×300
+    thumb = img.copy()
+    thumb.thumbnail(thumbnail_size, PilImage.LANCZOS)
+    thumb_square = PilImage.new("RGB", thumbnail_size, (255, 255, 255))
+    offset = (
+        (thumbnail_size[0] - thumb.width) // 2,
+        (thumbnail_size[1] - thumb.height) // 2,
+    )
+    thumb_square.paste(thumb, offset)
+    thumb_buf = io.BytesIO()
+    thumb_square.save(thumb_buf, format="WEBP", quality=85)
+    thumb_bytes = thumb_buf.getvalue()
+
+    return orig_bytes, thumb_bytes, file_size, width, height
 
 
 # ── /ai/suggest ────────────────────────────────────────────────────────────────
@@ -230,29 +266,14 @@ async def generate_image(
     original_filename = f"{file_stem}.webp"
     thumbnail_filename = f"{file_stem}.webp"
 
-    # Mit Pillow verarbeiten: Original als WebP, Thumbnail 300×300
+    # Mit Pillow verarbeiten: Original als WebP, Thumbnail 300×300.
+    # CPU-gebundene PIL-Arbeit läuft im Thread-Pool, sonst blockiert das
+    # WebP-Encoding/LANCZOS-Resize den einzigen Event-Loop für ~0,5-2 s und
+    # stallt alle anderen Requests mit.
     try:
-        img = PilImage.open(io.BytesIO(image_bytes)).convert("RGB")
-        file_size = len(image_bytes)
-        width, height = img.size
-
-        # Original als WebP-Bytes
-        orig_buf = io.BytesIO()
-        img.save(orig_buf, format="WEBP", quality=90)
-        orig_bytes = orig_buf.getvalue()
-
-        # Thumbnail 300×300
-        thumb = img.copy()
-        thumb.thumbnail(settings.thumbnail_size, PilImage.LANCZOS)
-        thumb_square = PilImage.new("RGB", settings.thumbnail_size, (255, 255, 255))
-        offset = (
-            (settings.thumbnail_size[0] - thumb.width) // 2,
-            (settings.thumbnail_size[1] - thumb.height) // 2,
+        orig_bytes, thumb_bytes, file_size, width, height = await asyncio.to_thread(
+            _process_generated_image, image_bytes, settings.thumbnail_size
         )
-        thumb_square.paste(thumb, offset)
-        thumb_buf = io.BytesIO()
-        thumb_square.save(thumb_buf, format="WEBP", quality=85)
-        thumb_bytes = thumb_buf.getvalue()
     except Exception as e:
         logger.error(f"Bild-Verarbeitung-Fehler: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Bild konnte nicht verarbeitet werden.")

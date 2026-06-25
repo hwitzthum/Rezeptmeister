@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { buildAiHeaders, fetchBackendWithRetry } from "@/lib/backend";
+import { proxyAiRequest } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
@@ -63,27 +63,10 @@ export async function POST(request: Request) {
   if (!keyResult.ok) return keyResult.response;
   const geminiKey = keyResult.key;
 
-  const backendRes = await fetchBackendWithRetry("/ai/generate-image", {
-    method: "POST",
-    headers: buildAiHeaders(geminiKey),
-    body: JSON.stringify({ ...parsed.data, user_id: session.user.id }),
-  });
-  if (!backendRes) {
-    return NextResponse.json(
-      { error: "Verbindung zum KI-Backend fehlgeschlagen." },
-      { status: 503 },
-    );
-  }
-
-  if (!backendRes.ok) {
-    let detail = "Bild konnte nicht generiert werden.";
-    try {
-      const err = (await backendRes.json()) as { detail?: string };
-      if (err.detail) detail = err.detail;
-    } catch { /* ignore */ }
-    return NextResponse.json({ error: detail }, { status: backendRes.status });
-  }
-
-  const result: unknown = await backendRes.json();
-  return NextResponse.json(result);
+  return proxyAiRequest(
+    "/ai/generate-image",
+    geminiKey,
+    { ...parsed.data, user_id: session.user.id },
+    "Bild konnte nicht generiert werden.",
+  );
 }

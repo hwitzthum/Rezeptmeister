@@ -30,7 +30,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger JSON-Body." },
+      { status: 400 },
+    );
   }
 
   const parsed = batchMissingSchema.safeParse(body);
@@ -49,7 +52,10 @@ export async function POST(request: Request) {
     columns: { id: true },
   });
   if (!recipe) {
-    return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Rezept nicht gefunden." },
+      { status: 404 },
+    );
   }
 
   // Fetch non-optional recipe ingredients
@@ -58,14 +64,21 @@ export async function POST(request: Request) {
   });
 
   // Filter to only missing ingredients (exact normalized match, not substring)
-  const missingIngredients = filterMissingIngredients(recipeIngredients, availableIngredients);
+  const missingIngredients = filterMissingIngredients(
+    recipeIngredients,
+    availableIngredients,
+  );
 
   if (missingIngredients.length === 0) {
     const totalResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(shoppingListItems)
       .where(eq(shoppingListItems.userId, session.user.id));
-    return NextResponse.json({ added: 0, merged: 0, total: totalResult[0]?.count ?? 0 });
+    return NextResponse.json({
+      added: 0,
+      merged: 0,
+      total: totalResult[0]?.count ?? 0,
+    });
   }
 
   // Transactional upsert: each item is queried fresh inside the tx to
@@ -93,7 +106,9 @@ export async function POST(request: Request) {
 
       if (existing) {
         // Merge: sum amounts if both are numeric
-        const existingAmount = existing.amount ? parseFloat(existing.amount) : null;
+        const existingAmount = existing.amount
+          ? parseFloat(existing.amount)
+          : null;
         const newAmount = ing.amount ? parseFloat(ing.amount) : null;
 
         if (existingAmount != null && newAmount != null) {
@@ -101,6 +116,13 @@ export async function POST(request: Request) {
           await tx
             .update(shoppingListItems)
             .set({ amount: String(summed) })
+            .where(eq(shoppingListItems.id, existing.id));
+        } else if (existingAmount == null && newAmount != null) {
+          // Existing row had no amount yet — adopt the incoming amount instead
+          // of silently dropping it.
+          await tx
+            .update(shoppingListItems)
+            .set({ amount: String(newAmount) })
             .where(eq(shoppingListItems.id, existing.id));
         }
         txMerged++;

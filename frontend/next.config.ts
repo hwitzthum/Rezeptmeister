@@ -10,6 +10,12 @@ const supabaseHostname = process.env.SUPABASE_URL
   ? new URL(process.env.SUPABASE_URL).hostname
   : "placeholder.supabase.co";
 
+// React/Next.js in dev mode evaluates code via eval() (Fast Refresh, source-map
+// reconstruction), which a CSP without 'unsafe-eval' blocks — surfacing as a
+// console error on every page. Relax script-src ONLY in development; the
+// production policy stays strict.
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
@@ -56,7 +62,10 @@ const nextConfig: NextConfig = {
               // Next.js App Router requires 'unsafe-inline' for inline hydration scripts.
               // Nonce-based CSP (strict-dynamic) would eliminate this but requires
               // per-request nonce injection via middleware. Track in security backlog.
-              "script-src 'self' 'unsafe-inline'",
+              // 'unsafe-eval' is added in development only (see isDev above).
+              isDev
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+                : "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               `img-src 'self' data: blob: https://${supabaseHostname}`,
               `connect-src 'self' https://${supabaseHostname}`,

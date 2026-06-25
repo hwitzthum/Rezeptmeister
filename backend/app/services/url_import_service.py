@@ -314,7 +314,10 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
             redirect_count += 1
         response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    # Parsing ist synchron CPU-gebunden (großer DOM → 100-500 ms); im Thread-Pool
+    # ausführen, damit der Event-Loop nicht blockiert und gleichzeitige Importe
+    # nicht serialisieren.
+    soup = await asyncio.to_thread(BeautifulSoup, response.text, "html.parser")
 
     # JSON-LD zuerst versuchen
     for script in soup.find_all("script", type="application/ld+json"):
@@ -345,7 +348,9 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
 
     # Fallback: Seitentext an Gemini Flash
     logger.info(f"Kein JSON-LD gefunden – Fallback auf Gemini-Textextraktion für {url}")
-    page_text = soup.get_text(separator="\n", strip=True)[:8000]
+    page_text = (
+        await asyncio.to_thread(soup.get_text, separator="\n", strip=True)
+    )[:8000]
     prompt = (
         "Extrahiere das Rezept aus diesem Webseitentext auf Deutsch "
         "(Schweizer Masseinheiten verwenden: g, kg, ml, dl, l, EL, TL, KL, Msp., Prise, Stk., Bund, Pkg.).\n\n"

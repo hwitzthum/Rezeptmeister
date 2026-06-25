@@ -7,6 +7,7 @@ ruft den OCR-Service auf. Der API-Schlüssel kommt vom Next.js-Proxy als Header.
 import logging
 from uuid import UUID
 
+import httpx
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
@@ -51,7 +52,10 @@ async def ocr_extract(
         raise HTTPException(status_code=403, detail="Nicht autorisiert.")
 
     try:
-        image_path = await _utils.resolve_image_path(image.file_path, get_settings().upload_dir)
+        async with _utils.resolved_image_path(
+            image.file_path, get_settings().upload_dir
+        ) as image_path:
+            result = await extract_recipes_from_image(image_path, x_gemini_api_key)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiger Dateipfad.")
     except FileNotFoundError:
@@ -59,14 +63,11 @@ async def ocr_extract(
             status_code=422,
             detail="Bilddatei nicht gefunden. Das Bild wurde möglicherweise gelöscht.",
         )
-
-    try:
-        result = await extract_recipes_from_image(image_path, x_gemini_api_key)
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=422,
-            detail="Bilddatei nicht gefunden. Das Bild wurde möglicherweise gelöscht.",
-        )
+    except httpx.HTTPError as e:
+        logger.error(f"Bildabruf fehlgeschlagen für Bild {body.image_id}: {type(e).__name__}")
+        raise HTTPException(status_code=502, detail="Bild konnte nicht geladen werden.")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"OCR-Fehler für Bild {body.image_id}: {type(e).__name__}")
         raise HTTPException(status_code=502, detail="KI-Dienst momentan nicht verfügbar.")

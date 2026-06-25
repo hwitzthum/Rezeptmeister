@@ -34,7 +34,10 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger JSON-Body." },
+      { status: 400 },
+    );
   }
 
   const parsed = batchAddSchema.safeParse(body);
@@ -53,7 +56,10 @@ export async function POST(request: Request) {
     columns: { id: true },
   });
   if (!recipe) {
-    return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Rezept nicht gefunden." },
+      { status: 404 },
+    );
   }
 
   // Fetch recipe ingredients
@@ -88,13 +94,22 @@ export async function POST(request: Request) {
         .limit(1);
 
       if (existing) {
-        const existingAmount = existing.amount ? parseFloat(existing.amount) : null;
+        const existingAmount = existing.amount
+          ? parseFloat(existing.amount)
+          : null;
         const newAmount = ing.amount ? parseFloat(ing.amount) : null;
 
         if (existingAmount != null && newAmount != null) {
           await tx
             .update(shoppingListItems)
             .set({ amount: String(existingAmount + newAmount) })
+            .where(eq(shoppingListItems.id, existing.id));
+        } else if (existingAmount == null && newAmount != null) {
+          // Existing row had no amount yet — adopt the incoming amount instead
+          // of silently dropping it.
+          await tx
+            .update(shoppingListItems)
+            .set({ amount: String(newAmount) })
             .where(eq(shoppingListItems.id, existing.id));
         }
         txMerged++;
@@ -140,7 +155,10 @@ export async function PATCH(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger JSON-Body." },
+      { status: 400 },
+    );
   }
 
   const parsed = batchActionSchema.safeParse(body);

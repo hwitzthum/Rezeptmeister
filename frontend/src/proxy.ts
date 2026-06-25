@@ -21,6 +21,13 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // /api/health is a public probe endpoint (uptime monitors, load balancers).
+  // It deliberately exposes only an aggregate status, so it is safe to leave
+  // reachable without a session.
+  if (nextUrl.pathname === "/api/health") {
+    return NextResponse.next();
+  }
+
   // All other /api/* routes require a valid session
   if (nextUrl.pathname.startsWith("/api/")) {
     if (!isLoggedIn) {

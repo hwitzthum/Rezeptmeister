@@ -57,17 +57,25 @@ export default function AddToCollectionButton({
       const data = (await res.json()) as { collections: CollectionSummary[] };
       setAllCollections(data.collections);
 
-      // Check which collections already contain this recipe
+      // Check which collections already contain this recipe. The detail
+      // requests run in parallel — the previous await-in-loop was an N+1 of
+      // strictly serialised roundtrips (each blocked the next).
+      const details = await Promise.all(
+        data.collections.map((col) =>
+          fetch(`/api/collections/${col.id}`)
+            .then((r) =>
+              r.ok
+                ? (r.json() as Promise<{ recipes: { recipeId: string }[] }>)
+                : null,
+            )
+            .then((detail) => ({ col, detail }))
+            .catch(() => ({ col, detail: null })),
+        ),
+      );
       const ids = new Set<string>();
-      for (const col of data.collections) {
-        const detailRes = await fetch(`/api/collections/${col.id}`);
-        if (detailRes.ok) {
-          const detail = (await detailRes.json()) as {
-            recipes: { recipeId: string }[];
-          };
-          if (detail.recipes.some((r) => r.recipeId === recipeId)) {
-            ids.add(col.id);
-          }
+      for (const { col, detail } of details) {
+        if (detail?.recipes.some((r) => r.recipeId === recipeId)) {
+          ids.add(col.id);
         }
       }
       setAddedIds(ids);
@@ -254,7 +262,12 @@ export default function AddToCollectionButton({
 
 function FolderPlusIcon() {
   return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -267,7 +280,12 @@ function FolderPlusIcon() {
 
 function FolderIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -280,16 +298,36 @@ function FolderIcon({ className = "w-4 h-4" }: { className?: string }) {
 
 function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
     </svg>
   );
 }
 
 function PlusIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4v16m8-8H4"
+      />
     </svg>
   );
 }

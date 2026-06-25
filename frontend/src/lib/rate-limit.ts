@@ -157,10 +157,14 @@ function getRedis(): Redis | null {
     process.env.UPSTASH_REDIS_KV_REST_API_TOKEN;
   if (!url || !token) {
     if (process.env.NODE_ENV === "production") {
-      console.error(
-        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not configured — " +
-          "rate limiting falls back to in-memory only (ineffective " +
-          "across Vercel serverless instances).",
+      // Fail closed: across Vercel's serverless instances each container keeps
+      // its own in-memory counter, so the fallback is bypassable by spreading
+      // requests — defeating the stricter AI/auth limits and inviting cost/
+      // brute-force abuse. Require a shared Redis counter in production.
+      throw new Error(
+        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN (oder die KV-prefixierten " +
+          "Marketplace-Namen) sind in Produktion erforderlich. Der In-Memory-" +
+          "Fallback ist über Serverless-Instanzen hinweg wirkungslos.",
       );
     }
     return (_redis = null);

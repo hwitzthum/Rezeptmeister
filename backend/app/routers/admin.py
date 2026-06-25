@@ -28,6 +28,11 @@ router = APIRouter(
     dependencies=[Depends(require_internal_token)],
 )
 
+# Hält starke Referenzen auf laufende Background-Tasks. Ohne dies hält der
+# Event-Loop nur eine schwache Referenz und der Task kann mitten im
+# Re-Embedding garbage-collected werden.
+_background_tasks: set[asyncio.Task] = set()
+
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -218,7 +223,9 @@ async def re_embed_user(
         session.add(job)
         await session.commit()
 
-    asyncio.create_task(_run_re_embed(job_id, body.user_id, x_gemini_api_key))
+    task = asyncio.create_task(_run_re_embed(job_id, body.user_id, x_gemini_api_key))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     return ReEmbedStartResponse(job_id=str(job_id))
 

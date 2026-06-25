@@ -34,12 +34,18 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json({ error: "Ungültiger Multipart-Body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültiger Multipart-Body." },
+      { status: 400 },
+    );
   }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Kein Bild übergeben." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Kein Bild übergeben." },
+      { status: 400 },
+    );
   }
 
   // Optional atomic recipe assignment during upload
@@ -48,20 +54,32 @@ export async function POST(request: Request) {
   if (typeof recipeIdRaw === "string" && recipeIdRaw) {
     const parsed = z.string().uuid().safeParse(recipeIdRaw);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Ungültige recipeId." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ungültige recipeId." },
+        { status: 400 },
+      );
     }
     const [recipe] = await db
       .select({ id: recipes.id })
       .from(recipes)
-      .where(and(eq(recipes.id, parsed.data), eq(recipes.userId, session.user.id)))
+      .where(
+        and(eq(recipes.id, parsed.data), eq(recipes.userId, session.user.id)),
+      )
       .limit(1);
     if (!recipe) {
-      return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Rezept nicht gefunden." },
+        { status: 404 },
+      );
     }
     recipeId = parsed.data;
   }
 
-  if (!ALLOWED_IMAGE_MIME.includes(file.type as (typeof ALLOWED_IMAGE_MIME)[number])) {
+  if (
+    !ALLOWED_IMAGE_MIME.includes(
+      file.type as (typeof ALLOWED_IMAGE_MIME)[number],
+    )
+  ) {
     return NextResponse.json(
       { error: "Nicht unterstütztes Bildformat. Erlaubt: JPEG, PNG, WebP." },
       { status: 415 },
@@ -105,9 +123,17 @@ export async function POST(request: Request) {
   try {
     [meta, thumbBuffer] = await Promise.all([
       s.metadata(),
-      s.clone().resize(300, 300, { fit: "cover", position: "centre" }).webp({ quality: 80 }).toBuffer(),
+      s
+        .clone()
+        .resize(300, 300, { fit: "cover", position: "centre" })
+        .webp({ quality: 80 })
+        .toBuffer(),
     ]);
-  } catch {
+  } catch (err) {
+    // Log the underlying cause: a sharp failure here can be a genuinely corrupt
+    // buffer OR a real server fault (OOM on a decompression bomb). Swallowing it
+    // silently made real errors invisible.
+    console.error("sharp-Bildverarbeitung fehlgeschlagen:", err);
     return NextResponse.json(
       { error: "Nicht unterstütztes Bildformat. Erlaubt: JPEG, PNG, WebP." },
       { status: 415 },
@@ -135,7 +161,10 @@ export async function POST(request: Request) {
       deleteFromStorage(thumbStoragePath),
     ]);
     console.error("Fehler beim Hochladen in Supabase Storage:", err);
-    return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 },
+    );
   }
 
   const filePath = `${UPLOAD_API_PREFIX}/originals/${originalFileName}`;
@@ -165,7 +194,10 @@ export async function POST(request: Request) {
       deleteFromStorage(thumbStoragePath),
     ]);
     console.error("Fehler beim Speichern des Bildes in der Datenbank:", err);
-    return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Interner Serverfehler." },
+      { status: 500 },
+    );
   }
 
   // Fire-and-forget Bild-Embedding (nur wenn Gemini-Schlüssel vorhanden)
@@ -177,9 +209,15 @@ export async function POST(request: Request) {
     });
     let geminiKey: string | null = null;
     if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
-      try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
+      try {
+        geminiKey = decrypt(userRecord.apiKeyEncrypted);
+      } catch {
+        /* Schlüssel beschädigt */
+      }
     }
-    const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
+    const headers = geminiKey
+      ? buildAiHeaders(geminiKey)
+      : buildBackendHeaders();
     fetch(`${backendUrl}/embed/image`, {
       method: "POST",
       headers,

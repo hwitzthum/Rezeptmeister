@@ -89,7 +89,10 @@ export async function GET(request: Request) {
             i.file_path
           FROM collection_recipes cr
           JOIN images i ON i.recipe_id = cr.recipe_id AND i.is_primary = true
-          WHERE cr.collection_id = ANY(${colIds})
+          WHERE cr.collection_id IN (${sql.join(
+            colIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})
           ORDER BY cr.collection_id, cr.sort_order
         `,
       );
@@ -156,10 +159,15 @@ export async function POST(request: Request) {
     const img = await db
       .select({ id: images.id })
       .from(images)
-      .where(and(eq(images.id, coverImageId), eq(images.userId, session.user.id)))
+      .where(
+        and(eq(images.id, coverImageId), eq(images.userId, session.user.id)),
+      )
       .limit(1);
     if (!img[0]) {
-      return NextResponse.json({ error: "Bild nicht gefunden." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Bild nicht gefunden." },
+        { status: 404 },
+      );
     }
   }
 
