@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
-if (!process.env.SUPABASE_URL) throw new Error("SUPABASE_URL is required");
-const supabaseHostname = new URL(process.env.SUPABASE_URL).hostname;
+// Supabase Storage is the prod image backend; dev falls back to the local
+// filesystem (served same-origin via /api/uploads). Require the URL only in
+// production so dev can boot without Supabase credentials.
+if (process.env.NODE_ENV === "production" && !process.env.SUPABASE_URL) {
+  throw new Error("SUPABASE_URL is required");
+}
+const supabaseHostname = process.env.SUPABASE_URL
+  ? new URL(process.env.SUPABASE_URL).hostname
+  : null;
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -9,13 +16,16 @@ const nextConfig: NextConfig = {
     formats: ["image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [48, 96, 192, 300, 480],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: supabaseHostname,
-        pathname: "/storage/v1/object/public/**",
-      },
-    ],
+    // Local-dev images are same-origin (/api/uploads); only Supabase needs a remote pattern.
+    remotePatterns: supabaseHostname
+      ? [
+          {
+            protocol: "https",
+            hostname: supabaseHostname,
+            pathname: "/storage/v1/object/public/**",
+          },
+        ]
+      : [],
   },
   async headers() {
     return [
@@ -46,7 +56,7 @@ const nextConfig: NextConfig = {
               // per-request nonce injection via middleware. Track in security backlog.
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
-              `img-src 'self' data: blob: https://${supabaseHostname}`,
+              `img-src 'self' data: blob:${supabaseHostname ? ` https://${supabaseHostname}` : ""}`,
               "connect-src 'self' https://*.supabase.co",
               "frame-ancestors 'none'",
               "base-uri 'self'",
