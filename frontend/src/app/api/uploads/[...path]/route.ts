@@ -75,15 +75,20 @@ export async function GET(
   }
 
   // Canonical storage paths derived from the row (handles legacy paths stored
-  // without the /api/uploads/ prefix). Original keeps its extension; the
-  // thumbnail is always the sibling .webp under thumbnails/.
+  // without the /api/uploads/ prefix). Original keeps its extension and folder;
+  // the thumbnail is always the sibling .webp under thumbnails/, sharing the
+  // stem. NB: originalStorage has no leading slash ("originals/<stem>.<ext>"),
+  // so the thumbnail path must be rebuilt from the stem — a string replace of
+  // "/originals/" would silently no-op and leave it under originals/.
   const originalStorage = ownedOriginalPath.replace(
     /^\/?(api\/)?uploads\//,
     "",
   );
-  const thumbStorage = originalStorage
-    .replace("/originals/", "/thumbnails/")
-    .replace(/\.[^.]+$/, ".webp");
+  const rowStem = (originalStorage.split("/").pop() ?? "").replace(
+    /\.[^.]+$/,
+    "",
+  );
+  const thumbStorage = `thumbnails/${rowStem}.webp`;
 
   // The requested path must be exactly the row's original or its derived
   // thumbnail — otherwise the request is steering the served artifact.
