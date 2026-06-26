@@ -6,6 +6,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const updateItemSchema = z.object({
   ingredientName: z.string().min(1).max(255).optional(),
   amount: z.number().nullable().optional(),
@@ -21,6 +23,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`shopping-update:${ip}`);
@@ -87,6 +93,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`shopping-delete:${ip}`);

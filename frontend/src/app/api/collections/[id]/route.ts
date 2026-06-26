@@ -11,6 +11,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const updateCollectionSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().max(1000).optional().nullable(),
@@ -24,6 +26,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`collections-detail:${ip}`);
@@ -122,6 +128,10 @@ export async function PUT(
 ) {
   const { id } = await params;
 
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
+
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`collections-update:${ip}`);
   if (!rl.allowed) {
@@ -216,6 +226,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`collections-delete:${ip}`);

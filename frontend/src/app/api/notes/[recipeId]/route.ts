@@ -13,6 +13,8 @@ const noteBodySchema = z.object({
   rating: z.number().int().min(1).max(5).optional().nullable(),
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ── GET /api/notes/[recipeId] ─────────────────────────────────────────────────
 
 export async function GET(
@@ -20,6 +22,10 @@ export async function GET(
   { params }: { params: Promise<{ recipeId: string }> },
 ) {
   const { recipeId } = await params;
+
+  if (!UUID_RE.test(recipeId)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`notes-get:${ip}`);
@@ -59,6 +65,10 @@ export async function POST(
   { params }: { params: Promise<{ recipeId: string }> },
 ) {
   const { recipeId } = await params;
+
+  if (!UUID_RE.test(recipeId)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`notes-create:${ip}`);
