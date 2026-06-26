@@ -28,6 +28,13 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // /api/cron/keepalive is invoked by Vercel Cron, which sends no NextAuth
+  // session cookie.  The route handler performs its own authentication via
+  // CRON_SECRET bearer token — pass it through so that check can execute.
+  if (nextUrl.pathname === "/api/cron/keepalive") {
+    return NextResponse.next();
+  }
+
   // All other /api/* routes require a valid session
   if (nextUrl.pathname.startsWith("/api/")) {
     if (!isLoggedIn) {

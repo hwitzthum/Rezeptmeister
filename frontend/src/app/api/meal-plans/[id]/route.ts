@@ -7,6 +7,8 @@ import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const mealPlanUpdateSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ungültiges Datumsformat.").optional(),
   mealType: z.enum(["fruehstueck", "mittagessen", "abendessen", "snack"]).optional(),
@@ -22,6 +24,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`meal-plans-update:${ip}`);
@@ -162,6 +168,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
 
   const ip = getClientIp(request);
   const rl = await checkRateLimitDistributed(`meal-plans-delete:${ip}`);

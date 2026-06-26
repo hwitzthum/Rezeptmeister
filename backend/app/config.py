@@ -2,7 +2,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import model_validator
 from functools import lru_cache
 import json
-import os
 
 
 class Settings(BaseSettings):
@@ -59,12 +58,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def check_internal_secret(self) -> "Settings":
-        if os.environ.get("NEXT_PHASE") != "phase-production-build":
-            if not self.internal_secret or len(self.internal_secret) < 32:
-                raise ValueError(
-                    "INTERNAL_SECRET must be at least 32 characters. "
-                    "Generate with: openssl rand -hex 32"
-                )
+        if not self.internal_secret or len(self.internal_secret) < 32:
+            raise ValueError(
+                "INTERNAL_SECRET must be at least 32 characters. "
+                "Generate with: openssl rand -hex 32"
+            )
         return self
 
     @model_validator(mode="after")

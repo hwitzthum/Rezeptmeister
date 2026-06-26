@@ -11,7 +11,7 @@ import { filterMissingIngredients } from "@/lib/shopping/ingredient-match";
 
 const batchMissingSchema = z.object({
   recipeId: z.string().uuid(),
-  availableIngredients: z.array(z.string().min(1).max(255)),
+  availableIngredients: z.array(z.string().min(1).max(255)).max(500),
 });
 
 export async function POST(request: Request) {

@@ -70,11 +70,12 @@ export async function POST(request: Request) {
   // Collect all unique recipe IDs and batch-fetch servings + ingredients
   const recipeIds = [...new Set(entries.map((e) => e.recipeId))];
 
+  const userId = session.user.id;
   const [recipeRows, allIngs] = await Promise.all([
     db
       .select({ id: recipes.id, servings: recipes.servings })
       .from(recipes)
-      .where(inArray(recipes.id, recipeIds)),
+      .where(and(inArray(recipes.id, recipeIds), eq(recipes.userId, userId))),
     db
       .select()
       .from(ingredients)

@@ -94,13 +94,16 @@ export async function proxyAiRequest(
   }
 
   if (!backendRes.ok) {
-    let detail = fallbackError;
-    try {
-      const err = (await backendRes.json()) as { detail?: string };
-      if (err.detail) detail = err.detail;
-    } catch {
-      /* ignore */
-    }
+    // Never forward raw FastAPI `detail` strings to clients — they can contain
+    // internal model validation errors, field names, or stack fragments.
+    // Map to generic German messages keyed on status code instead.
+    const safeMessages: Record<number, string> = {
+      400: "Ungültige Anfrage.",
+      404: "Ressource nicht gefunden.",
+      422: "Ungültige Eingabedaten.",
+      429: "Zu viele Anfragen.",
+    };
+    const detail = safeMessages[backendRes.status] ?? fallbackError;
     return NextResponse.json({ error: detail }, { status: backendRes.status });
   }
 
