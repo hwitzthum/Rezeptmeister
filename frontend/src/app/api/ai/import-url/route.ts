@@ -238,13 +238,13 @@ export async function POST(request: Request) {
   }
 
   if (!backendRes.ok) {
-    let detail = "URL-Import fehlgeschlagen.";
-    try {
-      const err = (await backendRes.json()) as { detail?: string };
-      if (err.detail) detail = err.detail;
-    } catch {
-      /* ignore */
-    }
+    const safeMessages: Record<number, string> = {
+      400: "Ungültige URL oder nicht unterstütztes Format.",
+      422: "Ungültige Eingabedaten.",
+      429: "Zu viele Anfragen.",
+    };
+    const detail =
+      safeMessages[backendRes.status] ?? "URL-Import fehlgeschlagen.";
     return NextResponse.json({ error: detail }, { status: backendRes.status });
   }
 
