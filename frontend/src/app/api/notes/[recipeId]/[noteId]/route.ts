@@ -5,7 +5,6 @@ import { recipeNotes } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
-import { USER_ROLE } from "@/lib/auth";
 
 const noteUpdateSchema = z.object({
   content: z.string().min(1).max(5000).optional(),
@@ -47,7 +46,7 @@ export async function PUT(
     return NextResponse.json({ error: "Notiz nicht gefunden." }, { status: 404 });
   }
 
-  if (existing.userId !== session.user.id && session.user.role !== USER_ROLE.admin) {
+  if (existing.userId !== session.user.id) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }
 
@@ -72,17 +71,10 @@ export async function PUT(
   if (parsed.data.rating !== undefined) updates.rating = parsed.data.rating ?? null;
 
   try {
-    // Mirror the DELETE handler: admins may edit any note (filter by noteId
-    // only), non-admins are restricted to their own. Without this, an admin
-    // editing a foreign note matched zero rows and silently returned 200.
     const [updated] = await db
       .update(recipeNotes)
       .set(updates)
-      .where(
-        session.user.role === USER_ROLE.admin
-          ? eq(recipeNotes.id, noteId)
-          : and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)),
-      )
+      .where(and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)))
       .returning();
 
     if (!updated) {
@@ -128,17 +120,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Notiz nicht gefunden." }, { status: 404 });
   }
 
-  if (existing.userId !== session.user.id && session.user.role !== USER_ROLE.admin) {
+  if (existing.userId !== session.user.id) {
     return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
   }
 
-  // Include userId in the WHERE clause for non-admin users so the delete is
-  // atomic with the ownership check above (eliminates TOCTOU window).
-  // Admins can delete any note, so they only filter by noteId.
   await db.delete(recipeNotes).where(
-    session.user.role === USER_ROLE.admin
-      ? eq(recipeNotes.id, noteId)
-      : and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)),
+    and(eq(recipeNotes.id, noteId), eq(recipeNotes.userId, session.user.id)),
   );
 
   return new Response(null, { status: 204 });
