@@ -6,11 +6,11 @@ Fehler in Background Tasks werden geloggt, nie nach oben propagiert.
 """
 
 import logging
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Header
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import update
 
 from app.config import get_settings
@@ -26,9 +26,14 @@ router = APIRouter(prefix="/embed", tags=["Embeddings"])
 
 # ── Request-Schemas ────────────────────────────────────────────────────────────
 
+# Matches the bound already used for recipe `instructions` in ai.py — the
+# embedding text is built from the same recipe fields (title, description,
+# instructions, etc. concatenated), so the same ceiling applies here to
+# prevent oversized payloads from driving up BYOK Gemini API cost or
+# consuming excessive backend memory/CPU per background task.
 class TextEmbedRequest(BaseModel):
     recipe_id: UUID
-    text: str
+    text: Annotated[str, Field(max_length=50_000)]
 
 
 class ImageEmbedRequest(BaseModel):
@@ -37,7 +42,7 @@ class ImageEmbedRequest(BaseModel):
 
 class MultimodalEmbedRequest(BaseModel):
     recipe_id: UUID
-    text: str
+    text: Annotated[str, Field(max_length=50_000)]
     image_id: Optional[UUID] = None
 
 
