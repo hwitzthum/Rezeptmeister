@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { z } from "zod";
-import { buildAiHeaders, fetchBackendWithRetry } from "@/lib/backend";
+import { proxyAiRequest } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
@@ -72,31 +72,11 @@ export async function POST(request: Request) {
     backendBody.image_base64 = parsed.data.image;
   }
 
-  const backendRes = await fetchBackendWithRetry(
+  return proxyAiRequest(
     endpoint,
-    {
-      method: "POST",
-      headers: buildAiHeaders(geminiKey),
-      body: JSON.stringify(backendBody),
-    },
+    geminiKey,
+    backendBody,
+    "KI-Suche fehlgeschlagen.",
     15_000,
   );
-  if (!backendRes) {
-    return NextResponse.json(
-      { error: "Verbindung zum KI-Backend fehlgeschlagen." },
-      { status: 503 },
-    );
-  }
-
-  if (!backendRes.ok) {
-    let detail = "KI-Suche fehlgeschlagen.";
-    try {
-      const err = (await backendRes.json()) as { detail?: string };
-      if (err.detail) detail = err.detail;
-    } catch { /* ignore */ }
-    return NextResponse.json({ error: detail }, { status: backendRes.status });
-  }
-
-  const result: unknown = await backendRes.json();
-  return NextResponse.json(result);
 }
