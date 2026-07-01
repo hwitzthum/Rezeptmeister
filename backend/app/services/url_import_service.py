@@ -20,6 +20,14 @@ from bs4 import BeautifulSoup
 from app.services.ai_service import generate_structured
 from app.services.ocr_service import OcrIngredient, OcrResult
 
+# Kappt den gepufferten Response-Body beim URL-Import. Ohne diese Grenze würde
+# httpx den kompletten Body in den Speicher laden, egal wie gross er ist —
+# eine bösartige/kompromittierte "Rezept"-URL könnte mit einer riesigen
+# Antwort (oder Dekompressions-Bombe) den Worker-Speicher erschöpfen. Der
+# genutzte Seitentext wird ohnehin auf 8000 Zeichen gekürzt, daher reichen
+# wenige MB für jede legitime Rezeptseite völlig aus.
+_MAX_IMPORT_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MB
+
 logger = logging.getLogger(__name__)
 
 # ── SSRF-Schutz ────────────────────────────────────────────────────────────────
@@ -103,6 +111,37 @@ class _SafeTransport(httpx.AsyncHTTPTransport):
         except ValueError as exc:
             raise httpx.ConnectError(str(exc)) from exc
         return await super().handle_async_request(request)
+
+
+async def _bounded_get(
+    client: httpx.AsyncClient, url: str, headers: dict[str, str]
+) -> httpx.Response:
+    """
+    GET mit gestreamtem Body, der bei _MAX_IMPORT_RESPONSE_BYTES abgebrochen
+    wird, statt die komplette Antwort ungeprüft in den Speicher zu laden.
+    Gibt eine normale httpx.Response zurück (Body bereits vollständig
+    gelesen und über response.text zugänglich), sodass der Rest der
+    Aufrufer-Logik unverändert bleibt.
+    """
+    request = client.build_request("GET", url, headers=headers)
+    response = await client.send(request, stream=True)
+    try:
+        total = 0
+        chunks: list[bytes] = []
+        async for chunk in response.aiter_bytes():
+            total += len(chunk)
+            if total > _MAX_IMPORT_RESPONSE_BYTES:
+                raise ValueError(
+                    f"Antwort von {url!r} überschreitet das Limit von "
+                    f"{_MAX_IMPORT_RESPONSE_BYTES} Bytes."
+                )
+            chunks.append(chunk)
+    finally:
+        await response.aclose()
+    # response._content ist das offizielle httpx-Internal, das .text/.json()
+    # verwenden, sobald der Body manuell (per stream=True) gelesen wurde.
+    response._content = b"".join(chunks)
+    return response
 
 
 # ── Schweizer Einheiten-Konvertierungen ────────────────────────────────────────
@@ -296,7 +335,7 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
     async with httpx.AsyncClient(
         transport=_SafeTransport(), follow_redirects=False, timeout=15.0
     ) as client:
-        response = await client.get(url, headers=headers)
+        response = await _bounded_get(client, url, headers)
         # Manuell umleiten, aber jeden Schritt auf private Adressen prüfen
         redirect_count = 0
         while response.status_code in (301, 302, 303, 307, 308) and redirect_count < 5:
@@ -309,7 +348,7 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
                 redirect_url = urljoin(url, redirect_url)
             if not await _is_safe_url(redirect_url):
                 raise ValueError(f"Redirect auf private Adresse blockiert: {redirect_url}")
-            response = await client.get(redirect_url, headers=headers)
+            response = await _bounded_get(client, redirect_url, headers)
             url = redirect_url
             redirect_count += 1
         response.raise_for_status()
