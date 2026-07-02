@@ -21,7 +21,7 @@ import {
   type AllowedImageMime,
 } from "@/lib/images";
 import { uploadToStorage } from "@/lib/supabase-storage";
-import { isSafeExternalUrl } from "@/lib/ssrf-guard";
+import { isSafeExternalUrl, pinnedGet, type PinnedResponse } from "@/lib/ssrf-guard";
 
 const bodySchema = z.object({
   url: z.string().url().max(2048),
@@ -43,10 +43,14 @@ async function fetchAndStoreImage(
       return null;
     }
 
-    const res = await fetch(imageUrl, {
-      signal: AbortSignal.timeout(10_000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)" },
-      redirect: "manual", // handle redirects manually to re-check each hop
+    // pinnedGet() pins DNS resolution to the address validated at actual
+    // connect time (see lib/ssrf-guard.ts) instead of relying solely on the
+    // isSafeExternalUrl() check above — closing the DNS-rebinding TOCTOU
+    // window a plain fetch() after a separate validation lookup would leave
+    // open (an attacker's nameserver could answer the validation lookup with
+    // a public address and the connection lookup with an internal one).
+    const res = await pinnedGet(imageUrl, {
+      "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)",
     });
 
     // Follow at most one redirect, but only to the same hostname.
@@ -55,10 +59,10 @@ async function fetchAndStoreImage(
     // DNS-rebinding attack can exploit (initial DNS check passes for a
     // public IP; attacker flips DNS to a private address before the
     // subsequent fetch resolves the same name).  Same-host redirects
-    // (e.g. HTTP → HTTPS) are safe because the hostname was already
-    // verified by isSafeExternalUrl above and no new DNS target is introduced.
+    // (e.g. HTTP → HTTPS) are safe because pinnedGet() re-validates and pins
+    // DNS on every call, including this one.
     if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get("location");
+      const location = res.getHeader("location");
       if (!location) return null;
       const redirectUrl = location.startsWith("http")
         ? location
@@ -78,12 +82,8 @@ async function fetchAndStoreImage(
         return null;
       }
 
-      const finalRes = await fetch(redirectUrl, {
-        signal: AbortSignal.timeout(10_000),
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)",
-        },
-        redirect: "error",
+      const finalRes = await pinnedGet(redirectUrl, {
+        "User-Agent": "Mozilla/5.0 (compatible; Rezeptmeister/1.0)",
       });
       if (!finalRes.ok) return null;
       return fetchImageResponse(finalRes, userId, geminiKey);
@@ -99,17 +99,17 @@ async function fetchAndStoreImage(
 
 /** Process a successful image fetch response, store it, and return imageId. */
 async function fetchImageResponse(
-  res: Response,
+  res: PinnedResponse,
   userId: string,
   geminiKey: string | null,
 ): Promise<string | null> {
-  const contentType = (res.headers.get("content-type") ?? "")
+  const contentType = (res.getHeader("content-type") ?? "")
     .split(";")[0]
     .trim();
   if (!ALLOWED_IMAGE_MIME.includes(contentType as AllowedImageMime))
     return null;
 
-  const contentLength = Number(res.headers.get("content-length") || 0);
+  const contentLength = Number(res.getHeader("content-length") || 0);
   if (contentLength > MAX_IMAGE_BYTES) return null;
 
   const buffer = Buffer.from(await res.arrayBuffer());
