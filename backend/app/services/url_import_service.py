@@ -69,7 +69,19 @@ async def _validate_all_ips(hostname: str) -> None:
             addr = ipaddress.ip_address(raw_ip)
         except ValueError:
             continue
-        if any(addr in net for net in _BLOCKED_NETWORKS):
+        # IPv4-mapped IPv6-Adressen (::ffff:a.b.c.d) betten eine IPv4-Adresse
+        # ein, die der Kernel auf einem Dual-Stack-Socket direkt an das
+        # eingebettete IPv4-Ziel weiterleitet. `addr in net` liefert für
+        # unterschiedliche IP-Versionen stillschweigend False (keine
+        # Exception), daher würde z.B. ein AAAA-Eintrag
+        # "::ffff:169.254.169.254" die rein IPv4-basierten Netze in
+        # _BLOCKED_NETWORKS umgehen. Zusätzlich die entpackte IPv4-Adresse
+        # prüfen, um diesen Bypass zu schliessen.
+        candidates: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = [addr]
+        mapped = getattr(addr, "ipv4_mapped", None)
+        if mapped is not None:
+            candidates.append(mapped)
+        if any(candidate in net for candidate in candidates for net in _BLOCKED_NETWORKS):
             raise ValueError(
                 f"Adresse {raw_ip!r} ist ein privates/internes Netz (SSRF-Schutz)"
             )
