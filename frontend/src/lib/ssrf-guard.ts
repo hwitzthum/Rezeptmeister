@@ -47,26 +47,96 @@ export function isPrivateIpv4(ip: string): boolean {
   );
 }
 
+/**
+ * Expands any valid textual IPv6 representation into its 8 constituent
+ * 16-bit hextets (as numbers), or returns null if the string cannot be
+ * parsed. Handles "::" zero-compression and a trailing embedded IPv4
+ * address in dotted-decimal form (e.g. "::ffff:127.0.0.1"), whichever
+ * form the caller happens to receive.
+ */
+function expandIpv6ToHextets(ip: string): number[] | null {
+  let addr = ip;
+
+  // An embedded IPv4 address, if present, is always the final segment and
+  // always written in dotted-decimal form when it appears in the *input*
+  // string — but callers may hand us either that form or the fully-hex
+  // form the WHATWG URL parser normalises to (see below), so this branch
+  // only fires for the dotted form.
+  const segments = addr.split(":");
+  const last = segments[segments.length - 1];
+  if (last.includes(".")) {
+    if (!net.isIPv4(last)) return null;
+    const octets = last.split(".").map(Number);
+    if (octets.some((o) => Number.isNaN(o) || o < 0 || o > 255)) return null;
+    const hi = ((octets[0] << 8) | octets[1]).toString(16);
+    const lo = ((octets[2] << 8) | octets[3]).toString(16);
+    segments[segments.length - 1] = hi;
+    segments.push(lo);
+    addr = segments.join(":");
+  }
+
+  let hextetStrings: string[];
+  if (addr.includes("::")) {
+    // "::" may appear only once and denotes a run of one-or-more zero
+    // hextets; split around it and pad the middle with zeros.
+    const parts = addr.split("::");
+    if (parts.length !== 2) return null;
+    const left = parts[0] ? parts[0].split(":") : [];
+    const right = parts[1] ? parts[1].split(":") : [];
+    const missing = 8 - left.length - right.length;
+    if (missing < 0) return null;
+    hextetStrings = [...left, ...Array(missing).fill("0"), ...right];
+  } else {
+    hextetStrings = addr.split(":");
+  }
+
+  if (hextetStrings.length !== 8) return null;
+
+  const hextets: number[] = [];
+  for (const h of hextetStrings) {
+    if (!/^[0-9a-fA-F]{1,4}$/.test(h)) return null;
+    hextets.push(parseInt(h, 16));
+  }
+  return hextets;
+}
+
 export function isPrivateIpv6(ip: string): boolean {
   if (!net.isIPv6(ip)) return false;
-  const lower = ip.toLowerCase();
+
+  const hextets = expandIpv6ToHextets(ip);
+  // Fail closed: if a syntactically-valid IPv6 address cannot be expanded
+  // by our parser, do not treat it as safe.
+  if (!hextets) return true;
+
   // Loopback ::1
-  if (lower === "::1") return true;
-  // Link-local fe80::/10
-  if (
-    lower.startsWith("fe8") ||
-    lower.startsWith("fe9") ||
-    lower.startsWith("fea") ||
-    lower.startsWith("feb")
-  )
+  if (hextets.slice(0, 7).every((h) => h === 0) && hextets[7] === 1)
     return true;
-  // Unique Local fc00::/7 (fc:: and fd::)
-  if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
-  // IPv4-mapped ::ffff:x.x.x.x
-  if (lower.startsWith("::ffff:")) {
-    const v4Part = lower.slice(7);
-    if (net.isIPv4(v4Part) && isPrivateIpv4(v4Part)) return true;
+
+  // Link-local fe80::/10 — top 10 bits of the first hextet are 1111111010
+  if ((hextets[0] & 0xffc0) === 0xfe80) return true;
+
+  // Unique Local fc00::/7
+  if ((hextets[0] & 0xfe00) === 0xfc00) return true;
+
+  // IPv4-mapped ::ffff:0:0/96 and the deprecated IPv4-compatible ::0:0/96
+  // form. Both embed an IPv4 address in the low 32 bits; the WHATWG URL
+  // parser (used by `new URL()`) always normalises literals like
+  // "::ffff:169.254.169.254" to the fully-hex form "::ffff:a9fe:a9fe" —
+  // never to dotted-decimal — so the embedded address must be recovered
+  // from the hextets themselves rather than by string-matching a dotted
+  // suffix, or this check silently never fires for URL-sourced hostnames.
+  if (hextets.slice(0, 5).every((h) => h === 0)) {
+    const isMapped = hextets[5] === 0xffff;
+    const isCompatible = hextets[5] === 0 && (hextets[6] !== 0 || hextets[7] !== 0);
+    if (isMapped || isCompatible) {
+      const a = (hextets[6] >> 8) & 0xff;
+      const b = hextets[6] & 0xff;
+      const c = (hextets[7] >> 8) & 0xff;
+      const d = hextets[7] & 0xff;
+      if (isPrivateIpv4(`${a}.${b}.${c}.${d}`)) return true;
+    }
   }
+
   return false;
 }
 

@@ -32,6 +32,23 @@ describe("isPrivateIpv6", () => {
   it("does not flag public addresses", () => {
     expect(isPrivateIpv6("2606:4700:4700::1111")).toBe(false);
   });
+
+  it("flags IPv4-mapped addresses regardless of textual form", () => {
+    // Dotted-decimal embedded form, as RFC 4291 examples typically show it.
+    expect(isPrivateIpv6("::ffff:169.254.169.254")).toBe(true); // cloud metadata
+    expect(isPrivateIpv6("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateIpv6("0:0:0:0:0:ffff:127.0.0.1")).toBe(true);
+    // Fully-hex compressed form — this is what the WHATWG URL parser
+    // normalises a bracketed IPv6 literal to (new URL() never preserves
+    // the dotted-decimal suffix), so the guard must catch this form too.
+    expect(isPrivateIpv6("::ffff:a9fe:a9fe")).toBe(true); // 169.254.169.254
+    expect(isPrivateIpv6("::ffff:7f00:1")).toBe(true); // 127.0.0.1
+    expect(isPrivateIpv6("::ffff:a00:1")).toBe(true); // 10.0.0.1
+  });
+
+  it("does not flag IPv4-mapped public addresses", () => {
+    expect(isPrivateIpv6("::ffff:808:808")).toBe(false); // 8.8.8.8
+  });
 });
 
 describe("isSafeExternalUrl", () => {
@@ -44,6 +61,20 @@ describe("isSafeExternalUrl", () => {
   it("rejects non-http(s) schemes", async () => {
     expect(await isSafeExternalUrl("file:///etc/passwd")).toBe(false);
     expect(await isSafeExternalUrl("ftp://example.com/x")).toBe(false);
+  });
+
+  it("rejects IPv4-mapped IPv6 literals used to smuggle a private address", async () => {
+    // `new URL()` normalises a bracketed IPv6 literal like
+    // "[::ffff:169.254.169.254]" to the fully-hex form "[::ffff:a9fe:a9fe]"
+    // before .hostname is ever read, so a check that only recognises the
+    // dotted-decimal suffix silently lets these through.
+    expect(
+      await isSafeExternalUrl("https://[::ffff:169.254.169.254]/latest/meta-data/"),
+    ).toBe(false);
+    expect(await isSafeExternalUrl("http://[::ffff:127.0.0.1]/x")).toBe(false);
+    expect(await isSafeExternalUrl("http://[0:0:0:0:0:ffff:10.0.0.5]/x")).toBe(
+      false,
+    );
   });
 });
 
