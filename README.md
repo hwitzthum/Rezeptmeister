@@ -108,7 +108,7 @@ npm run dev  # http://localhost:3001
 
 ### Image Management
 
-- Drag-and-drop upload, JPEG/PNG, max 10 MB
+- Drag-and-drop upload, JPEG/PNG/WebP, max 10 MB
 - Auto-generated 300×300 WebP thumbnails via sharp
 - AI image generation from recipe title + ingredients (Gemini)
 - Gallery view with batch assign / batch delete
@@ -230,14 +230,14 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 
 **Key rule:** Next.js API routes decrypt the user's API key server-side and inject it into each FastAPI request. The key is never sent to the browser and never stored in FastAPI.
 
-### Database Schema (10 Tabellen)
+### Database Schema (9 Tabellen)
 
 | Table | Purpose |
 |-------|-------|
 | `users` | Registration, roles (`admin`/`user`), status (`pending`/`approved`/`rejected`), encrypted API key column (`api_key_encrypted`) |
 | `recipes` | Recipe metadata, source type, nutrition |
 | `ingredients` | Recipe ingredients with amounts and Swiss units |
-| `images` | Recipe photos, source type (`upload`/`ai_generated`/`ocr`), image embeddings |
+| `images` | Recipe photos, source type (`upload`/`ai_generated`/`web_import`), image embeddings |
 | `recipe_notes` | User notes and star ratings on recipes |
 | `shopping_list_items` | Shopping items, checked status, aisle categories |
 | `meal_plans` | Weekly slots (breakfast/lunch/dinner/snack) |
@@ -739,7 +739,7 @@ git push origin main
 
 2. **Image storage:** Local dev writes to `uploads/` on disk. Production uses Supabase Storage. The code handles both paths automatically:
    - Frontend: `supabase-storage.ts` handles uploads; `SUPABASE_URL` env var presence controls the path
-   - Backend: `resolve_image_path()` tries local disk first, falls back to Supabase download
+   - Backend: `resolved_image_path()` tries local disk first, falls back to Supabase download
    - Backend AI image gen: checks `settings.supabase_url` — if set, uploads to Supabase; otherwise writes locally
 
 3. **CORS:** Local backend allows `localhost:3001`. Production restricts to `https://rezeptmeister.vercel.app` via `CORS_ORIGINS_RAW`.

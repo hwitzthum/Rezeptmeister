@@ -106,7 +106,7 @@ npx playwright show-report     # View last test report
 - All AI endpoints receive the user's API key in the request body (forwarded by Next.js proxy from server-side session). FastAPI does NOT read from DB for API keys.
 
 ### Image Handling
-- Upload: validate MIME type (`image/jpeg`, `image/png`), max 10 MB.
+- Upload: validate MIME type (`image/jpeg`, `image/png`, `image/webp`), max 10 MB.
 - Thumbnail: 300×300 WebP via `sharp` (Next.js side) stored in `uploads/thumbnails/`.
 - Serve uploads via Next.js static route (dev) or Supabase Storage CDN URL (prod).
 - Image embeddings are created asynchronously by FastAPI after upload.
