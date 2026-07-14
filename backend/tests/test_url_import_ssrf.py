@@ -11,11 +11,12 @@ in _BLOCKED_NETWORKS umgehen.
 """
 
 import socket
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 
-from app.services.url_import_service import _is_safe_url, _validate_all_ips
+from app.services.url_import_service import _is_safe_url, _SafeTransport, _validate_all_ips
 
 
 def _fake_getaddrinfo(addresses: list[tuple[int, str]]):
@@ -71,3 +72,65 @@ class TestIpv4MappedBypass:
         fake = _fake_getaddrinfo([(socket.AF_INET6, "::ffff:169.254.169.254")])
         with patch("socket.getaddrinfo", fake):
             assert await _is_safe_url("http://angreifer.example/recipe") is False
+
+
+class TestSafeTransportPinning:
+    """
+    _SafeTransport must connect to the address it validated, not merely
+    validate-then-delegate. Delegating to httpx's default connect path lets
+    httpcore perform its own, independent DNS resolution for the real TCP
+    connection -- a second lookup a DNS-rebinding attacker (TTL=0, answers
+    the validation lookup with a public IP and the connect lookup with an
+    internal one) can answer differently from the first. Pinning the
+    connection to the already-validated address closes that window.
+    """
+
+    @pytest.mark.asyncio
+    async def test_connects_to_validated_ip_not_hostname(self):
+        fake = _fake_getaddrinfo([(socket.AF_INET, "93.184.216.34")])  # public, arbitrary
+        captured: dict = {}
+
+        async def fake_super_handle(self, request):
+            captured["request"] = request
+            return httpx.Response(200, request=request)
+
+        with (
+            patch("socket.getaddrinfo", fake),
+            patch(
+                "httpx.AsyncHTTPTransport.handle_async_request",
+                new=fake_super_handle,
+            ),
+        ):
+            transport = _SafeTransport()
+            request = httpx.Request("GET", "https://angreifer.example/recipe")
+            await transport.handle_async_request(request)
+
+        pinned_request = captured["request"]
+        # The connection target must be the validated IP, not the original
+        # hostname -- otherwise httpcore would re-resolve it independently.
+        assert pinned_request.url.host == "93.184.216.34"
+        # SNI / certificate verification must still target the original
+        # hostname so TLS validation and virtual hosting are unaffected.
+        assert pinned_request.extensions.get("sni_hostname") == "angreifer.example"
+        # The original Host header (set when the request was built) must be
+        # preserved unchanged.
+        assert pinned_request.headers.get("host") == "angreifer.example"
+
+    @pytest.mark.asyncio
+    async def test_still_blocks_private_address_before_connecting(self):
+        fake = _fake_getaddrinfo([(socket.AF_INET, "169.254.169.254")])
+        connect_attempted = AsyncMock()
+
+        with (
+            patch("socket.getaddrinfo", fake),
+            patch(
+                "httpx.AsyncHTTPTransport.handle_async_request",
+                new=connect_attempted,
+            ),
+        ):
+            transport = _SafeTransport()
+            request = httpx.Request("GET", "https://angreifer.example/recipe")
+            with pytest.raises(httpx.ConnectError):
+                await transport.handle_async_request(request)
+
+        connect_attempted.assert_not_called()
