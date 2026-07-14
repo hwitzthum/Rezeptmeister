@@ -45,11 +45,16 @@ _BLOCKED_NETWORKS = [
 ]
 
 
-async def _validate_all_ips(hostname: str) -> None:
+async def _validate_all_ips(hostname: str) -> list[str]:
     """
     Löst ALLE A/AAAA-Einträge des Hostnamens auf und wirft ValueError,
     sobald eine Adresse privat, loopback oder link-local ist.
     Verhindert Multi-Record-Bypass und IPv6-only-Hosts.
+
+    Gibt die validierten Rohadressen (in Auflösungsreihenfolge) zurück, damit
+    Aufrufer, die tatsächlich eine Verbindung öffnen (siehe _SafeTransport),
+    exakt die hier geprüfte Adresse verwenden können, statt sich auf eine
+    zweite, unabhängige Auflösung zu verlassen (siehe Kommentar dort).
     """
     loop = asyncio.get_running_loop()
     try:
@@ -63,6 +68,7 @@ async def _validate_all_ips(hostname: str) -> None:
     if not results:
         raise ValueError(f"Kein DNS-Eintrag für Hostname: {hostname!r}")
 
+    validated_ips: list[str] = []
     for _family, _type, _proto, _canonname, sockaddr in results:
         raw_ip = sockaddr[0]
         try:
@@ -85,6 +91,11 @@ async def _validate_all_ips(hostname: str) -> None:
             raise ValueError(
                 f"Adresse {raw_ip!r} ist ein privates/internes Netz (SSRF-Schutz)"
             )
+        validated_ips.append(raw_ip)
+
+    if not validated_ips:
+        raise ValueError(f"Keine gültige Adresse für Hostname: {hostname!r}")
+    return validated_ips
 
 
 async def _is_safe_url(url: str) -> bool:
@@ -107,10 +118,27 @@ async def _is_safe_url(url: str) -> bool:
 
 class _SafeTransport(httpx.AsyncHTTPTransport):
     """
-    Validiert ALLE A/AAAA-Adressen unmittelbar vor jeder TCP-Verbindung.
-    Schützt gegen DNS-Rebinding: auch wenn sich das DNS zwischen der
-    Vorab-Prüfung und dem eigentlichen Connect ändert, wird die Verbindung
-    abgelehnt, bevor Daten gesendet werden.
+    Validiert ALLE A/AAAA-Adressen unmittelbar vor jeder TCP-Verbindung UND
+    verbindet exakt zu der geprüften Adresse (DNS-Pinning).
+
+    Nur den Hostnamen vor dem Connect zu validieren (via socket.getaddrinfo)
+    und die eigentliche Verbindung dann `super().handle_async_request()` zu
+    überlassen, schliesst DNS-Rebinding NICHT: httpcore löst den Hostnamen für
+    den echten TCP-Connect selbst und unabhängig erneut auf (siehe
+    httpcore._backends.anyio.connect_tcp → anyio.connect_tcp → eigener
+    getaddrinfo-Aufruf). Ein Angreifer mit Kontrolle über die autoritative
+    DNS-Zone des Ziels kann die Validierungs-Anfrage mit einer öffentlichen
+    Adresse beantworten und die Sekunden später folgende Connect-Anfrage
+    (TTL=0) mit einer internen Adresse (z. B. 169.254.169.254) — die
+    Validierung liefe dann ins Leere.
+
+    Um das zu schliessen, wird die Ziel-URL der Anfrage auf die bereits
+    validierte IP-Adresse umgeschrieben, sodass httpcore keine eigene,
+    unabhängig beantwortbare DNS-Auflösung mehr durchführt. Host-Header
+    (bereits beim Request-Aufbau gesetzt) und TLS-SNI/Zertifikatsprüfung
+    (via der `sni_hostname`-Extension) bleiben auf den ursprünglichen
+    Hostnamen gepinnt, sodass virtuelles Hosting und Zertifikatsvalidierung
+    unverändert funktionieren.
     """
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
@@ -119,10 +147,20 @@ class _SafeTransport(httpx.AsyncHTTPTransport):
         if hostname.startswith("[") and hostname.endswith("]"):
             hostname = hostname[1:-1]
         try:
-            await _validate_all_ips(hostname)
+            validated_ips = await _validate_all_ips(hostname)
         except ValueError as exc:
             raise httpx.ConnectError(str(exc)) from exc
-        return await super().handle_async_request(request)
+
+        pinned_ip = validated_ips[0]
+        pinned_url = request.url.copy_with(host=pinned_ip)
+        pinned_request = httpx.Request(
+            method=request.method,
+            url=pinned_url,
+            headers=request.headers,
+            stream=request.stream,
+            extensions={**request.extensions, "sni_hostname": hostname},
+        )
+        return await super().handle_async_request(pinned_request)
 
 
 async def _bounded_get(
