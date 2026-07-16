@@ -6,6 +6,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
 import { getAisleCategory } from "@/lib/shopping/aisle-categories";
+import { recipeOwnerCondition } from "@/lib/db/helpers";
 
 const addItemSchema = z.object({
   ingredientName: z.string().min(1).max(255),
@@ -67,6 +68,20 @@ export async function POST(request: Request) {
   }
 
   const { ingredientName, amount, unit, recipeId, aisleCategory } = parsed.data;
+
+  // If a recipeId is supplied, it must belong to the requesting user (or the
+  // caller must be an admin) — otherwise an arbitrary recipe UUID could be
+  // attached to a shopping-list item without authorization, and the insert's
+  // success/failure would leak whether that UUID exists in the DB at all.
+  if (recipeId) {
+    const recipe = await db.query.recipes.findFirst({
+      where: recipeOwnerCondition(recipeId, session.user.id, session.user.role),
+      columns: { id: true },
+    });
+    if (!recipe) {
+      return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
+    }
+  }
 
   try {
     const [item] = await db
