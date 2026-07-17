@@ -166,7 +166,7 @@ UPLOAD_DIR=../uploads  # Docker: /app/uploads, lokal: ../uploads
 INTERNAL_SECRET=<same-as-frontend>
 ```
 
-User-provided AI API keys (Gemini, Claude, OpenAI) are stored encrypted in the DB — never in env files.
+User-provided AI API keys (Gemini) are stored encrypted in the DB — never in env files.
 
 ---
 
