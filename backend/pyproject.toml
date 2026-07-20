@@ -4,6 +4,15 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
+    # Pinned explicitly (fastapi itself does not set a floor tight enough to
+    # exclude vulnerable releases): starlette <1.0.1 is CVE-2026-48710
+    # ("BadHost") — an unvalidated Host header lets request.url.path diverge
+    # from the actually-routed ASGI path, which breaks any path-based security
+    # check (see InternalTokenMiddleware in app/main.py, which exempts /health
+    # by comparing request.url.path). <1.3.1 is additionally CVE-2026-54283
+    # (request.form() size/field limits silently ignored for urlencoded
+    # bodies). 1.3.1 fixes both.
+    "starlette>=1.3.1",
     "uvicorn[standard]>=0.32.0",
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30.0",
