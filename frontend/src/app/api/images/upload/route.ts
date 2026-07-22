@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
+import sharp, { type Metadata } from "sharp";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
   // Single sharp instance: get metadata and generate thumbnail concurrently.
   // metadata() reads only the image header; clone() runs the resize pipeline.
   const s = sharp(buffer);
-  let meta: sharp.Metadata;
+  let meta: Metadata;
   let thumbBuffer: Buffer;
   try {
     [meta, thumbBuffer] = await Promise.all([
