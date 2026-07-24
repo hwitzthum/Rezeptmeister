@@ -3,7 +3,7 @@
 **AI-powered recipe management for the Swiss market.**  
 *Bring Your Own Key (BYOK) — your API keys, your data, your privacy.*
 
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.7-black?logo=nextdotjs)](https://nextjs.org)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.11-black?logo=nextdotjs)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009485?logo=fastapi)](https://fastapi.tiangolo.com)
 [![PostgreSQL + pgvector](https://img.shields.io/badge/PostgreSQL-16%2Bpgvector-4169E1?logo=postgresql)](https://www.postgresql.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -249,16 +249,16 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 
 | Layer | Technology | Version |
 |-------|------------|--------|
-| **Frontend framework** | Next.js App Router (TypeScript) | 16.2.7 |
+| **Frontend framework** | Next.js App Router (TypeScript) | 16.2.11 |
 | **UI runtime** | React | 19.2.4 |
 | **Styling** | Tailwind CSS | v4 |
 | **Icons** | Lucide React | 1.7.0 |
 | **ORM (frontend)** | Drizzle ORM + drizzle-kit | 0.45.2 |
-| **Auth** | NextAuth.js v5 (JWT, Credential) | 5.0.0-beta.30 |
+| **Auth** | NextAuth.js v5 (JWT, Credential) | 5.0.0-beta.32 |
 | **DB driver** | postgres (native) | 3.4.8 |
 | **Drag-and-drop** | @dnd-kit | 6.3.1 |
 | **PDF export** | @react-pdf/renderer | 4.3.3 |
-| **Image processing** | sharp | 0.34.5 |
+| **Image processing** | sharp | 0.35.3 |
 | **Offline storage** | idb (IndexedDB) | 8.0.3 |
 | **Date utilities** | date-fns (Europe/Zurich) | 4.1.0 |
 | **Backend framework** | FastAPI (async Python) | 0.115+ |
@@ -522,7 +522,7 @@ API endpoints against a real PostgreSQL instance (never SQLite).
 cd backend && uv run pytest
 ```
 
-Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embeddings.py`, `tests/test_ocr.py`.
+Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embeddings.py`, `tests/test_ocr_service.py`.
 
 ### Layer 3 — E2E Tests (Playwright)
 
