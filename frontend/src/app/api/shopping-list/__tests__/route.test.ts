@@ -44,10 +44,17 @@ function makeRequest(body: unknown) {
 describe("POST /api/shopping-list — recipeId ownership", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // @ts-expect-error partial session shape is sufficient for this handler
+    // `auth` is an intersection of several overloaded call signatures (Session
+    // getter, middleware wrapper, route-handler wrapper, ...). TS utility types
+    // like the one `vi.mocked()`/`mockResolvedValue()` rely on resolve against
+    // the LAST signature in that intersection, not the Session-returning one we
+    // actually use here — so the object literal below can't be checked
+    // structurally against it. `as never` opts out of that (irrelevant) check
+    // rather than relying on `@ts-expect-error`, whose target line shifts
+    // whenever the upstream type declaration order changes.
     authMock.mockResolvedValue({
       user: { id: "user-1", role: "user" },
-    });
+    } as never);
   });
 
   it("rejects a recipeId that does not belong to the caller", async () => {
