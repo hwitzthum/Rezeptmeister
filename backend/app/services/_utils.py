@@ -69,15 +69,30 @@ async def resolved_image_path(file_path: str, upload_dir: str) -> AsyncIterator[
         raise FileNotFoundError(f"Image not on disk and SUPABASE_URL not set: {file_path}")
 
     filename = os.path.basename(file_path)
-    public_url = (
-        f"{settings.supabase_url}/storage/v1/object/public/"
+    # Use the authenticated Storage REST API object endpoint (Bearer service-role
+    # key) — the SAME auth pattern already used for uploads in
+    # app/routers/ai.py — rather than the unauthenticated "/object/public/"
+    # path. The Next.js side deliberately serves images through 1-hour
+    # signed URLs scoped to the owning user (see
+    # frontend/src/app/api/uploads/[...path]/route.ts), which only provides
+    # real confidentiality if the underlying bucket is private. Fetching via
+    # the public-object URL here only succeeds against a *public* bucket —
+    # which would let anyone who learns an object path (e.g. from a signed
+    # URL visible in their own browser's network tab, a referrer header, or
+    # a cache) fetch the image forever, unauthenticated, completely
+    # bypassing the ownership check and the 1-hour expiry the signed-URL
+    # design relies on. The authenticated endpoint works identically against
+    # a private bucket and never depends on the bucket's public-read ACL.
+    object_url = (
+        f"{settings.supabase_url}/storage/v1/object/"
         f"{settings.supabase_storage_bucket}/originals/{filename}"
     )
+    headers = {"Authorization": f"Bearer {settings.supabase_service_role_key}"}
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(public_url, timeout=30.0)
+        resp = await client.get(object_url, headers=headers, timeout=30.0)
         if resp.status_code != 200:
-            raise FileNotFoundError(f"Image not found in Supabase Storage: {public_url}")
+            raise FileNotFoundError(f"Image not found in Supabase Storage: {object_url}")
 
     ext = os.path.splitext(filename)[1] or ".jpg"
     tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
