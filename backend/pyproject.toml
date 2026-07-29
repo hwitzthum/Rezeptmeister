@@ -21,7 +21,12 @@ dependencies = [
     "pydantic>=2.9.0",
     "pydantic-settings>=2.6.0",
     "httpx>=0.27.2",
-    "Pillow>=11.0.0",
+    # Pinned explicitly above the natural floor: Pillow <12.3.0 has multiple
+    # native heap-corruption / out-of-bounds-write CVEs (PYSEC-2026-2253..2257,
+    # 3451..3496) reachable via PilImage.open() on attacker-controlled bytes in
+    # app/routers/ai.py (image analysis / thumbnailing of user-uploaded and
+    # URL-imported images). 12.3.0 fixes all of them.
+    "Pillow>=12.3.0",
     "google-genai>=1.0.0",
     "beautifulsoup4>=4.12.3",
 ]
