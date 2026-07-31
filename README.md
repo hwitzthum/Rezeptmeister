@@ -253,7 +253,7 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 | **UI runtime** | React | 19.2.4 |
 | **Styling** | Tailwind CSS | v4 |
 | **Icons** | Lucide React | 1.7.0 |
-| **ORM (frontend)** | Drizzle ORM + drizzle-kit | 0.45.2 |
+| **ORM (frontend)** | Drizzle ORM + drizzle-kit | 0.45.2 / 0.31.10 |
 | **Auth** | NextAuth.js v5 (JWT, Credential) | 5.0.0-beta.32 |
 | **DB driver** | postgres (native) | 3.4.8 |
 | **Drag-and-drop** | @dnd-kit | 6.3.1 |
@@ -313,7 +313,7 @@ cd backend
 uv sync                                              # Install dependencies
 uv run uvicorn app.main:app --reload --port 8000    # Dev server
 uv run pytest                                        # All tests
-uv run pytest tests/test_embeddings.py              # Single file
+uv run pytest tests/test_embedding_service.py       # Single file
 uv run pytest -k "test_ocr"                         # By name
 uv run alembic upgrade head                         # Apply migrations
 uv run alembic revision --autogenerate -m "desc"    # Generate migration
@@ -437,7 +437,7 @@ Users provide their own Gemini API key. The app handles the full lifecycle:
 1. User enters key at `/einstellungen`
 2. Next.js API route encrypts it with `ENCRYPTION_KEY` (AES-256-GCM)
 3. Encrypted value stored in `users.api_key_encrypted` column
-4. On each AI request: Next.js decrypts + injects the key into the FastAPI request body
+4. On each AI request: Next.js decrypts + injects the key into the FastAPI request header
 5. FastAPI uses the key, then discards it — never writes it to disk or logs
 
 Frontend shows only the last 4 characters (`sk-...abc1`). The plaintext key never reaches the browser after initial entry.
@@ -491,7 +491,7 @@ All units use Swiss standard. On import from US recipes:
 |----|-------|
 | 1 cup flour | 125 g |
 | 1 cup sugar | 200 g |
-| 1 cup liquid | 2.4 dl |
+| 1 cup liquid | 2.37 dl |
 | °F | °C |
 | oz | g |
 | lb | kg |
@@ -522,7 +522,7 @@ API endpoints against a real PostgreSQL instance (never SQLite).
 cd backend && uv run pytest
 ```
 
-Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embeddings.py`, `tests/test_ocr_service.py`.
+Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embedding_service.py`, `tests/test_ocr_service.py`.
 
 ### Layer 3 — E2E Tests (Playwright)
 
