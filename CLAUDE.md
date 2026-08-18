@@ -61,7 +61,7 @@ uv run uvicorn app.main:app --reload --port 8000   # Dev server
 uv run alembic upgrade head    # Apply DB migrations
 uv run alembic revision --autogenerate -m "description"  # Generate migration
 uv run pytest                  # All tests
-uv run pytest tests/test_embeddings.py  # Single test file
+uv run pytest tests/test_embedding_service.py  # Single test file
 uv run pytest -k "test_ocr"    # Single test by name
 ```
 
@@ -103,7 +103,7 @@ npx playwright show-report     # View last test report
 - Embedding model: `gemini-embedding-2-preview`, 3072 dims.
 - Prefix query text with `search_query: ` and document text with `search_document: ` when creating embeddings (plain string prefixes, not API parameters).
 - Embedding creation is always async (Background Task) — never block the HTTP response.
-- All AI endpoints receive the user's API key in the request body (forwarded by Next.js proxy from server-side session). FastAPI does NOT read from DB for API keys.
+- All AI endpoints receive the user's API key in the request header (forwarded by Next.js proxy from server-side session). FastAPI does NOT read from DB for API keys.
 
 ### Image Handling
 - Upload: validate MIME type (`image/jpeg`, `image/png`, `image/webp`), max 10 MB.
