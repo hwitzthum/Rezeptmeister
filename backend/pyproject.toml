@@ -29,6 +29,19 @@ dependencies = [
     "Pillow>=12.3.0",
     "google-genai>=1.0.0",
     "beautifulsoup4>=4.12.3",
+    # Pinned explicitly: idna is only a transitive dependency (pulled in by
+    # httpx/anyio, which perform every outbound HTTPS request this service
+    # makes) with no direct floor of our own, so it silently resolved to a
+    # vulnerable release. idna <3.15 has PYSEC-2026-215 (an incomplete fix for
+    # CVE-2024-3651): a crafted hostname such as "٠" * N hits
+    # valid_contexto()'s catastrophic-backtracking regex before the length
+    # check rejects it. url_import_service.fetch_and_parse() builds an httpx
+    # request from a user-supplied recipe URL, and httpx/anyio IDNA-encode the
+    # hostname before connecting — confirmed locally that a ~100k-character
+    # crafted hostname hangs idna.encode() well past two minutes, blocking the
+    # single-process asyncio event loop for every concurrent request. 3.15
+    # fixes it.
+    "idna>=3.15",
 ]
 
 [project.optional-dependencies]
