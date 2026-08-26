@@ -8,14 +8,26 @@ import {
 } from "@/lib/supabase-storage";
 import { EXT_TO_MIME } from "@/lib/images";
 import { and, eq, sql } from "drizzle-orm";
+import { checkRateLimitDistributed, getClientIp, IMAGE_LIMIT } from "@/lib/rate-limit";
 
 // Signed-URL TTL in seconds — must match Cache-Control max-age below.
 const SIGNED_URL_TTL = 3600;
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
+  // Every other authenticated API route in this app is rate-limited (see
+  // CLAUDE.md); this one serves per-request DB lookups and, in production,
+  // freshly-minted Supabase signed URLs, both of which have real cost if a
+  // client hammers it. The window is generous relative to DEFAULT_LIMIT
+  // since a single page can legitimately load many thumbnails at once.
+  const ip = getClientIp(request);
+  const rl = await checkRateLimitDistributed(`uploads:${ip}`, IMAGE_LIMIT);
+  if (!rl.allowed) {
+    return new Response(null, { status: 429 });
+  }
+
   const { path: segments } = await params;
 
   // Validate path segments — only allow alphanumeric, hyphens, dots, underscores.
