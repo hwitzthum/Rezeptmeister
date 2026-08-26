@@ -65,6 +65,18 @@ export const AI_LIMIT: RateLimitConfig = {
   max: 20,
 };
 
+/**
+ * Image-serving endpoint: 600 requests per 5 minutes (120/min).
+ * Generous enough for legitimate image-heavy browsing (many thumbnails per
+ * page, repeated navigation) while still capping scripted abuse — each
+ * request runs a DB lookup and, in production, mints a fresh Supabase signed
+ * URL, both of which have real cost if left uncapped.
+ */
+export const IMAGE_LIMIT: RateLimitConfig = {
+  windowMs: 5 * 60 * 1_000,
+  max: 600,
+};
+
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
