@@ -8,6 +8,12 @@
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  acquireLock,
+  holdsLock,
+  releaseLock,
+  GEMINI_KEY_LOCK,
+} from "./helpers/shared-lock";
 import fs from "fs";
 import path from "path";
 
@@ -277,6 +283,32 @@ test.describe("2.2 – Admin-Dashboard", () => {
 // ─── 2.3 BYOK API-Schlüssel ──────────────────────────────────────────────────
 
 test.describe("2.3 – BYOK API-Schlüssel-Verwaltung", () => {
+  // Diese Gruppe schreibt einen Testwert in den KI-Schluessel des gemeinsamen
+  // Admin-Kontos. Laeuft parallel dazu eine Live-Datei (phase-6/7/8), ruft die
+  // ihre Gemini-Aufrufe mit diesem Testwert auf und bekommt ein 502. Deshalb
+  // dieselbe Sperre — siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+
+  // Den Testschluessel nicht liegen lassen: 6.4 in phase-6 erwartet ohne
+  // Schluessel ein 400 und faellt sonst — auch ohne jede Parallelitaet.
+  test.afterAll(async ({ browser }) => {
+    try {
+      // Scheiterte `beforeAll` (Sperre nicht bekommen), gehoert der Schluessel
+      // gerade einer anderen Datei — dann nichts anfassen.
+      if (!holdsLock(GEMINI_KEY_LOCK)) return;
+      const page = await browser.newPage();
+      await loginAdmin(page);
+      await page.evaluate(async () => {
+        await fetch("/api/settings/api-key", { method: "DELETE" });
+      });
+      await page.close();
+    } finally {
+      releaseLock(GEMINI_KEY_LOCK);
+    }
+  });
+
   async function loginAdmin(page: import("@playwright/test").Page) {
     await page.goto("/auth/anmelden");
     await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);

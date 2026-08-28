@@ -96,11 +96,11 @@ function FilledSlot({
       ].join(" ")}
     >
       {/* Drag Handle + Title */}
-      <div className="flex items-start gap-1.5">
+      <div className="flex items-center gap-1.5">
         <div
           {...attributes}
           {...listeners}
-          className="mt-0.5 cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-[var(--text-secondary)] shrink-0"
+          className="cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-[var(--text-secondary)] shrink-0 pointer-coarse:min-tap flex items-center justify-center"
           aria-label="Verschieben"
         >
           <GripIcon />
@@ -114,7 +114,7 @@ function FilledSlot({
           type="button"
           onClick={() => onRemove(entry.id)}
           data-testid={`meal-plan-remove-${entry.id}`}
-          className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-all"
+          className="shrink-0 w-5 h-5 pointer-coarse:min-tap rounded flex items-center justify-center text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-all"
           aria-label="Entfernen"
         >
           <XIcon />
@@ -131,7 +131,7 @@ function FilledSlot({
           onClick={() =>
             onServingsChange(entry.id, Math.max(1, currentServings - 1))
           }
-          className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+          className="w-5 h-5 pointer-coarse:min-tap rounded flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
           aria-label="Weniger Portionen"
         >
           -
@@ -142,7 +142,7 @@ function FilledSlot({
         <button
           type="button"
           onClick={() => onServingsChange(entry.id, currentServings + 1)}
-          className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+          className="w-5 h-5 pointer-coarse:min-tap rounded flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
           aria-label="Mehr Portionen"
         >
           +

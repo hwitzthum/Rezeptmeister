@@ -331,7 +331,7 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
       )}
 
       {/* Navigation-Buttons */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {step > 1 && (
             <Button
@@ -344,8 +344,8 @@ export default function RecipeForm({ mode, recipeId, initialData }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--text-muted)]">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="hidden sm:inline text-sm text-[var(--text-muted)]">
             Schritt {step} von {STEPS.length}
           </span>
           <Button

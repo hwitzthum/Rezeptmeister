@@ -48,7 +48,13 @@ export default function DashboardClient({
   hasApiKey,
 }: DashboardClientProps) {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto" data-testid="dashboard">
+    <div
+      // w-full ist noetig, weil dieses Element ein direktes Flex-Kind von
+      // #main-content ist: dort hebt mx-auto das Strecken auf, die Box wird
+      // shrink-to-fit und waechst bis zur max-w-7xl von 1280 px.
+      className="w-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto"
+      data-testid="dashboard"
+    >
       {/* Hero greeting with editorial flair */}
       <header className="relative mb-8 animate-fade-in">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-terra-50 via-cream-100 to-gold-50 dark:from-terra-950/30 dark:via-warm-900 dark:to-gold-950/30 border border-terra-100/60 dark:border-terra-800/60 p-6 sm:p-8">

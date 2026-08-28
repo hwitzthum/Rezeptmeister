@@ -73,6 +73,49 @@ REGELN:
 Extrahiere jetzt ALLE Rezepte aus dem Bild. Falls nur ein Rezept vorhanden ist, gib trotzdem eine Liste mit einem Eintrag zurück:"""
 
 
+_OCR_MULTIPAGE_PROMPT = """Du bist ein Kochbuch-Digitalisierungs-Assistent für die Schweiz.
+
+Die folgenden {page_count} Bilder sind AUFEINANDERFOLGENDE SEITEN EINES EINZIGEN REZEPTS,
+in der Reihenfolge Seite 1 bis Seite {page_count}. Sie zeigen NICHT mehrere verschiedene Rezepte.
+Führe den Inhalt ALLER Seiten zu GENAU EINEM vollständigen Rezept zusammen.
+
+ZUSAMMENFÜHRUNG (verbindlich):
+1. VOLLSTÄNDIGKEIT: Übernimm ALLE Zutaten von ALLEN Seiten und ALLE Zubereitungsschritte von
+   ALLEN Seiten. Lasse keine einzige Zutat und keinen einzigen Schritt weg, egal wie lang das
+   Rezept dadurch wird. Kürze nicht, fasse nicht zusammen, überspringe nichts.
+2. FORTGESETZTE LISTEN: Eine Zutatenliste, die auf Seite N endet und auf Seite N+1 weitergeht,
+   ist EINE Liste — hänge die Fortsetzung an, statt eine zweite Liste zu beginnen.
+3. DURCHGEHENDE NUMMERIERUNG: Nummeriere die Zubereitungsschritte über alle Seiten hinweg
+   fortlaufend von 1 an. Beginne auf einer Folgeseite NICHT wieder bei 1.
+4. KEINE DUPLIKATE: Erscheint dieselbe Zutat oder derselbe Schritt auf zwei Seiten (z.B. durch
+   eine wiederholte Zutatenspalte oder eine Wiederholung des Titels), übernimm sie GENAU EINMAL.
+5. SEITENRAUSCHEN IGNORIEREN: Kopfzeilen, Fusszeilen, Seitenzahlen, Kapitelnamen, Buchtitel,
+   Randnotizen und Werbung gehören NICHT ins Rezept.
+6. KOPFDATEN: Titel, Portionen, Vorbereitungs- und Kochzeit stehen meist auf der ersten Seite.
+   Fehlt eine Angabe dort, suche sie auf den Folgeseiten. Nur wenn sie auf KEINER Seite steht,
+   gib null zurück.
+7. TEILREZEPTE: Gehören Bestandteile wie Teig, Füllung, Sauce oder Glasur zum selben Gericht,
+   bleiben sie Teil DIESES einen Rezepts. Kennzeichne sie in den Zutaten über notes
+   (z.B. "für die Füllung") und in der Anleitung über Zwischenüberschriften.
+
+REGELN FÜR DEN INHALT:
+8. SPRACHE: Alle Texte MÜSSEN auf Deutsch (Schweizer Standard, "ss" statt "ß") sein.
+   Nicht-deutschsprachige Inhalte übersetze ins Deutsche.
+9. MASSEINHEITEN: Verwende ausschliesslich Schweizer Masseinheiten:
+   g, kg, ml, dl, l, EL (Esslöffel), TL (Teelöffel), KL (Kaffeelöffel),
+   Msp. (Messerspitze), Prise, Stk. (Stück), Bund, Pkg. (Packung),
+   Scheibe, Dose, Becher, Pfd. (Pfund)
+   Umrechnungen: 1 Cup ≈ 2.4 dl, 1 oz ≈ 28 g, 1 lb ≈ 454 g, °F → °C ((°F-32)×5/9)
+10. SCHWIERIGKEIT: Wähle einfach, mittel oder anspruchsvoll.
+11. ZUTATEN: Trenne Menge, Einheit und Name klar. Falls keine Mengenangabe, lasse amount=null.
+12. ANLEITUNG: Schreibe die vollständige Anleitung als nummerierte Schritte, ein Schritt pro Zeile.
+13. FALLS auf KEINER Seite ein Rezept erkennbar ist: Gib title="Kein Rezept erkannt" und leere
+    ingredients zurück.
+
+Gib jetzt GENAU EIN zusammengeführtes Rezept zurück, das ALLE Zutaten und ALLE Schritte
+aus ALLEN {page_count} Seiten enthält:"""
+
+
 async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
     """
     Extrahiert strukturierte Rezeptdaten aus einem Bild via Gemini multimodal OCR.
@@ -149,4 +192,65 @@ async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResult
 
     except Exception as e:
         logger.error(f"OCR-Fehler (multi) für {image_path}: {type(e).__name__}")
+        raise
+
+
+async def extract_recipes_from_images(image_paths: list[str], api_key: str) -> OcrResults:
+    """
+    Extrahiert EIN Rezept aus mehreren aufeinanderfolgenden Seitenbildern.
+
+    Alle Bilder gehen in EINEN einzigen Gemini-Aufruf (Reihenfolge der Liste =
+    Seitenreihenfolge), damit das Modell Zutatenlisten und Schritte über die
+    Seitengrenze hinweg zusammenführen kann. Das Antwortschema ist bewusst
+    OcrResult (Einzahl) statt OcrResults: so ist strukturell garantiert, dass
+    genau ein zusammengeführtes Rezept herauskommt, statt sich auf die
+    Prompt-Formulierung zu verlassen.
+
+    Bei genau einem Bild wird an extract_recipes_from_image delegiert — dort
+    gilt weiterhin die Mehrfach-Rezept-Semantik des Galerie-Wegs (eine Seite
+    kann mehrere eigenständige Rezepte enthalten).
+    """
+    if not image_paths:
+        raise ValueError("Keine Bilder angegeben.")
+    if len(image_paths) == 1:
+        return await extract_recipes_from_image(image_paths[0], api_key)
+
+    parts: list[types.Part] = []
+    for image_path in image_paths:
+        try:
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Bilddatei nicht gefunden: {image_path}") from None
+        parts.append(
+            types.Part.from_bytes(data=image_bytes, mime_type=_utils.detect_mime(image_path))
+        )
+
+    ocr_model = get_settings().gemini_ocr_model
+    client = _utils.get_gemini_client(api_key)
+    prompt = _OCR_MULTIPAGE_PROMPT.format(page_count=len(image_paths))
+
+    try:
+        response = await client.aio.models.generate_content(
+            model=ocr_model,
+            contents=[*parts, types.Part(text=prompt)],
+            # max_output_tokens bleibt bewusst ungesetzt: der Modell-Standard
+            # (Gemini Pro: 64k Ausgabe-Token) liegt weit über dem Bedarf eines
+            # mehrseitigen Rezepts (~2–4k Token). Ein expliziter Wert würde die
+            # Obergrenze nur senken und lange Rezepte abschneiden.
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=OcrResult,
+                temperature=0.1,
+            ),
+        )
+
+        recipe = OcrResult.model_validate_json(response.text)
+        recipe.source_type = "image_ocr"
+        return OcrResults(recipes=[recipe])
+
+    except Exception as e:
+        logger.error(
+            f"OCR-Fehler (mehrseitig, {len(image_paths)} Seiten): {type(e).__name__}"
+        )
         raise

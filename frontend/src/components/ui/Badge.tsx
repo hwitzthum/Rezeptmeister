@@ -77,7 +77,7 @@ export function Badge({
       {removable && (
         <button
           type="button"
-          className="ml-0.5 -mr-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors p-0.5"
+          className="ml-0.5 -mr-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors p-0.5 pointer-coarse:min-tap pointer-coarse:justify-center inline-flex items-center"
           onClick={onRemove}
           aria-label="Entfernen"
         >

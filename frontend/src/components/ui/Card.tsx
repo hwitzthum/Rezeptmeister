@@ -56,16 +56,16 @@ const difficultyLabel: Record<string, { label: string; color: string }> = {
   einfach: {
     label: "Einfach",
     color:
-      "text-emerald-600 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/30",
+      "text-emerald-600 bg-emerald-50/90 dark:text-emerald-300 dark:bg-emerald-950/30",
   },
   mittel: {
     label: "Mittel",
-    color: "text-gold-700 bg-gold-50 dark:text-gold-300 dark:bg-gold-950/30",
+    color: "text-gold-700 bg-gold-50/90 dark:text-gold-300 dark:bg-gold-950/30",
   },
   anspruchsvoll: {
     label: "Anspruchsvoll",
     color:
-      "text-terra-600 bg-terra-50 dark:text-terra-300 dark:bg-terra-950/30",
+      "text-terra-600 bg-terra-50/90 dark:text-terra-300 dark:bg-terra-950/30",
   },
 };
 
@@ -243,15 +243,16 @@ export function RecipeCard({
           </span>
         )}
 
-        {/* Favorite button top-right */}
+        {/* Favorite button top-right.
+            Die Schaltflaeche selbst ist 44x44 px gross (Tippziel), der sichtbare
+            Kreis bleibt bei 32 px — sonst wuerde er die Kachel erschlagen. Die
+            Position ist entsprechend um 6 px nach aussen gerueckt, damit der
+            Kreis optisch dort sitzt wie vorher. */}
         <button
           className={[
-            "absolute top-3 right-3",
-            "w-8 h-8 rounded-xl flex items-center justify-center",
-            "bg-white/90 backdrop-blur-sm shadow-warm-xs dark:bg-warm-900/90",
-            "transition-all duration-150",
-            "hover:bg-white hover:scale-110 dark:hover:bg-warm-800",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500",
+            "absolute top-1.5 right-1.5 group/fav",
+            "w-11 h-11 flex items-center justify-center",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:rounded-xl",
           ].join(" ")}
           onClick={handleFavoriteClick}
           aria-label={
@@ -259,16 +260,25 @@ export function RecipeCard({
           }
           aria-pressed={favorite}
         >
-          <HeartIcon
-            filled={favorite}
-            className={`w-4 h-4 ${favorite ? "text-terra-500" : "text-warm-400"}`}
-          />
+          <span
+            className={[
+              "w-8 h-8 rounded-xl flex items-center justify-center",
+              "bg-white/90 backdrop-blur-sm shadow-warm-xs dark:bg-warm-900/90",
+              "transition-all duration-150",
+              "group-hover/fav:bg-white group-hover/fav:scale-110 dark:group-hover/fav:bg-warm-800",
+            ].join(" ")}
+          >
+            <HeartIcon
+              filled={favorite}
+              className={`w-4 h-4 ${favorite ? "text-terra-500" : "text-warm-400"}`}
+            />
+          </span>
         </button>
 
         {/* Difficulty badge bottom-right (on image) */}
         {diff && (
           <span
-            className={`absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-xs font-medium ${diff.color} bg-opacity-90`}
+            className={`absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-xs font-medium ${diff.color}`}
           >
             {diff.label}
           </span>

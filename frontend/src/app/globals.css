@@ -28,13 +28,23 @@
   --color-cream-300: #fcd5ad;
   --color-cream-400: #f9b97d;
 
-  /* Gold / Senf family */
+  /* Gold / Senf family.
+     Die Stufen 50–200 und 900–950 fehlten, waehrend zehn Aufrufstellen sie
+     benutzten (bg-gold-50, dark:bg-gold-950/30, from-gold-50/80 …). Tailwind
+     erzeugt fuer eine nicht definierte Stufe kein CSS — die Kacheln rendern
+     dann lautlos ohne Hintergrund. Die Skala laeuft jetzt wie terra und warm
+     durchgehend von 50 bis 950. */
+  --color-gold-50:  #fdf9ed;
+  --color-gold-100: #faf1d6;
+  --color-gold-200: #f4e3ae;
   --color-gold-300: #edcd7e;
   --color-gold-400: #e6b84a;
   --color-gold-500: #d4a843;
   --color-gold-600: #b88b31;
   --color-gold-700: #956e24;
   --color-gold-800: #6e5018;
+  --color-gold-900: #5a4114;
+  --color-gold-950: #33240b;
 
   /* Warm neutrals */
   --color-warm-50:  #fafaf8;
@@ -158,6 +168,99 @@ body::before {
   filter: invert(1);
 }
 
+/* ── Mobile / Touch Foundation ──
+   Diese Utilities sind die geteilte Basis aller Mobile-Streams.
+   Sie setzen `viewportFit: "cover"` aus app/layout.tsx voraus — ohne das
+   liefert env(safe-area-inset-*) auf iOS konstant 0px zurueck. */
+
+@utility safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility safe-area-inset-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Waagrecht rollende Leisten (Notiz-Reiter, Schrittpunkte im Kochmodus)
+   ohne sichtbaren Rollbalken. Die Klasse wurde bereits benutzt, war aber
+   nirgends definiert und damit wirkungslos. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Apple HIG / WCAG 2.5.5 Mindestgroesse fuer Tippziele */
+@utility min-tap {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Kein graues Aufblitzen beim Antippen, keine 300-ms-Verzoegerung */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"],
+label,
+summary,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Verhindert, dass Scrollen am Seitenende die Browser-Oberflaeche
+   mitzieht (Pull-to-Refresh / Overscroll-Chaining) */
+html,
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* iOS zoomt beim Fokussieren automatisch hinein, sobald ein Formularfeld
+   kleiner als 16px rendert. Nur auf Touch-Geraeten erzwingen, damit die
+   Desktop-Typografie (text-sm in components/ui/Input.tsx) unveraendert
+   bleibt. Diese Regel steht ausserhalb jeder @layer und gewinnt daher
+   gegen Tailwind-Utilities. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* WebKit ignoriert Hoehe *und* Innenabstand an einem <select> in nativer
+   Darstellung: auf iPhone und iPad bleibt jede Auswahlliste 24 px hoch, egal
+   welche Klasse daran steht (gemessen in der Mobile-Suite; Chromium rendert
+   dieselben Felder mit 44 px). Erst `appearance: none` gibt die Kontrolle
+   zurueck — dann faellt aber auch der native Aufklapp-Pfeil weg, also kommt er
+   hier als Hintergrundbild zurueck. Nur auf Touch-Geraeten, damit die
+   Desktop-Darstellung unveraendert bleibt. */
+@media (pointer: coarse) {
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 44px;
+    /* Gerade so viel Platz fuer den Pfeil, dass auch schmale Felder wie die
+       Einheiten-Auswahl der Einkaufsliste (`w-24`) ihre Beschriftung noch
+       vollstaendig zeigen. */
+    padding-right: 1.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23968b82' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+    background-size: 1rem 1rem;
+  }
+}
+
 /* ── Typography ── */
 h1, h2, h3 {
   font-family: var(--font-display);
@@ -240,6 +343,11 @@ h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 
+@keyframes sheetUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(100%); }
   to   { opacity: 1; transform: translateX(0); }
@@ -250,6 +358,12 @@ h4, h5, h6 {
 .animate-slide-down    { animation: slideDown 0.25s var(--ease-smooth) both; }
 .animate-scale-in      { animation: scaleIn 0.2s var(--ease-spring) both; }
 .animate-slide-in-right { animation: slideInRight 0.3s var(--ease-smooth) both; }
+
+/* Modal variant="sheet": unter md von unten einschieben, ab md wie ein Dialog */
+.animate-sheet-up      { animation: sheetUp 0.28s var(--ease-smooth) both; }
+@media (min-width: 48rem) {
+  .animate-sheet-up    { animation: scaleIn 0.2s var(--ease-spring) both; }
+}
 
 /* Staggered children */
 .stagger-children > * { animation-fill-mode: both; }

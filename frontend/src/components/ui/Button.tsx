@@ -2,7 +2,8 @@
 
 import * as React from "react";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "gold";
+type ButtonVariant =
+  "primary" | "secondary" | "outline" | "ghost" | "danger" | "gold";
 type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -87,7 +88,14 @@ function Spinner({ size = "sm" }: { size?: "xs" | "sm" | "md" }) {
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
       <path
         className="opacity-75"
         fill="currentColor"
@@ -121,6 +129,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         className={[
           "inline-flex items-center justify-center font-medium",
+          // Auf Touch-Geraeten das Tippziel auf 44x44 px anheben (globals.css
+          // `min-tap`). Nur unter `pointer: coarse`, damit die kompakte
+          // Desktop-Typografie unveraendert bleibt — dieselbe Weiche, die
+          // schon die 16-px-Regel fuer Formularfelder steuert.
+          "pointer-coarse:min-tap",
           "transition-all duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-warm-900",
           "select-none cursor-pointer",
@@ -137,14 +150,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {loading ? (
           <Spinner size={size === "lg" ? "md" : size === "xs" ? "xs" : "sm"} />
         ) : (
-          icon && iconPosition === "left" && (
+          icon &&
+          iconPosition === "left" && (
             <span className="shrink-0" aria-hidden="true">
               {icon}
             </span>
           )
         )}
 
-        {children && <span className={loading ? "opacity-70" : ""}>{children}</span>}
+        {children && (
+          <span className={loading ? "opacity-70" : ""}>{children}</span>
+        )}
 
         {!loading && icon && iconPosition === "right" && (
           <span className="shrink-0" aria-hidden="true">

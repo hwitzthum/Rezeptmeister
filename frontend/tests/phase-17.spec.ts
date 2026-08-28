@@ -162,7 +162,10 @@ test.describe("Phase 17 – PWA & Offline-Zugang", () => {
       timeout: 10_000,
     });
 
-    // Verify in IndexedDB via raw API (v2 uses composite key userId:recipeId)
+    // Verify in IndexedDB via raw API (composite key userId:recipeId).
+    // Ohne Versionsnummer oeffnen: die DB-Version waechst mit den Features
+    // (SPEC_1 4.2 hebt sie auf 3); eine fest verdrahtete kleinere Version
+    // wirft VersionError und liefe ueber onerror still ins Leere.
     const isCached = await page.evaluate(
       async (rid: string) => {
         // Get current userId from session
@@ -171,7 +174,7 @@ test.describe("Phase 17 – PWA & Offline-Zugang", () => {
         if (!userId) return false;
         const compositeKey = `${userId}:${rid}`;
         return new Promise<boolean>((resolve) => {
-          const req = indexedDB.open("rezeptmeister-offline", 2);
+          const req = indexedDB.open("rezeptmeister-offline");
           req.onsuccess = () => {
             const db = req.result;
             const tx = db.transaction("recipes", "readonly");
@@ -277,7 +280,9 @@ test.describe("Phase 17 – PWA & Offline-Zugang", () => {
       timeout: 10_000,
     });
 
-    // Verify removed from IndexedDB via raw API (v2 composite key)
+    // Verify removed from IndexedDB via raw API (composite key).
+    // Ohne Versionsnummer oeffnen - sonst laesst ein VersionError diesen Test
+    // gruen laufen, ohne das Entfernen tatsaechlich zu pruefen.
     const isCached = await page.evaluate(
       async (rid: string) => {
         const session = await fetch("/api/auth/session").then((r) => r.json());
@@ -285,7 +290,7 @@ test.describe("Phase 17 – PWA & Offline-Zugang", () => {
         if (!userId) return false;
         const compositeKey = `${userId}:${rid}`;
         return new Promise<boolean>((resolve) => {
-          const req = indexedDB.open("rezeptmeister-offline", 2);
+          const req = indexedDB.open("rezeptmeister-offline");
           req.onsuccess = () => {
             const db = req.result;
             const tx = db.transaction("recipes", "readonly");

@@ -40,6 +40,7 @@ export default function RecipePickerDialog({
 
   return (
     <Modal
+      variant="sheet"
       open={open}
       onClose={handleClose}
       title="Rezept auswählen"

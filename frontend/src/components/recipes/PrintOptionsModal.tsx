@@ -72,6 +72,7 @@ export default function PrintOptionsModal({
         onClose={onClose}
         title="Drucken & PDF-Export"
         size="lg"
+        variant="sheet"
         footer={
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={onClose}>
@@ -100,7 +101,7 @@ export default function PrintOptionsModal({
         {/* Optionen */}
         <div className="space-y-4 mb-6">
           {/* Bild-Option */}
-          <label className="flex items-center gap-3 cursor-pointer" data-testid="include-image-toggle">
+          <label className="flex items-center gap-3 cursor-pointer pointer-coarse:min-tap" data-testid="include-image-toggle">
             <input
               type="checkbox"
               checked={includeImage}
@@ -121,7 +122,7 @@ export default function PrintOptionsModal({
               <button
                 onClick={() => setServings((v) => Math.max(1, v - 1))}
                 disabled={servings <= 1}
-                className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] disabled:opacity-40 transition-colors"
+                className="w-7 h-7 pointer-coarse:min-tap rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] disabled:opacity-40 transition-colors"
                 aria-label="Portionen verringern"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +137,7 @@ export default function PrintOptionsModal({
               </span>
               <button
                 onClick={() => setServings((v) => Math.min(999, v + 1))}
-                className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                className="w-7 h-7 pointer-coarse:min-tap rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                 aria-label="Portionen erhöhen"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

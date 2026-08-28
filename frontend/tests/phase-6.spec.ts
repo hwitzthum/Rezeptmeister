@@ -11,6 +11,13 @@
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  acquireLock,
+  holdsLock,
+  releaseLock,
+  GEMINI_KEY_LOCK,
+} from "./helpers/shared-lock";
+import { callLiveAi } from "./helpers/live-ai";
 import fs from "fs";
 import path from "path";
 
@@ -73,6 +80,18 @@ async function createRecipeViaApi(page: import("@playwright/test").Page): Promis
 test.describe("Phase 6 – Embedding & OCR", () => {
   test.describe.configure({ mode: "serial" });
 
+  // Diese Gruppe setzt „kein KI-Schluessel" voraus bzw. loescht ihn. Der
+  // Schluessel haengt am gemeinsamen Admin-Konto, Playwright faehrt Dateien
+  // aber parallel — ohne Sperre laeuft ein Live-Block einer anderen Datei
+  // gleichzeitig und verliert seinen Schluessel. Siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+  test.afterAll(() => {
+    releaseLock(GEMINI_KEY_LOCK);
+  });
+
+
   test("6.1 Embedding-Endpunkt /embed/text gibt 204 zurück (kein API-Key → stilles Überspringen)", async ({ page }) => {
     await loginAdmin(page);
 
@@ -134,6 +153,12 @@ test.describe("Phase 6 – Embedding & OCR", () => {
   test("6.4 OCR ohne API-Schlüssel zeigt Fehlermeldung", async ({ page }) => {
     await loginAdmin(page);
 
+    // Vorbedingung selbst herstellen statt sie anzunehmen: phase-2 laesst
+    // ihren Testschluessel in der DB zurueck, dann antwortet OCR nicht 400.
+    await page.evaluate(async () => {
+      await fetch("/api/settings/api-key", { method: "DELETE" });
+    });
+
     // Prüfen dass der OCR-Endpunkt bei fehlendem API-Schlüssel 400 zurückgibt
     const resp = await page.evaluate(async () => {
       const res = await fetch("/api/ai/ocr", {
@@ -163,7 +188,9 @@ test.describe("Phase 6 – Embedding & OCR", () => {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const pngBuffer = Buffer.from(pngBase64, "base64");
 
-    const uploadInput = page.locator('input[type="file"]');
+    // .first() = Galerie-Input; seit dem Scan-Flow enthaelt die Komponente
+    // zusaetzlich ein Kamera-Input (capture="environment").
+    const uploadInput = page.locator('input[type="file"]').first();
     await uploadInput.setInputFiles({
       name: `test-${RUN_ID}.png`,
       mimeType: "image/png",
@@ -181,6 +208,14 @@ test.describe("Phase 6 – Embedding & OCR", () => {
 
 test.describe("Phase 6 – Live-Gemini (mit API-Schlüssel)", () => {
   test.describe.configure({ mode: "serial" });
+
+  // Der KI-Schluessel haengt an einem gemeinsamen Konto, Playwright faehrt
+  // Dateien aber parallel. Ohne diese Sperre schreibt eine andere Spec-Datei
+  // dazwischen — siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+
   test.skip(!GEMINI_TEST_KEY, "GEMINI_TEST_KEY nicht gesetzt – Live-Tests übersprungen");
 
   // Gemini-Schlüssel via Settings-API speichern (Voraussetzung für 6.7 + 6.8)
@@ -200,13 +235,24 @@ test.describe("Phase 6 – Live-Gemini (mit API-Schlüssel)", () => {
   });
 
   // Schlüssel nach allen Live-Tests wieder entfernen (kein Datenleck in DB)
+  // Aufraeumen und Freigabe in *einem* Hook: `afterAll` laeuft in
+  // Deklarationsreihenfolge, eine getrennt registrierte Freigabe kaeme sonst
+  // vor dem Loeschen — und eine andere Datei bekaeme die Sperre, waehrend ihr
+  // dieser Hook gleich den Schluessel unter den Fuessen wegzieht.
   test.afterAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await loginAdmin(page);
-    await page.evaluate(async () => {
-      await fetch("/api/settings/api-key", { method: "DELETE" });
-    });
-    await page.close();
+    try {
+      // Scheiterte `beforeAll` (Sperre nicht bekommen), gehoert der Schluessel
+      // gerade einer anderen Datei — dann nichts anfassen.
+      if (!holdsLock(GEMINI_KEY_LOCK)) return;
+      const page = await browser.newPage();
+      await loginAdmin(page);
+      await page.evaluate(async () => {
+        await fetch("/api/settings/api-key", { method: "DELETE" });
+      });
+      await page.close();
+    } finally {
+      releaseLock(GEMINI_KEY_LOCK);
+    }
   });
 
   test("6.6 Gemini-Schlüssel in Einstellungen speichern und lesen", async ({ page }) => {
@@ -255,6 +301,9 @@ test.describe("Phase 6 – Live-Gemini (mit API-Schlüssel)", () => {
   });
 
   test("6.8 OCR-Endpunkt liefert strukturiertes Rezept aus echtem Bild", async ({ page }) => {
+    // Echter Gemini-Aufruf: allein rund sieben Sekunden, mit Wiederholungen
+    // bei Ablehnung von oben entsprechend mehr.
+    test.setTimeout(120_000);
     await loginAdmin(page);
 
     // Schritt 1: Test-PNG hochladen (1×1 Pixel reicht für Upload-Flow)
@@ -277,21 +326,31 @@ test.describe("Phase 6 – Live-Gemini (mit API-Schlüssel)", () => {
     const imageId = uploadResp.id!;
 
     // Schritt 2: OCR aufrufen
-    const ocrResp = await page.evaluate(async (imgId: string) => {
-      const res = await fetch("/api/ai/ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageId: imgId }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    }, imageId);
+    const ocrResp = await callLiveAi(() =>
+      page.evaluate(async (imgId: string) => {
+        const res = await fetch("/api/ai/ocr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageId: imgId }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }, imageId),
+    );
 
     // Das Bild ist zu klein für echte OCR → Gemini gibt "Kein Rezept erkannt" zurück
-    // Wichtig: Endpunkt antwortet 200 mit einem OcrResult (kein 500)
-    expect(ocrResp.status).toBe(200);
-    expect(ocrResp.body).toHaveProperty("title");
-    expect(ocrResp.body).toHaveProperty("ingredients");
-    expect(ocrResp.body).toHaveProperty("instructions");
-    expect(ocrResp.body.source_type).toBe("image_ocr");
+    // Wichtig: Endpunkt antwortet 200 mit einem OcrResult (kein 500).
+    // Die Antwort ist OcrResults ({ recipes: OcrResult[] }) — dieselbe Form,
+    // die OcrMultiPreview konsumiert und die SPEC_1 §4.1 festschreibt.
+    // Bei einem Fehlschlag muss die Meldung den Grund zeigen, nicht nur den
+    // Status — sonst laesst sich ein sporadischer Fall nicht einordnen.
+    expect(ocrResp.status, `OCR antwortete ${ocrResp.status}: ${JSON.stringify(ocrResp.body)}`).toBe(200);
+    expect(ocrResp.body).toHaveProperty("recipes");
+    const ocrRecipes = ocrResp.body.recipes as Record<string, unknown>[];
+    expect(Array.isArray(ocrRecipes)).toBe(true);
+    expect(ocrRecipes.length).toBeGreaterThanOrEqual(1);
+    expect(ocrRecipes[0]).toHaveProperty("title");
+    expect(ocrRecipes[0]).toHaveProperty("ingredients");
+    expect(ocrRecipes[0]).toHaveProperty("instructions");
+    expect(ocrRecipes[0].source_type).toBe("image_ocr");
   });
 });

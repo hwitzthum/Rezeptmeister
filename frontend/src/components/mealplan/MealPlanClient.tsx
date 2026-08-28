@@ -353,11 +353,11 @@ export default function MealPlanClient({
 
       {/* Week Navigation */}
       <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
           <button
             onClick={goToPrevWeek}
             data-testid="meal-plan-prev-week"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+            className="w-8 h-8 shrink-0 pointer-coarse:min-tap rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
             aria-label="Vorherige Woche"
           >
             <ChevronLeftIcon />
@@ -365,7 +365,7 @@ export default function MealPlanClient({
 
           <span
             data-testid="meal-plan-week-label"
-            className="text-sm font-medium text-[var(--text-primary)] min-w-[200px] text-center"
+            className="flex-1 text-sm font-medium text-[var(--text-primary)] min-w-0 sm:flex-none sm:min-w-[200px] text-center"
           >
             {weekLabel}
           </span>
@@ -373,24 +373,27 @@ export default function MealPlanClient({
           <button
             onClick={goToNextWeek}
             data-testid="meal-plan-next-week"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+            className="w-8 h-8 shrink-0 pointer-coarse:min-tap rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
             aria-label="Nächste Woche"
           >
             <ChevronRightIcon />
           </button>
 
-          <button
-            onClick={goToToday}
-            data-testid="meal-plan-today-button"
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium text-terra-600 dark:text-terra-400 bg-terra-50 dark:bg-terra-950/30 hover:bg-terra-100 dark:hover:bg-terra-900/30 border border-terra-200 dark:border-terra-800 transition-colors"
-          >
-            Heute
-          </button>
+          {/* Unter sm eigene Zeile: sonst draengt die Wochenbeschriftung diese
+              beiden aus dem Viewport, und #main-content schneidet sie ab. */}
+          <div className="basis-full sm:basis-auto sm:ml-auto flex items-center gap-3">
+            <button
+              onClick={goToToday}
+              data-testid="meal-plan-today-button"
+              className="px-3 py-1.5 pointer-coarse:min-tap rounded-lg text-xs font-medium text-terra-600 dark:text-terra-400 bg-terra-50 dark:bg-terra-950/30 hover:bg-terra-100 dark:hover:bg-terra-900/30 border border-terra-200 dark:border-terra-800 transition-colors"
+            >
+              Heute
+            </button>
 
-          <div className="ml-auto">
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-none"
               onClick={() => { void generateShoppingList(); }}
               disabled={generatingList || entries.length === 0}
               data-testid="meal-plan-generate-shopping-list"
@@ -404,7 +407,7 @@ export default function MealPlanClient({
       {/* Calendar Grid */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <div
                 key={n}
@@ -485,7 +488,10 @@ export default function MealPlanClient({
             </div>
 
             {/* Mobile: Stacked Days */}
-            <div className="lg:hidden space-y-4" data-testid="meal-plan-grid-mobile">
+            <div
+              className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4"
+              data-testid="meal-plan-grid-mobile"
+            >
               {weekDays.map((day) => {
                 const dateStr = format(day, "yyyy-MM-dd");
                 const todayStr = format(new Date(), "yyyy-MM-dd");

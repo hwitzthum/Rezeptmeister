@@ -137,7 +137,7 @@ export default function NutritionPanel({
       </div>
 
       {nutrition && !editing && (
-        <div className="grid grid-cols-5 gap-1 text-center">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 text-center">
           <NutrientCell label="kcal" value={`ca. ${Math.round(nutrition.kcal)}`} large />
           <NutrientCell label="Protein" value={`ca. ${Math.round(nutrition.protein_g)}g`} />
           <NutrientCell label="Fett" value={`ca. ${Math.round(nutrition.fat_g)}g`} />

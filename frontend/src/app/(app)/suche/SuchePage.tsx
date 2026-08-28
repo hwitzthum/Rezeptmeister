@@ -463,21 +463,21 @@ export default function SuchePage() {
     <div className="min-h-screen bg-[var(--bg-base)]">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-6 lg:px-10 py-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
             Suche &amp; Entdecken
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Mode toggle */}
             <div
               role="group"
               aria-label="Suchmodus"
-              className="inline-flex rounded-xl border border-[var(--border-base)] overflow-hidden bg-[var(--bg-subtle)] p-0.5"
+              className="inline-flex max-w-full overflow-x-auto rounded-xl border border-[var(--border-base)] bg-[var(--bg-subtle)] p-0.5"
             >
               <button
                 type="button"
                 onClick={() => setSearchMode("volltext")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all shrink-0 pointer-coarse:min-tap ${
                   isVolltextMode
                     ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -489,7 +489,7 @@ export default function SuchePage() {
                 type="button"
                 data-testid="ki-suche-toggle"
                 onClick={() => setSearchMode("ki")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 pointer-coarse:min-tap ${
                   isKiMode
                     ? "bg-terra-500 text-white shadow-sm"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -504,7 +504,7 @@ export default function SuchePage() {
                 type="button"
                 data-testid="web-suche-toggle"
                 onClick={() => setSearchMode("web")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 pointer-coarse:min-tap ${
                   isWebMode
                     ? "bg-terra-500 text-white shadow-sm"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -519,7 +519,7 @@ export default function SuchePage() {
                 type="button"
                 data-testid="zutaten-suche-toggle"
                 onClick={() => setSearchMode("zutaten")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 pointer-coarse:min-tap ${
                   isZutatenMode
                     ? "bg-terra-500 text-white shadow-sm"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -610,7 +610,7 @@ export default function SuchePage() {
               <button
                 type="button"
                 onClick={() => setShowMobileFilters((v) => !v)}
-                className={`lg:hidden px-3 py-2.5 rounded-xl text-sm border transition-colors ${
+                className={`lg:hidden px-3 py-2.5 rounded-xl text-sm border transition-colors shrink-0 pointer-coarse:min-tap ${
                   hasActiveFilters
                     ? "border-terra-400 bg-terra-50 dark:bg-terra-950/30 text-terra-700"
                     : "border-[var(--border-base)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]"
@@ -670,7 +670,7 @@ export default function SuchePage() {
                 type="button"
                 data-testid="ki-image-upload"
                 onClick={() => kiImageInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[var(--border-base)] text-sm text-[var(--text-muted)] hover:border-terra-400 hover:text-terra-600 transition-colors w-full justify-center"
+                className="flex items-center gap-2 px-3 py-2 pointer-coarse:min-tap rounded-xl border border-dashed border-[var(--border-base)] text-sm text-[var(--text-muted)] hover:border-terra-400 hover:text-terra-600 transition-colors w-full justify-center"
               >
                 <svg
                   className="w-4 h-4"
@@ -876,7 +876,7 @@ export default function SuchePage() {
                       )
                     }
                     disabled={loadingMore}
-                    className="px-6 py-2.5 rounded-xl text-sm font-medium border border-[var(--border-base)] text-[var(--text-secondary)] hover:border-terra-400 hover:text-terra-600 disabled:opacity-50 transition-colors"
+                    className="px-6 py-2.5 pointer-coarse:min-tap rounded-xl text-sm font-medium border border-[var(--border-base)] text-[var(--text-secondary)] hover:border-terra-400 hover:text-terra-600 disabled:opacity-50 transition-colors"
                   >
                     {loadingMore ? "Laden…" : "Mehr laden"}
                   </button>
@@ -1247,7 +1247,7 @@ function FilterSidebar({
             return (
               <label
                 key={d}
-                className="flex items-center gap-2 cursor-pointer group"
+                className="flex items-center gap-2 cursor-pointer group pointer-coarse:min-tap"
               >
                 <input
                   type="radio"

@@ -52,7 +52,7 @@ export default async function BearbeitenPage({ params }: PageProps) {
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link
             href={`/rezepte/${id}`}
-            className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors"
+            className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors pointer-coarse:min-tap"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 19.5L8.25 12l7.5-7.5" />

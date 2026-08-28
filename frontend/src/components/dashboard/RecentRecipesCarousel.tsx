@@ -62,7 +62,7 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
           <p className="text-sm text-[var(--text-secondary)] mb-3">
             Ihre Rezeptsammlung ist noch leer.
           </p>
-          <Link href="/rezepte/neu" className="text-sm text-terra-500 hover:text-terra-600 font-medium transition-colors">
+          <Link href="/rezepte/neu" className="text-sm text-terra-500 hover:text-terra-600 font-medium transition-colors pointer-coarse:min-tap inline-flex items-center">
             Erstes Rezept erstellen &rarr;
           </Link>
         </div>
@@ -81,7 +81,7 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
+            className="p-2 pointer-coarse:min-tap flex items-center justify-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
             aria-label="Nach links scrollen"
             data-testid="carousel-left"
           >
@@ -92,7 +92,7 @@ export default function RecentRecipesCarousel({ recipes }: Props) {
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
+            className="p-2 pointer-coarse:min-tap flex items-center justify-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-terra-50 dark:hover:bg-terra-950/30 hover:text-terra-600 hover:border-terra-200 disabled:opacity-25 disabled:cursor-default transition-all duration-200"
             aria-label="Nach rechts scrollen"
             data-testid="carousel-right"
           >

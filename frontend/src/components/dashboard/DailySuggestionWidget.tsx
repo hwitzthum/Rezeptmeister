@@ -96,7 +96,7 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
           </p>
           <Link
             href="/einstellungen"
-            className="inline-block mt-1 text-terra-500 hover:text-terra-600 font-medium"
+            className="inline-flex items-center mt-1 text-terra-500 hover:text-terra-600 font-medium pointer-coarse:min-tap"
           >
             Jetzt in den Einstellungen hinterlegen
           </Link>

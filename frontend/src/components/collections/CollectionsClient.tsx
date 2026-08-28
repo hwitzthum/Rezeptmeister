@@ -217,7 +217,10 @@ export default function CollectionsClient({
 
               {/* Content */}
               <div className="p-4">
-                <Link href={`/sammlungen/${collection.id}`}>
+                <Link
+                  href={`/sammlungen/${collection.id}`}
+                  className="block pointer-coarse:min-tap"
+                >
                   <h2 className="text-lg font-semibold text-[var(--text-primary)] hover:text-terra-500 transition-colors line-clamp-1">
                     {collection.name}
                   </h2>
@@ -234,13 +237,13 @@ export default function CollectionsClient({
               </div>
 
               {/* Action buttons */}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
                     openEditDialog(collection);
                   }}
-                  className="w-8 h-8 rounded-lg bg-[var(--bg-surface)]/80 backdrop-blur-sm flex items-center justify-center text-warm-500 hover:text-terra-500 hover:bg-[var(--bg-surface)] transition-all shadow-sm"
+                  className="w-8 h-8 pointer-coarse:min-tap rounded-lg bg-[var(--bg-surface)]/80 backdrop-blur-sm flex items-center justify-center text-warm-500 hover:text-terra-500 hover:bg-[var(--bg-surface)] transition-all shadow-sm"
                   title="Bearbeiten"
                   aria-label="Bearbeiten"
                 >
@@ -251,7 +254,7 @@ export default function CollectionsClient({
                     e.preventDefault();
                     setDeletingCollection(collection);
                   }}
-                  className="w-8 h-8 rounded-lg bg-[var(--bg-surface)]/80 backdrop-blur-sm flex items-center justify-center text-warm-500 hover:text-red-500 hover:bg-[var(--bg-surface)] transition-all shadow-sm"
+                  className="w-8 h-8 pointer-coarse:min-tap rounded-lg bg-[var(--bg-surface)]/80 backdrop-blur-sm flex items-center justify-center text-warm-500 hover:text-red-500 hover:bg-[var(--bg-surface)] transition-all shadow-sm"
                   title="Löschen"
                   aria-label="Löschen"
                 >
@@ -265,6 +268,7 @@ export default function CollectionsClient({
 
       {/* Create Dialog */}
       <Modal
+        variant="sheet"
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         title="Neue Sammlung"
@@ -326,6 +330,7 @@ export default function CollectionsClient({
 
       {/* Edit Dialog */}
       <Modal
+        variant="sheet"
         open={editingCollection !== null}
         onClose={() => setEditingCollection(null)}
         title="Sammlung bearbeiten"

@@ -41,7 +41,18 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      # curl ist im python:3.12-slim-Image nicht enthalten — der Test schlug
+      # deshalb dauerhaft fehl ("executable file not found"), obwohl /health
+      # sauber mit 200 antwortete. Python liegt ohnehin im Image.
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import sys, urllib.request
+          sys.exit(0 if urllib.request.urlopen(
+              "http://localhost:8000/health", timeout=4
+          ).status == 200 else 1)
       interval: 10s
       timeout: 5s
       retries: 5

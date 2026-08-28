@@ -34,7 +34,7 @@ export default function MealPlanWidget({ entries }: Props) {
         </h2>
         <Link
           href="/wochenplan"
-          className="text-sm text-terra-500 hover:text-terra-600 font-medium"
+          className="text-sm text-terra-500 hover:text-terra-600 font-medium pointer-coarse:min-tap inline-flex items-center"
         >
           Wochenplan
         </Link>
