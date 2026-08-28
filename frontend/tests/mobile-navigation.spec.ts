@@ -196,6 +196,35 @@ test.describe("C1.2 — Navigation per Antippen", () => {
     }
   });
 
+  test("Von jeder Seite fuehrt ein Weg zurueck", async ({ page }) => {
+    // Der Test, der in der manuellen Abnahme gefehlt hat: die Suite pruefte, ob
+    // jede Seite *erreichbar* ist — nicht, ob man von ihr wieder wegkommt.
+    // `/einstellungen` und `/admin` lagen ausserhalb der App-Gruppe und hatten
+    // deshalb weder Tab-Leiste noch Sidebar: auf dem Handy eine Sackgasse.
+    const phone = await isPhoneLayout(page);
+    const navigation = phone
+      ? page.getByTestId("nav-tabbar")
+      : page.getByTestId("sidebar");
+
+    // `/offline` ist bewusst ausgenommen: die Seite ist der Rueckfall des
+    // Service Workers und muss ohne angemeldetes Layout rendern. Sie bringt
+    // ihren eigenen Rueckweg mit, der weiter unten geprueft wird.
+    for (const route of STATIC_ROUTES.filter((r) => r !== "/offline")) {
+      await page.goto(route);
+      await settle(page);
+      await expect(
+        navigation,
+        `${route} bietet keinen Weg zurueck — weder Tab-Leiste noch Sidebar`,
+      ).toBeVisible();
+    }
+
+    await page.goto("/offline");
+    await expect(
+      page.getByRole("link", { name: /Zurück zur Startseite/ }),
+      "/offline bietet keinen eigenen Rueckweg",
+    ).toBeVisible();
+  });
+
   test("Abmelden ist aus dem Mehr-Menue erreichbar (Handy)", async ({ page }) => {
     test.skip(!(await isPhoneLayout(page)), "Das Mehr-Menue ersetzt die Sidebar nur unter md");
 

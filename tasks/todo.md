@@ -493,7 +493,9 @@ Wellen 0–3 umgesetzt; die ausführlichen Review-Einträge je Stream stehen in 
   statt 44 px hoch; Sidebar-Einträge auf dem iPad 40 px; Portionen-Plus/Minus 28 px; das
   Filterformular unter `/vorschlaege` durchgehend unter dem Tippziel-Mass.
 - **Welle 4 (D.1–D.3):** Alle drei automatisierten Tore grün — Build/Lint/`tsc`/Vitest, Playwright 310 passed / 0 failed / 9 skipped von 319 über alle vier Projekte, `uv run pytest` 58/58 gegen die echte Postgres ohne Skips. Die 9 Skips sind ausschliesslich layoutbedingt (Sidebar-Test auf den Handys, Tab-Leiste und `[+]`-Sheet auf dem iPad).
-- **D.4–D.6 stehen aus** — Vercel-Preview über HTTPS, manuelle iPhone-Checkliste (inkl. der aus Welle 1 offenen Zusage „zwei echte Fotos → ein Rezept") und Freigabe. Merge nach `main` erst danach.
+- **D.4:** Branch gepusht, Vercel-Preview `READY`. Preview und Produktion teilen `DATABASE_URL` — die Abnahme läuft auf echten Daten.
+- **D.5 (laufend):** Drei Befunde am echten Gerät. (1) `/einstellungen` und `/admin` lagen ausserhalb der Route-Gruppe `(app)` und hatten deshalb keine Navigation — auf dem Handy eine Sackgasse; jetzt behoben, plus neuer Test „Von jeder Seite führt ein Weg zurück" (gegen den alten Stand gegengeprüft). (2) Mehrseitiges OCR scheitert auf der Preview mit „Ungültige Eingabedaten" — kein Codefehler: Render deployt aus `main`, wo das Backend nur `image_id` kennt. (3) Tab-Leiste sitzt unter dem Home-Indicator — Ursache noch offen, Konfiguration und gebautes CSS sind korrekt.
+- **D.6 steht aus** — Merge nach `main` erst nach ausdrücklicher Freigabe.
 
 ---
 

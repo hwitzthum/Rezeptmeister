@@ -238,7 +238,7 @@ Add a new area there and it appears in the sidebar, the tab bar and the *Mehr* m
 1. **Kamera** opens the phone camera directly (`capture="environment"`); **Galerie** picks existing photos.
 2. Multiple pages are collected in order, can be reordered or removed, and are downscaled to
    2000 px / JPEG in the browser before upload (a 12 MP photo is otherwise too large for the 10 MB limit).
-3. **Alle Seiten hochladen und erkennen** uploads each page, then sends **one** OCR request with all
+3. **Rezept erkennen (N Seiten)** uploads each page, then sends **one** OCR request with all
    image ids in page order — up to 10 pages become **one** recipe, not one per page.
 4. The result opens in the editable preview; saving redirects to the new recipe.
 
