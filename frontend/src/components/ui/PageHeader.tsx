@@ -48,7 +48,7 @@ export function PageHeader({
             {subtitle}
           </p>
         )}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {showHome && <HomeLink />}
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] truncate">

@@ -144,6 +144,41 @@ All AI features require a user-provided Gemini API key configured in `/einstellu
 | Nutrition | AI-estimated kcal, protein, fat, carbs, fiber — with manual override |
 | Embeddings | Async text + image embeddings (gemini-embedding-2-preview, 3072 dims) |
 
+#### Which models are used
+
+Model names are **not** hardcoded at the call sites — they live in `backend/app/config.py` and can be
+overridden per environment (`GEMINI_FLASH_MODEL`, `GEMINI_OCR_MODEL`, …):
+
+| Setting | Model | Used by |
+| ------- | ----- | ------- |
+| `gemini_flash_model` | `gemini-3.6-flash` | suggestions, recipe generation, scaling hints, nutrition, web search, URL import |
+| `gemini_ocr_model` | `gemini-3.1-pro-preview` | photo OCR |
+| `gemini_image_gen_model` | `gemini-3.1-flash-image` | recipe image generation |
+| `gemini_embedding_model` | `gemini-embedding-2-preview` | text + image embeddings |
+
+> **Do not change the embedding model casually.** Existing vectors were written in that model's space;
+> switching it silently degrades every search result until all recipes are re-embedded via
+> Admin → *Re-Embed All Recipes*.
+
+> **Model deprecations surface per API key, not globally.** Google retired the 2.5 series for newly
+> created keys while older keys kept working — so the app failed in production with
+> `404 … is no longer available to new users` while every local test still passed against an older
+> key. If any AI feature suddenly returns *"KI-Dienst momentan nicht verfügbar"*, read the backend
+> logs first: the model name is usually the answer.
+
+**Latency and the thinking budget.** Gemini 3 models reason before answering, and those thinking
+tokens count against `max_output_tokens`. Measured on the same suggestion request:
+
+| `thinking_level` | Duration | Result |
+| ---------------- | -------- | ------ |
+| `low` | ~10 s | 5 suggestions |
+| default | ~40 s | 5 suggestions |
+| `high` | ~51 s | **empty** — the budget was spent thinking before any JSON was produced |
+
+Suggestions therefore run at `thinking_level="low"` (`SUGGEST_THINKING_LEVEL` in
+`backend/app/routers/ai.py`) with generous headroom in `max_output_tokens`. Raise the thinking level
+only together with the token cap, and measure before shipping.
+
 **How recipe suggestions avoid generic output.** The prompt is built from three things the model
 cannot know on its own:
 

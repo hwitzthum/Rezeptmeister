@@ -23,9 +23,23 @@ export interface NavGroup {
 
 /* ─── Icons ─── */
 
-export const ChefHatIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5A5.25 5.25 0 002.25 10.25v.75c0 .69.56 1.25 1.25 1.25H4.5M12 6.253C13.168 5.477 14.754 5 16.5 5a5.25 5.25 0 015.25 5.25v.75c0 .69-.56 1.25-1.25 1.25H19.5" />
+/**
+ * Kochmuetze — die Marke der App.
+ *
+ * Der vorherige Pfad war irrtuemlich der eines aufgeschlagenen Buchs und sah
+ * aus wie ein Regenschirm. Diese Fassung zeichnet eine echte Toque: drei
+ * Beulen als Krone, darunter das Stirnband mit Falte.
+ */
+export const ChefHatIcon = ({ className = "w-5 h-5" }: { className?: string } = {}) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.6}
+      d="M7.3 15.2v-3.6a3.5 3.5 0 011.3-6.9 3.7 3.7 0 013.4-2 3.7 3.7 0 013.4 2 3.5 3.5 0 011.3 6.9v3.6"
+    />
+    <rect x="6.5" y="15.7" width="11" height="4.4" rx="1.3" strokeWidth={1.6} />
+    <path strokeLinecap="round" strokeWidth={1.6} d="M9.6 17.9h4.8" />
   </svg>
 );
 

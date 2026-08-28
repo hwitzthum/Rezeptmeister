@@ -24,7 +24,7 @@ export default function HomeLink() {
       href="/"
       data-testid="home-link"
       aria-label="Zum Dashboard"
-      className="md:hidden min-tap shrink-0 -ml-1 mr-2 inline-flex items-center justify-center rounded-xl bg-terra-50 text-terra-600 transition-colors duration-150 hover:bg-terra-100 active:bg-terra-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 dark:bg-terra-950/40 dark:text-terra-300 dark:hover:bg-terra-900/50 dark:active:bg-terra-900/70"
+      className="md:hidden min-tap shrink-0 -ml-2 inline-flex items-center justify-center rounded-xl bg-terra-50 text-terra-600 transition-colors duration-150 hover:bg-terra-100 active:bg-terra-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 dark:bg-terra-950/40 dark:text-terra-300 dark:hover:bg-terra-900/50 dark:active:bg-terra-900/70"
     >
       <ChefHatIcon />
     </Link>

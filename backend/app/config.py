@@ -18,10 +18,17 @@ class Settings(BaseSettings):
     internal_secret: str = ""
 
     # Gemini model names (configurable for future upgrades)
+    #
+    # Die 2.5er-Reihe hat Google fuer neu angelegte Schluessel abgeschaltet:
+    # "This model models/gemini-2.5-flash is no longer available to new users.
+    #  Please update your code to use models/gemini-3.6-flash". Aeltere
+    # Schluessel kamen weiter durch, deshalb fiel es erst in Produktion auf.
+    # Betroffen war alles, was am Flash-Modell haengt: Vorschlaege, Rezept aus
+    # Vorschlag, Skalierungshinweise, Naehrwerte, Websuche und URL-Import.
     gemini_embedding_model: str = "gemini-embedding-2-preview"
     gemini_ocr_model: str = "gemini-3.1-pro-preview"
-    gemini_flash_model: str = "gemini-2.5-flash"
-    gemini_image_gen_model: str = "gemini-2.5-flash-image"
+    gemini_flash_model: str = "gemini-3.6-flash"
+    gemini_image_gen_model: str = "gemini-3.1-flash-image"
 
     # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
     debug: bool = False
