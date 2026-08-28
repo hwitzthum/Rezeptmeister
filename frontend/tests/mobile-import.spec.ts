@@ -115,6 +115,23 @@ test.describe("C1.4 — Geteilte Adresse", () => {
     expect(calls).toHaveLength(0);
   });
 
+  test("Das Adressfeld behaelt den Fokus waehrend der Eingabe", async ({ page }) => {
+    // Auf dem iPhone schloss sich die Tastatur nach dem ersten Buchstaben:
+    // die Eingabe verlor den Fokus, das Feld blieb fast leer zurueck.
+    await stubImport(page, `Tippen-${RUN_ID}`, true);
+    await page.goto("/rezepte/importieren");
+
+    const feld = page.getByTestId("url-import-input");
+    await expect(feld).toBeVisible();
+    await feld.tap();
+    await feld.pressSequentially(SHARED_URL, { delay: 30 });
+
+    // Jedes Zeichen ist angekommen …
+    await expect(feld).toHaveValue(SHARED_URL);
+    // … und der Fokus liegt immer noch im Feld (sonst faellt die Tastatur zu).
+    await expect(feld).toBeFocused();
+  });
+
   test("Die geteilte Adresse ueberlebt die Anmeldung", async ({ browser }) => {
     // Eigener, abgemeldeter Kontext — die geteilte Sitzung waere hier falsch.
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });

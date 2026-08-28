@@ -38,6 +38,9 @@ const sheetSizeStyles = {
   full: "md:max-w-[95vw] md:max-h-[95dvh]",
 };
 
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 let openModalCount = 0;
 
 export function Modal({
@@ -83,31 +86,64 @@ export function Modal({
     };
   }, [open]);
 
-  // Trap focus
+  // `onClose` wird von den meisten Aufrufern als frisch erzeugte Funktion
+  // uebergeben, ist also bei jedem Rendern eine andere. Ueber eine Ref hat der
+  // Tastatur-Handler trotzdem immer die aktuelle Fassung, ohne dass die Effekte
+  // unten bei jedem Tastendruck neu laufen muessten.
+  const onCloseRef = React.useRef(onClose);
   React.useEffect(() => {
-    if (!open || !dialogRef.current) return;
-    const el = dialogRef.current;
-    const focusable = el.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-    first?.focus();
+  // Erstfokus — genau einmal, wenn das Panel erscheint.
+  //
+  // Frueher steckte das im selben Effekt wie die Tastatur-Falle, mit `onClose`
+  // in den Abhaengigkeiten. Damit lief `focus()` bei *jedem* Rendern des
+  // aufrufenden Dialogs erneut und riss den Fokus aus dem gerade bedienten
+  // Feld zurueck auf den Schliessen-Knopf. Auf dem iPhone fiel dadurch nach dem
+  // ersten Buchstaben die Tastatur zu und die Eingabe war verloren.
+  //
+  // `visible` gehoert in die Abhaengigkeiten: beim Oeffnen rendert die
+  // Komponente zuerst `null` (siehe unten), das Panel und damit `dialogRef`
+  // entstehen erst im Durchlauf danach.
+  React.useEffect(() => {
+    if (!open || !visible) return;
+    dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+  }, [open, visible]);
+
+  // Escape schliesst, Tab bleibt im Dialog.
+  React.useEffect(() => {
+    if (!open) return;
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key === "Tab") {
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault(); last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault(); first?.focus();
-        }
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      // Die Liste wird bei jedem Tastendruck frisch gelesen. Als Momentaufnahme
+      // veraltete sie, sobald ein Dialog seinen Inhalt wechselt — etwa der
+      // URL-Import von der Adresseingabe zur Vorschau.
+      const el = dialogRef.current;
+      if (!el) return;
+      const focusable = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     }
+
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [open]);
 
   if (!mounted || !visible) return null;
 
