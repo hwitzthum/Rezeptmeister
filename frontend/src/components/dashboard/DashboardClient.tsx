@@ -1,5 +1,6 @@
 "use client";
 
+import InstallHint from "@/components/layout/InstallHint";
 import QuickActionsWidget from "./QuickActionsWidget";
 import RecentRecipesCarousel from "./RecentRecipesCarousel";
 import FavoritesWidget from "./FavoritesWidget";
@@ -78,6 +79,9 @@ export default function DashboardClient({
           </div>
         </div>
       </header>
+
+      {/* Hinweis auf den Home-Bildschirm — nur, wenn die App dort fehlt */}
+      <InstallHint />
 
       {/* Quick actions */}
       <section className="mb-8 animate-slide-up" style={{ animationDelay: "80ms" }}>

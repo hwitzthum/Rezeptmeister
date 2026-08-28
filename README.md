@@ -292,6 +292,33 @@ Every area is reachable **by tapping alone** — no typed URLs.
 > outside `localhost` — a LAN address like `http://192.168.1.20:3001` will silently offer neither.
 > Use the Vercel preview URL or a local HTTPS tunnel when testing on a real phone.
 
+### When the home screen icon disappears
+
+A home screen icon can vanish without the app doing anything wrong, and it catches people out
+because the app then looks deleted:
+
+| Cause | What happens |
+| ----- | ------------ |
+| **Settings › Safari › "Verlauf und Websitedaten löschen"** | iOS removes installed web apps along with the site data. This is the usual culprit — the option sits right next to the ones people are told to use. |
+| **iCloud home screen sync** | Removing the icon on one device can propagate to another signed in to the same Apple ID. |
+| **Restoring a backup / resetting the home screen layout** | Web clips are not restored. |
+
+**No data is lost.** Recipes, images, the shopping list and the meal plan live in Postgres, not on
+the device — only the shortcut is gone. The offline copies in IndexedDB are rebuilt the next time a
+recipe is marked for offline use.
+
+The app handles this itself rather than leaving people stranded:
+
+- **`InstallHint`** (dashboard) appears only when the app is running in a browser on a phone,
+  with the steps for that platform. Dismissing it silences it for 30 days.
+- **`InstallGuide`** (*Mehr* → *Unterwegs*) is permanent and stays available even while the app
+  **is** installed — that is exactly when someone needs it later, and it shows a
+  *"Bereits abgelegt"* badge so the current state is obvious.
+
+Both read one external store (`src/lib/pwa/install-store.ts`) built on `useSyncExternalStore`, so
+the server render and the browser render never disagree; the platform and install detection itself
+is pure and unit-tested in `src/lib/pwa/install-hint.ts`.
+
 ### Navigation
 
 | Width | Navigation |
