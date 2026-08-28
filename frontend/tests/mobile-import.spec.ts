@@ -132,6 +132,38 @@ test.describe("C1.4 — Geteilte Adresse", () => {
     await expect(feld).toBeFocused();
   });
 
+  test("Blockierte Seiten nennen den Grund statt 'URL-Import fehlgeschlagen'", async ({
+    page,
+  }) => {
+    // Cloudflare & Co. beantworten serverseitige Abrufe mit 403. Frueher landete
+    // das als generisches "URL-Import fehlgeschlagen" im Dialog — ohne Hinweis,
+    // was die Nutzerin stattdessen tun kann. Das Backend liefert seither eine
+    // kuratierte Meldung, die bis ins UI durchgereicht werden muss.
+    await page.route("**/api/ai/import-url", async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error:
+            "Diese Webseite laesst den automatischen Import nicht zu. Tipp: " +
+            "Rezept abfotografieren und ueber «Foto scannen» importieren.",
+        }),
+      });
+    });
+
+    await page.goto("/rezepte/importieren");
+    await page.getByTestId("url-import-input").fill(SHARED_URL);
+    await page.getByTestId("url-import-submit").click();
+
+    // Auf den Dialog-Schritt eingrenzen: Next.js haelt einen eigenen,
+    // leeren role="alert"-Router-Announcer im Dokument.
+    const meldung = page.getByTestId("url-import-step-url").getByRole("alert");
+    await expect(meldung).toContainText("laesst den automatischen Import nicht zu");
+    await expect(meldung).toContainText("Foto scannen");
+    // Die Adresse bleibt stehen, damit ein zweiter Anlauf moeglich ist.
+    await expect(page.getByTestId("url-import-input")).toHaveValue(SHARED_URL);
+  });
+
   test("Die geteilte Adresse ueberlebt die Anmeldung", async ({ browser }) => {
     // Eigener, abgemeldeter Kontext — die geteilte Sitzung waere hier falsch.
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });

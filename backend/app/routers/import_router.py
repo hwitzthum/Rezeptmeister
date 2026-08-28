@@ -9,7 +9,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services.url_import_service import fetch_and_parse
+from app.services.url_import_service import UrlImportError, fetch_and_parse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Import"])
@@ -37,6 +37,16 @@ async def import_url(
     try:
         result = await fetch_and_parse(body.url, x_gemini_api_key, settings.gemini_flash_model)
         return result
+    except UrlImportError as e:
+        # Kuratierte, für die Nutzerin bestimmte Meldung (Bezahlschranke,
+        # Bot-Schutz, kein Rezept gefunden). Als Objekt zurückgeben, damit die
+        # Next.js-Route sie von FastAPIs eigenen Validierungsfehlern (detail ist
+        # dort eine Liste) unterscheiden und gezielt durchreichen kann.
+        logger.info(f"URL-Import abgebrochen für {body.url!r}: {e.code}")
+        raise HTTPException(
+            status_code=422,
+            detail={"code": e.code, "message": e.message},
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
