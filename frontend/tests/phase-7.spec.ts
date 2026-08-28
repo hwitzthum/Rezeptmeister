@@ -11,6 +11,13 @@
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  acquireLock,
+  holdsLock,
+  releaseLock,
+  GEMINI_KEY_LOCK,
+} from "./helpers/shared-lock";
+import { callLiveAi } from "./helpers/live-ai";
 import fs from "fs";
 import path from "path";
 
@@ -50,6 +57,17 @@ async function loginAdmin(page: import("@playwright/test").Page) {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 test.describe("Phase 7 – Semantische Suche UI", () => {
+  // Diese Gruppe setzt „kein KI-Schluessel" voraus bzw. loescht ihn. Der
+  // Schluessel haengt am gemeinsamen Admin-Konto, Playwright faehrt Dateien
+  // aber parallel — ohne Sperre laeuft ein Live-Block einer anderen Datei
+  // gleichzeitig und verliert seinen Schluessel. Siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+  test.afterAll(() => {
+    releaseLock(GEMINI_KEY_LOCK);
+  });
+
   test.describe.configure({ mode: "serial" });
 
   test("7.1 KI-Suche-Toggle auf der Suche-Seite sichtbar", async ({ page }) => {
@@ -159,6 +177,14 @@ test.describe("Phase 7 – Semantische Suche UI", () => {
 // ── Live-Tests mit echtem Gemini-API-Schlüssel ────────────────────────────────
 
 test.describe("Phase 7 – KI-Suche Live (mit API-Schlüssel)", () => {
+
+  // Der KI-Schluessel haengt an einem gemeinsamen Konto, Playwright faehrt
+  // Dateien aber parallel. Ohne diese Sperre schreibt eine andere Spec-Datei
+  // dazwischen — siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+
   test.describe.configure({ mode: "serial" });
   test.skip(!GEMINI_TEST_KEY, "GEMINI_TEST_KEY nicht gesetzt – Live-Tests übersprungen");
 
@@ -200,26 +226,39 @@ test.describe("Phase 7 – KI-Suche Live (mit API-Schlüssel)", () => {
     await page.close();
   });
 
+  // Aufraeumen und Freigabe in *einem* Hook: `afterAll` laeuft in
+  // Deklarationsreihenfolge, eine getrennt registrierte Freigabe kaeme sonst
+  // vor dem Loeschen — und eine andere Datei bekaeme die Sperre, waehrend ihr
+  // dieser Hook gleich den Schluessel unter den Fuessen wegzieht.
   test.afterAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await loginAdmin(page);
-    await page.evaluate(async () => {
-      await fetch("/api/settings/api-key", { method: "DELETE" });
-    });
-    await page.close();
+    try {
+      // Scheiterte `beforeAll` (Sperre nicht bekommen), gehoert der Schluessel
+      // gerade einer anderen Datei — dann nichts anfassen.
+      if (!holdsLock(GEMINI_KEY_LOCK)) return;
+      const page = await browser.newPage();
+      await loginAdmin(page);
+      await page.evaluate(async () => {
+        await fetch("/api/settings/api-key", { method: "DELETE" });
+      });
+      await page.close();
+    } finally {
+      releaseLock(GEMINI_KEY_LOCK);
+    }
   });
 
   test("7.7 Semantische API-Route gibt Ergebnisliste zurück", async ({ page }) => {
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/search/semantic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: "Kartoffeln", limit: 5 }),
-      });
-      return { status: res.status, body: await res.json() as unknown };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/search/semantic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "Kartoffeln", limit: 5 }),
+        });
+        return { status: res.status, body: await res.json() as unknown };
+      }),
+    );
 
     // Endpunkt antwortet ohne 5xx
     expect([200, 400, 503]).toContain(resp.status);

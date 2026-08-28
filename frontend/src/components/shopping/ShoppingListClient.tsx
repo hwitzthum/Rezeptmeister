@@ -22,6 +22,8 @@ import {
   flushQueue,
   getPendingOpsServerSnapshot,
   getPendingOpsSnapshot,
+  getWriteEpoch,
+  hasInflightWrites,
   pendingChangesLabel,
   refreshPendingCount,
   sendOrQueue,
@@ -92,15 +94,27 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
     );
   }, []);
 
-  /** Pulls the server list — but never over unsent local changes. */
+  /** Pulls the server list — but never over newer local changes. */
   const revalidate = useCallback(async () => {
-    if (getPendingOpsSnapshot() > 0) return;
+    if (getPendingOpsSnapshot() > 0 || hasInflightWrites()) return;
+    // Stand der Schreiboperationen *vor* der Anfrage merken.
+    const epoch = getWriteEpoch();
     try {
       const res = await fetch("/api/shopping-list");
       if (!res.ok) return;
       const data = (await res.json()) as { items?: ShoppingItem[] };
-      // Re-check: an op may have been queued while the request was in flight.
-      if (getPendingOpsSnapshot() > 0) return;
+      // Wurde waehrend der Anfrage geschrieben, ist diese Antwort aelter als
+      // der lokale Zustand — sie wuerde den gerade gesetzten Haken wieder
+      // entfernen. Der Zaehlervergleich faengt auch den Fall, in dem die
+      // Schreiboperation innerhalb dieser Anfrage begonnen *und* beendet wurde;
+      // die beiden Momentaufnahmen unten sehen davon nichts mehr.
+      if (
+        getWriteEpoch() !== epoch ||
+        getPendingOpsSnapshot() > 0 ||
+        hasInflightWrites()
+      ) {
+        return;
+      }
       if (Array.isArray(data.items)) setItems(data.items);
     } catch {
       // Offline — the local snapshot stays authoritative.

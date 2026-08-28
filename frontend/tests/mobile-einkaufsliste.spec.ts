@@ -137,6 +137,60 @@ test.describe("C1.5 — Offline abhaken und nachsynchronisieren", () => {
     }
   });
 
+  test("Ein Haken ueberlebt eine gleichzeitig laufende Aktualisierung", async ({
+    page,
+  }, testInfo) => {
+    // Beim Aufbau der Seite laeuft ein GET auf /api/shopping-list. Wer in genau
+    // diesem Moment abhakt, dessen Haken wurde von der zurueckkommenden
+    // Server-Antwort wieder ueberschrieben — sie war ja vor dem Abhaken
+    // losgeschickt worden. Am Geraet ein sichtbares Zurueckspringen, im Test
+    // ein sporadisch deaktivierter „Erledigte loeschen"-Knopf.
+    //
+    // Das Zeitfenster wird hier erzwungen statt abgewartet: die erste
+    // Aktualisierung wird angehalten, bis das Abhaken durch ist.
+    await page.goto("/einkaufsliste");
+    await expect(page.getByTestId("shopping-list-page")).toBeVisible();
+
+    const name = itemName("Wettlauf", testInfo.project.name);
+    const id = await addItemViaApi(page, name);
+
+    let gesehen = 0;
+    await page.route("**/api/shopping-list", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      gesehen += 1;
+      if (gesehen !== 1) return route.fallback();
+      // Wichtig: die Anfrage geht sofort raus, nur die *Antwort* wird
+      // angehalten. Wuerde man die Anfrage verzoegern, holte der Server die
+      // Daten erst nach dem Abhaken — dann gaebe es gar kein Rennen.
+      const antwort = await route.fetch();
+      await new Promise((r) => setTimeout(r, 3_000));
+      await route.fulfill({ response: antwort });
+    });
+
+    try {
+      await page.reload();
+      const checkbox = page.getByTestId(`shopping-list-checkbox-${id}`);
+      await expect(checkbox).toBeVisible({ timeout: 15_000 });
+      await warteAufHydration(page);
+
+      await checkbox.tap();
+      await expect(checkbox).toHaveAttribute("aria-checked", "true");
+
+      // Jetzt trifft die angehaltene Antwort ein. Sie ist aelter als der Haken
+      // und darf ihn nicht ueberschreiben.
+      await page.waitForTimeout(4_000);
+      await expect(checkbox).toHaveAttribute("aria-checked", "true");
+
+      // Und serverseitig steht er ebenfalls.
+      await expect
+        .poll(async () => (await serverItem(page, id))?.isChecked, { timeout: 15_000 })
+        .toBe(true);
+    } finally {
+      await page.unroute("**/api/shopping-list").catch(() => null);
+      await deleteItemViaApi(page, id);
+    }
+  });
+
   test("Offline hinzugefuegter Eintrag erreicht den Server nach der Rueckkehr", async ({
     page,
     context,

@@ -91,6 +91,32 @@ async function clearShoppingList(page: import("@playwright/test").Page) {
 
 // -- Tests ----------------------------------------------------------------
 
+/**
+ * Wartet, bis React die Seite uebernommen hat.
+ *
+ * Vor der Hydration setzt `fill()` zwar den DOM-Wert, React verwirft ihn beim
+ * Hydrieren aber wieder — der Hinzufuegen-Knopf bleibt dann deaktiviert und
+ * der Klick laeuft in die Zeitueberschreitung. Unter Last (drei Worker an
+ * einem Dev-Server, der die Seite noch uebersetzt) war das reproduzierbar.
+ * Der Knopf ist die ehrlichste Sonde: er wird nur aktiv, wenn React die
+ * Eingabe wirklich verarbeitet hat.
+ */
+async function warteAufHydration(page: import("@playwright/test").Page) {
+  const feld = page.getByTestId("shopping-list-ingredient-input");
+  const knopf = page.getByTestId("shopping-list-add-button");
+  await expect
+    .poll(
+      async () => {
+        await feld.fill("hydration-probe");
+        return knopf.isEnabled();
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  await feld.fill("");
+  await expect(knopf).toBeDisabled();
+}
+
 test.describe("Phase 10 -- Einkaufsliste", () => {
   // 10.1 -- Page sichtbar
   test("10.1 Einkaufsliste-Seite sichtbar", async ({ page }) => {
@@ -106,6 +132,7 @@ test.describe("Phase 10 -- Einkaufsliste", () => {
     await clearShoppingList(page);
     await page.goto("/einkaufsliste");
     await expect(page.getByTestId("shopping-list-add-form")).toBeVisible({ timeout: 8_000 });
+    await warteAufHydration(page);
 
     await page.getByTestId("shopping-list-ingredient-input").fill(`Tomaten-${RUN_ID}`);
     await page.getByTestId("shopping-list-amount-input").fill("500");

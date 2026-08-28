@@ -11,6 +11,13 @@
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  acquireLock,
+  holdsLock,
+  releaseLock,
+  GEMINI_KEY_LOCK,
+} from "./helpers/shared-lock";
+import { callLiveAi } from "./helpers/live-ai";
 import fs from "fs";
 import path from "path";
 
@@ -167,6 +174,14 @@ test.describe("Phase 8 – Vorschläge & KI-Features UI", () => {
 // ── Live-Tests mit echtem Gemini-API-Schlüssel ────────────────────────────────
 
 test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
+
+  // Der KI-Schluessel haengt an einem gemeinsamen Konto, Playwright faehrt
+  // Dateien aber parallel. Ohne diese Sperre schreibt eine andere Spec-Datei
+  // dazwischen — siehe tests/helpers/shared-lock.ts.
+  test.beforeAll(async () => {
+    await acquireLock(GEMINI_KEY_LOCK);
+  });
+
   test.describe.configure({ mode: "serial" });
   test.skip(!GEMINI_TEST_KEY, "GEMINI_TEST_KEY nicht gesetzt – Live-Tests übersprungen");
 
@@ -218,43 +233,56 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     await page.close();
   });
 
+  // Aufraeumen und Freigabe in *einem* Hook: `afterAll` laeuft in
+  // Deklarationsreihenfolge, eine getrennt registrierte Freigabe kaeme sonst
+  // vor dem Loeschen — und eine andere Datei bekaeme die Sperre, waehrend ihr
+  // dieser Hook gleich den Schluessel unter den Fuessen wegzieht.
   test.afterAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await loginAdmin(page);
+    try {
+      // Scheiterte `beforeAll` (Sperre nicht bekommen), gehoert der Schluessel
+      // gerade einer anderen Datei — dann nichts anfassen.
+      if (!holdsLock(GEMINI_KEY_LOCK)) return;
+      const page = await browser.newPage();
+      await loginAdmin(page);
 
-    // Testrezept entfernen
-    if (testRecipeId) {
-      await page.evaluate(async (id: string) => {
-        await fetch(`/api/recipes/${id}`, { method: "DELETE" });
-      }, testRecipeId);
+      // Testrezept entfernen
+      if (testRecipeId) {
+        await page.evaluate(async (id: string) => {
+          await fetch(`/api/recipes/${id}`, { method: "DELETE" });
+        }, testRecipeId);
+      }
+
+      // API-Schlüssel entfernen (kein Datenleck in DB)
+      await page.evaluate(async () => {
+        await fetch("/api/settings/api-key", { method: "DELETE" });
+      });
+
+      await page.close();
+    } finally {
+      releaseLock(GEMINI_KEY_LOCK);
     }
-
-    // API-Schlüssel entfernen (kein Datenleck in DB)
-    await page.evaluate(async () => {
-      await fetch("/api/settings/api-key", { method: "DELETE" });
-    });
-
-    await page.close();
   });
 
   test("8.7 Rezeptvorschläge werden generiert", async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(120_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: ["Kartoffeln", "Speck", "Zwiebeln"],
-          cuisine: "Schweizer",
-          time_budget_minutes: 45,
-          dietary: [],
-          season: "",
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/suggest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ingredients: ["Kartoffeln", "Speck", "Zwiebeln"],
+            cuisine: "Schweizer",
+            time_budget_minutes: 45,
+            dietary: [],
+            season: "",
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("suggestions");
@@ -270,20 +298,22 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     test.setTimeout(60_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/generate-recipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          suggestion_title: "Rösti mit Spiegelei",
-          suggestion_description: "Klassische Schweizer Rösti mit knuspriger Kruste",
-          servings: 4,
-          cuisine: "Schweizer",
-          dietary: [],
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/generate-recipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            suggestion_title: "Rösti mit Spiegelei",
+            suggestion_description: "Klassische Schweizer Rösti mit knuspriger Kruste",
+            servings: 4,
+            cuisine: "Schweizer",
+            dietary: [],
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("title");
@@ -297,21 +327,23 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     test.setTimeout(60_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/nutrition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: [
-            { name: "Kartoffeln", amount: 500, unit: "g" },
-            { name: "Butter", amount: 50, unit: "g" },
-            { name: "Zwiebeln", amount: 100, unit: "g" },
-          ],
-          servings: 4,
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/nutrition", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ingredients: [
+              { name: "Kartoffeln", amount: 500, unit: "g" },
+              { name: "Butter", amount: 50, unit: "g" },
+              { name: "Zwiebeln", amount: 100, unit: "g" },
+            ],
+            servings: 4,
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("per_serving");
@@ -351,23 +383,25 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     test.setTimeout(60_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/scale-recipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: [
-            { name: "Mehl", amount: 200, unit: "g" },
-            { name: "Zucker", amount: 100, unit: "g" },
-            { name: "Zimt", amount: 5, unit: "g" },
-          ],
-          instructions: "Mehl und Zucker mischen. Zimt dazugeben. Bei 180°C 30 Minuten backen.",
-          original_servings: 4,
-          target_servings: 20,
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/scale-recipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ingredients: [
+              { name: "Mehl", amount: 200, unit: "g" },
+              { name: "Zucker", amount: 100, unit: "g" },
+              { name: "Zimt", amount: 5, unit: "g" },
+            ],
+            instructions: "Mehl und Zucker mischen. Zimt dazugeben. Bei 180°C 30 Minuten backen.",
+            original_servings: 4,
+            target_servings: 20,
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("hints");
@@ -382,16 +416,18 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     test.setTimeout(60_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/import-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: "https://www.gutekueche.ch/rosti-rezept-46",
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/import-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: "https://www.gutekueche.ch/rosti-rezept-46",
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("title");
@@ -403,14 +439,16 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     test.setTimeout(60_000);
     await loginAdmin(page);
 
-    const resp = await page.evaluate(async () => {
-      const res = await fetch("/api/ai/search-web", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: "Zürcher Geschnetzeltes" }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    });
+    const resp = await callLiveAi(() =>
+      page.evaluate(async () => {
+        const res = await fetch("/api/ai/search-web", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "Zürcher Geschnetzeltes" }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("results");
@@ -427,19 +465,21 @@ test.describe("Phase 8 – KI-Features Live (mit API-Schlüssel)", () => {
     await loginAdmin(page);
     expect(testRecipeId).toBeTruthy();
 
-    const resp = await page.evaluate(async (id: string) => {
-      const res = await fetch("/api/ai/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipe_id: id,
-          title: "Rösti",
-          ingredients: ["Kartoffeln", "Butter", "Salz"],
-          category: "Hauptgericht",
-        }),
-      });
-      return { status: res.status, body: await res.json() as Record<string, unknown> };
-    }, testRecipeId);
+    const resp = await callLiveAi(() =>
+      page.evaluate(async (id: string) => {
+        const res = await fetch("/api/ai/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipe_id: id,
+            title: "Rösti",
+            ingredients: ["Kartoffeln", "Butter", "Salz"],
+            category: "Hauptgericht",
+          }),
+        });
+        return { status: res.status, body: await res.json() as Record<string, unknown> };
+      }, testRecipeId),
+    );
 
     expect(resp.status).toBe(200);
     expect(resp.body).toHaveProperty("image_id");

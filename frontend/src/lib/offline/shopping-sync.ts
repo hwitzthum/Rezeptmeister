@@ -404,6 +404,7 @@ export function pendingChangesLabel(count: number): string {
 // ── Public API (IndexedDB-backed) ────────────────────────────────────────────
 
 export async function queueOp(userId: string, op: OpInput): Promise<void> {
+  writeEpoch++;
   await addPendingOp({
     userId,
     kind: op.kind,
@@ -411,6 +412,30 @@ export async function queueOp(userId: string, op: OpInput): Promise<void> {
     createdAt: Date.now(),
   });
   await refreshPendingCount(userId);
+}
+
+/**
+ * Zaehlt jede *begonnene* Schreiboperation — direkt gesendet oder eingereiht.
+ *
+ * Eine Aktualisierung der Liste (`GET /api/shopping-list`) darf ihre Antwort
+ * nur anwenden, wenn seit dem Absenden der Anfrage nichts geschrieben wurde.
+ * Sonst ueberschreibt eine Antwort, die vor dem Abhaken losgeschickt wurde,
+ * genau diesen Haken wieder — sichtbar als Zurueckspringen auf langsamen
+ * Verbindungen. Die Warteschlange allein reicht als Waechter nicht: online und
+ * mit leerer Schlange geht die Aenderung direkt raus und taucht dort nie auf.
+ */
+let writeEpoch = 0;
+
+/** Stand des Schreibzaehlers; vor und nach einer Abfrage vergleichen. */
+export function getWriteEpoch(): number {
+  return writeEpoch;
+}
+
+let inflightWrites = 0;
+
+/** true, solange eine direkt gesendete Schreiboperation noch unterwegs ist. */
+export function hasInflightWrites(): boolean {
+  return inflightWrites > 0;
 }
 
 export type SendResult<T> = { status: "sent"; data: T } | { status: "queued" };
@@ -424,6 +449,7 @@ export async function sendOrQueue<T = unknown>(
   op: OpInput,
 ): Promise<SendResult<T>> {
   const itemId = opItemId(op);
+  writeEpoch++;
 
   // Ordering guard: while anything is still queued, a directly sent request
   // would overtake it and a later replay would then overwrite the newer state.
@@ -447,24 +473,29 @@ export async function sendOrQueue<T = unknown>(
   }
 
   let res: Response;
+  inflightWrites++;
   try {
-    res = await fetch(req.url, {
-      method: req.method,
-      headers: req.body ? { "Content-Type": "application/json" } : undefined,
-      body: req.body,
-    });
-  } catch (err) {
-    if (isNetworkError(err)) {
-      await queueOp(userId, op);
-      return { status: "queued" };
+    try {
+      res = await fetch(req.url, {
+        method: req.method,
+        headers: req.body ? { "Content-Type": "application/json" } : undefined,
+        body: req.body,
+      });
+    } catch (err) {
+      if (isNetworkError(err)) {
+        await queueOp(userId, op);
+        return { status: "queued" };
+      }
+      throw err;
     }
-    throw err;
+
+    if (!res.ok) throw new HttpError(res.status);
+
+    const data = (await res.json().catch(() => undefined)) as T;
+    return { status: "sent", data };
+  } finally {
+    inflightWrites--;
   }
-
-  if (!res.ok) throw new HttpError(res.status);
-
-  const data = (await res.json().catch(() => undefined)) as T;
-  return { status: "sent", data };
 }
 
 let inflight: Promise<FlushResult> | null = null;
