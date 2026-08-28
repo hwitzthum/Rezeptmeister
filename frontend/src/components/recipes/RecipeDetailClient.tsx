@@ -472,7 +472,7 @@ export default function RecipeDetailClient({
                   <button
                     onClick={() => setTargetServings((v) => Math.max(1, v - 1))}
                     disabled={targetServings <= 1}
-                    className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] disabled:opacity-40 transition-colors"
+                    className="w-7 h-7 pointer-coarse:min-tap rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] disabled:opacity-40 transition-colors"
                     aria-label="Portionen verringern"
                   >
                     <svg
@@ -499,7 +499,7 @@ export default function RecipeDetailClient({
                     onClick={() =>
                       setTargetServings((v) => Math.min(999, v + 1))
                     }
-                    className="w-7 h-7 rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                    className="w-7 h-7 pointer-coarse:min-tap rounded-lg border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                     aria-label="Portionen erhöhen"
                   >
                     <svg

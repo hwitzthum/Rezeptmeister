@@ -1,6 +1,6 @@
 # Rezeptmeister – Implementierungsplan
 
-**Status:** Abgeschlossen ✅  
+**Status:** Phasen 1–18 abgeschlossen ✅ · Phase 19 (Mobile/PWA) in Arbeit auf `feature/mobile-pwa`  
 **Ziel:** KI-gestützte Rezeptverwaltung für den Schweizer Markt  
 **Stack:** Next.js + FastAPI + PostgreSQL/pgvector + Gemini Embedding 2  
 
@@ -370,12 +370,93 @@
 
 ---
 
+## Phase 19 – Mobile-Tauglichkeit (PWA)
+
+**Quelle:** `SPEC_1.md` (lebender Fortschritts-Tracker, dort auch die Review-Einträge je Stream).
+**Branch:** `feature/mobile-pwa`. Vier Wellen, innerhalb einer Welle parallel bei disjunktem Dateibesitz.
+
+### 19.0 Welle 0 – Fundament & geteilte Primitive (Stream F)
+- [x] **F.1** `layout.tsx`: `viewport` mit `device-width`, `initialScale: 1`, `viewportFit: "cover"`; kein `userScalable: false`; `themeColor` als Light/Dark-Paar; `metadata.icons.apple`
+- [x] **F.2** `globals.css`: Safe-Area-Utilities, `.min-tap`, `-webkit-tap-highlight-color`, `overscroll-behavior-y`, `touch-action: manipulation`, 16 px Mindestschrift für Formularfelder
+- [x] **F.3** `manifest.ts`: `orientation: any`, `id`, `display_override`, `shortcuts`, `share_target` → `GET /rezepte/importieren?url=…`
+- [x] **F.4** Icons: `apple-touch-icon.png` (180×180), `icon-96`, `icon-144`
+- [x] **F.5** `public/sw.js`: `CACHE_NAME` v3, `/einkaufsliste` im Precache, `/api/*` bleibt network-only
+- [x] **F.6** Geteilte Primitive: `Modal`-Variante `sheet`, `navGroups` nach `components/layout/nav-items.tsx`
+
+### 19.1 Welle 1 – Feature-Streams (A1–A5 parallel)
+
+**A1 – Navigation & Mehr-Menü**
+- [x] **A1.1** Breakpoint `lg:` → `md:` in `Sidebar.tsx` und `app/(app)/layout.tsx`
+- [x] **A1.2** Tab-Leiste neu belegt: `Rezepte · Suche · [+] · Einkauf · Mehr`, Tap-Targets ≥ 44 px
+- [x] **A1.3** Neue Seite `app/(app)/mehr/page.tsx` mit allen übrigen Bereichen, ThemeToggle, Abmelden
+- [x] **A1.4** `CreateActionSheet`: `[+]` führt zu Abfotografieren, URL-Import, manuellem Formular
+- [x] **A1.5** Sidebar liest ihre Einträge aus `nav-items`
+
+**A2 – Backend: Mehrseiten-OCR**
+- [x] **A2.1** `extract_recipes_from_images()` — alle Seiten in **einem** Gemini-Aufruf
+- [x] **A2.2** Prompt führt aufeinanderfolgende Seiten zu **einem** Rezept zusammen
+- [x] **A2.3** `routers/ocr.py`: `image_ids: list[UUID]` (1–10), Eigentumsprüfung je Bild
+- [x] **A2.4** Pytest gegen echte Postgres: Fremdbild 403, unbekannte ID 404, zwei Seiten → ein Rezept
+
+**A3 – Frontend: Scan-Flow**
+- [x] **A3.1** Route `rezepte/scannen`, kamera-first (`capture="environment"`) plus Galerie-Weg
+- [x] **A3.2** Seitenliste mit Thumbnails, Reihenfolge ändern, Seiten löschen
+- [x] **A3.3** `lib/images/downscale.ts`: Canvas-Downscaling (max. 2000 px, JPEG q0.85) vor dem Upload
+- [x] **A3.4** Upload je Seite mit Fortschritt, danach **ein** OCR-Aufruf über alle `imageIds`
+- [x] **A3.5** `api/ai/ocr/route.ts`: zod auf `imageIds` (1–10), `imageId` bleibt gültig
+- [x] **A3.6** Ergebnis in `OcrMultiPreview`; Kamera-Button in `ImageUploadZone`
+
+**A4 – URL-Import unterwegs**
+- [x] **A4.1** `UrlImportDialog` als Sheet, `inputMode="url"`, `autocomplete`, `autoCapitalize="none"`
+- [x] **A4.2** Knopf „Aus Zwischenablage einfügen"
+- [x] **A4.3** Seite `rezepte/importieren` liest `?url=` und startet den Import vorbefüllt
+- [x] **A4.4** Text der iOS-Kurzbefehl-Anleitung (`lib/pwa/ios-shortcut.ts`), gerendert auf `/mehr`
+
+**A5 – Einkaufsliste offline + Sync**
+- [x] **A5.1** `lib/offline/db.ts` auf `DB_VERSION 3`, Stores `shoppingList` + `pendingOps`
+- [x] **A5.2** `lib/offline/shopping-sync.ts`: `queueOp()`, `flushQueue()`, `sendOrQueue()`
+- [x] **A5.3** `ShoppingListClient` nutzt den Wrapper statt roher `fetch`-Aufrufe
+- [x] **A5.4** Hydration aus IndexedDB, danach Revalidierung gegen das Netz
+- [x] **A5.5** Replay bei `online` und Fokus, Last-Write-Wins je Item, dauerhafte Fehler verwerfen
+- [x] **A5.6** `OfflineIndicator` mit Zähler; Unit-Tests der Queue
+
+### 19.2 Welle 2 – Seiten-Sweep (B1–B3 parallel)
+- [x] **B1** Rezepte-Bereich: Liste, Detail, Neu, Bearbeiten, Kochmodus, `components/recipes/**`
+- [x] **B2** Planen & Entdecken: Wochenplan, Sammlungen, Suche, Vorschläge, Bildergalerie
+- [x] **B3** Admin, Einstellungen, Auth-Seiten, Offline-Seiten, Werkzeuge, Dashboard
+- [x] **B0** `PageHeader` (`sticky top-0`) gegen die iOS-Statusleiste geprüft — keine Kollision
+- [x] **B4** Liste der geänderten Seiten an C1 gemeldet
+
+### 19.3 Welle 3 – Tests & Dokumentation (C1 ∥ C2)
+
+**C1 – Playwright-Mobile-Suite**
+- [x] **C1.1** `playwright.config.ts`: Projekte `mobile-safari` (iPhone 14), `mobile-chrome` (Pixel 7), `tablet` (iPad gen 7); `chromium` bleibt unverändert
+- [x] **C1.2** `tests/mobile-navigation.spec.ts`: jede Route rein per Antippen erreichbar; je Seite kein Überlauf, Tippziele ≥ 44 px, Felder ≥ 16 px
+- [x] **C1.3** `tests/mobile-erfassen.spec.ts`: `[+]`-Sheet zu allen drei Zielen; zwei Bilder → **ein** OCR-Aufruf mit zwei `imageIds`
+- [x] **C1.4** `tests/mobile-import.spec.ts`: Share-Target füllt den URL-Dialog vor
+- [x] **C1.5** `tests/mobile-einkaufsliste.spec.ts`: offline abhaken → Haken bleibt → online → serverseitig sichtbar
+
+**C2 – Dokumentation**
+- [x] **C2.1** README: Abschnitt „Mobile & PWA" (Installation, Navigation, Scan-Flow, Android-Share-Target, iOS-Kurzbefehl, Offline-Einkaufsliste, Touch-Konventionen), erweiterte Test- und Troubleshooting-Abschnitte
+- [x] **C2.2** `tasks/todo.md`: diese Phase mit allen Checkboxen aus `SPEC_1.md`
+- [x] **C2.3** `SPEC_1.md`: Tracker aktualisiert, Review-Abschnitt je Stream gefüllt
+
+### 19.4 Welle 4 – Gesamt-Verifikation (D)
+- [x] **D.1** `npm run build` + `npm run lint`
+- [x] **D.2** Kompletter Playwright-Lauf über alle vier Projekte inkl. der 19 Bestands-Specs
+- [x] **D.3** `uv run pytest` gegen eine echte Postgres-Instanz
+- [ ] **D.4** Branch pushen → Vercel-Preview-URL (HTTPS ist Pflicht für Kamera und Service Worker)
+- [ ] **D.5** Manuelle iPhone-Checkliste (Installieren, Icon, Tab-Leiste über dem Home-Indicator, zweiseitiges Rezept abfotografieren, URL importieren, Einkaufsliste im Flugmodus, alle Bereiche über „Mehr")
+- [ ] **D.6** Ehrliche Gesamtbewertung + Freigabe einholen, erst dann Merge nach `main`
+
+---
+
 ## Querschnittsthemen (begleitend durch alle Phasen)
 
 - [x] Alle UI-Texte durchgehend Deutsch (Schweizer Schreibweisen: "ss" statt "ß")
 - [x] Schweizer Masseinheiten überall konsequent einsetzen
 - [x] KI-Funktionen immer mit "Bitte API-Schlüssel in Einstellungen hinterlegen"-Hinweis sichern
-- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 18 Testdateien (phase-1 bis phase-18)
+- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 19 Testdateien (phase-1 bis phase-18, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
 - [x] Frontend-Design-Skill für alle neuen Seiten/Komponenten aufrufen
 - [x] BYOK: API-Schlüssel nie ins Frontend leaken
 
@@ -396,6 +477,23 @@
 - **Dokumentation:** Vollständiges README.md (deutsch, 11 Abschnitte inkl. Deployment für Vercel/Railway/Supabase).
 - **E2E-Test:** phase-18.spec.ts mit 8 seriellen Tests (Full Journey: Registrierung → Freigabe → Login → Rezept → Suche → Einkaufsliste → Wochenplan → Aufräumen).
 - **Build:** `npm run build` ✅ (47/47 Seiten, 0 Fehler).
+
+### Phase 19 – Mobile-Tauglichkeit (PWA), Wellen 0–3 (2026-08-28)
+
+Wellen 0–3 umgesetzt; die ausführlichen Review-Einträge je Stream stehen in `SPEC_1.md` Abschnitt 11.
+
+- **Welle 3 / C1:** Playwright bekommt drei Geräteprojekte (iPhone 14, Pixel 7, iPad gen 7) neben dem
+  unveränderten `chromium`-Projekt; die Trennung läuft über den Dateinamen, damit die Bestands-Specs
+  nicht auf Viewports laufen, für die sie nie geschrieben wurden. 4 neue Specs, 97 Mobile-Tests grün.
+- **Welle 3 / C2:** README um „Mobile & PWA" erweitert (Installation, Navigation, Scan-Flow,
+  Share-Target, iOS-Kurzbefehl, Offline-Einkaufsliste, Touch-Konventionen) plus vier neue
+  Troubleshooting-Einträge; diese Phase mit allen Checkboxen aus `SPEC_1.md` ergänzt.
+- **Von der Suite gefundene Produktfehler** (behoben, in `SPEC_1.md` einzeln ausgewiesen): WebKit
+  ignoriert Höhe und Innenabstand an `<select>` — alle Auswahllisten waren auf iPhone/iPad 24 px
+  statt 44 px hoch; Sidebar-Einträge auf dem iPad 40 px; Portionen-Plus/Minus 28 px; das
+  Filterformular unter `/vorschlaege` durchgehend unter dem Tippziel-Mass.
+- **Welle 4 (D.1–D.3):** Alle drei automatisierten Tore grün — Build/Lint/`tsc`/Vitest, Playwright 310 passed / 0 failed / 9 skipped von 319 über alle vier Projekte, `uv run pytest` 58/58 gegen die echte Postgres ohne Skips. Die 9 Skips sind ausschliesslich layoutbedingt (Sidebar-Test auf den Handys, Tab-Leiste und `[+]`-Sheet auf dem iPad).
+- **D.4–D.6 stehen aus** — Vercel-Preview über HTTPS, manuelle iPhone-Checkliste (inkl. der aus Welle 1 offenen Zusage „zwei echte Fotos → ein Rezept") und Freigabe. Merge nach `main` erst danach.
 
 ---
 

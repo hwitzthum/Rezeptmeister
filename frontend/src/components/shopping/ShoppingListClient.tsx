@@ -377,13 +377,13 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
               placeholder="Menge"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
+              className="w-full sm:w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
             />
             <select
               data-testid="shopping-list-unit-select"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
+              className="w-full sm:w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
             >
               <option value="">Einheit</option>
               {SWISS_UNITS.map((u) => (

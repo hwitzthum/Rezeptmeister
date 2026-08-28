@@ -83,7 +83,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
       <div className="px-6 py-5 border-b border-[var(--border-base)]">
         <Link
           href="/"
-          className="flex items-center gap-3 group"
+          className="pointer-coarse:min-tap flex items-center gap-3 group"
           aria-label="Rezeptmeister – Startseite"
         >
           <div className="w-9 h-9 rounded-xl bg-terra-500 flex items-center justify-center shadow-warm-sm">
@@ -124,7 +124,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
                         href={item.href}
                         className={[
                           "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
-                          "transition-all duration-150 group",
+                          "pointer-coarse:min-tap transition-all duration-150 group",
                           active
                             ? "bg-terra-50 text-terra-700 shadow-warm-xs dark:bg-terra-950/30 dark:text-terra-300"
                             : isCta
@@ -166,7 +166,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
           <button
             type="button"
             onClick={() => setShowUrlImport(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium pointer-coarse:min-tap transition-all duration-150 group text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
           >
             <span
               className="shrink-0 text-warm-500 group-hover:text-warm-600 dark:text-warm-400 dark:group-hover:text-warm-300 transition-colors duration-150"

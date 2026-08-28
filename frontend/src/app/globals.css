@@ -238,6 +238,29 @@ body {
   }
 }
 
+/* WebKit ignoriert Hoehe *und* Innenabstand an einem <select> in nativer
+   Darstellung: auf iPhone und iPad bleibt jede Auswahlliste 24 px hoch, egal
+   welche Klasse daran steht (gemessen in der Mobile-Suite; Chromium rendert
+   dieselben Felder mit 44 px). Erst `appearance: none` gibt die Kontrolle
+   zurueck — dann faellt aber auch der native Aufklapp-Pfeil weg, also kommt er
+   hier als Hintergrundbild zurueck. Nur auf Touch-Geraeten, damit die
+   Desktop-Darstellung unveraendert bleibt. */
+@media (pointer: coarse) {
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 44px;
+    /* Gerade so viel Platz fuer den Pfeil, dass auch schmale Felder wie die
+       Einheiten-Auswahl der Einkaufsliste (`w-24`) ihre Beschriftung noch
+       vollstaendig zeigen. */
+    padding-right: 1.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23968b82' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+    background-size: 1rem 1rem;
+  }
+}
+
 /* ── Typography ── */
 h1, h2, h3 {
   font-family: var(--font-display);

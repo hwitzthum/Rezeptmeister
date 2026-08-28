@@ -22,6 +22,7 @@ All 18 implementation phases are complete with Playwright E2E, Vitest unit, and 
 
 - [Quick Start](#quick-start)
 - [Features](#features)
+- [Mobile & PWA](#mobile--pwa)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Local Development](#local-development)
@@ -181,7 +182,11 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 - Service Worker with CacheFirst + NetworkFirst strategies
 - Mark individual recipes for offline access (stored in IndexedDB)
 - Offline recipe list and detail pages work without a network
+- Shopping list stays usable offline — ticks, additions and deletions are queued in IndexedDB and replayed on reconnect
 - Installable as a PWA (app manifest, 192/384/512 icons, maskable)
+- Android share target: share a recipe link from any app straight into the URL import
+
+See [Mobile & PWA](#mobile--pwa) for installation, the scan flow and the iOS shortcut.
 
 ### Dark Mode
 
@@ -196,6 +201,87 @@ Built-in Swiss-unit converter with ingredient-aware density (1 cup flour = 125 g
 - Pagination for large user bases
 - Batch re-embed all recipes when switching embedding models
 - Available at `/admin` (role `admin` required)
+
+---
+
+## Mobile & PWA
+
+Rezeptmeister is built mobile-first and installs as a standalone app on iPhone, Android and iPad.
+Every area is reachable **by tapping alone** — no typed URLs.
+
+### Installing
+
+| Device | Steps |
+| ------ | ----- |
+| **iPhone / iPad** | Open the site in **Safari** (Chrome on iOS cannot install web apps) → Share → **Zum Home-Bildschirm** → **Hinzufügen**. |
+| **Android** | Open in Chrome → menu **⋮** → **App installieren** (or accept the install prompt). |
+| **Desktop** | Chrome / Edge → install icon in the address bar. |
+
+> **HTTPS is mandatory.** Camera access and the Service Worker are disabled on plain `http://`
+> outside `localhost` — a LAN address like `http://192.168.1.20:3001` will silently offer neither.
+> Use the Vercel preview URL or a local HTTPS tunnel when testing on a real phone.
+
+### Navigation
+
+| Width | Navigation |
+| ----- | ---------- |
+| `< md` (phone) | Fixed bottom tab bar: **Rezepte · Suche · [+] · Einkauf · Mehr**. The `[+]` opens the create sheet; **Mehr** (`/mehr`) lists every remaining area, the theme switch and sign-out. |
+| `≥ md` (tablet, desktop) | Sidebar with the full grouped navigation. The iPad in portrait (768–834 px) gets the tablet layout, not the phone one. |
+
+Navigation entries live in a single source of truth: `frontend/src/components/layout/nav-items.tsx`.
+Add a new area there and it appears in the sidebar, the tab bar and the *Mehr* menu at once.
+
+### Capturing a recipe with the camera
+
+`/rezepte/scannen` — reachable via the `[+]` tab → **Rezept abfotografieren**.
+
+1. **Kamera** opens the phone camera directly (`capture="environment"`); **Galerie** picks existing photos.
+2. Multiple pages are collected in order, can be reordered or removed, and are downscaled to
+   2000 px / JPEG in the browser before upload (a 12 MP photo is otherwise too large for the 10 MB limit).
+3. **Alle Seiten hochladen und erkennen** uploads each page, then sends **one** OCR request with all
+   image ids in page order — up to 10 pages become **one** recipe, not one per page.
+4. The result opens in the editable preview; saving redirects to the new recipe.
+
+```
+POST /api/ai/ocr
+  { "imageIds": ["<uuid>", "<uuid>"] }   // 1–10, order = page order
+  → 200 { "recipes": [ { … } ] }         // exactly one merged recipe
+```
+
+### Importing a recipe from a link
+
+`/rezepte/importieren` accepts a shared address and starts the import on its own.
+
+- **Android** — the app manifest registers a `share_target`, so Rezeptmeister appears in the system
+  share sheet. Chrome sends `url`, most other apps put "Title https://…" into `text`; both are handled.
+- **iOS** — Apple does not support `share_target` for web apps. The next best thing is a shortcut;
+  the full step-by-step guide is inside the app under **Mehr → iOS-Kurzbefehl einrichten**
+  (source: `frontend/src/lib/pwa/ios-shortcut.ts`). In short: Kurzbefehle → new shortcut →
+  *Im Teilen-Sheet zeigen* → action **URL öffnen** →
+  `https://YOUR-HOST/rezepte/importieren?url=[Kurzbefehleingabe]`.
+- Sharing while signed out works: the login redirect keeps the query string, so the address survives
+  the sign-in and the import continues afterwards.
+
+### Shopping list without a network
+
+Ticking, adding and deleting work in airplane mode. Each change is applied locally, written to
+IndexedDB and queued; a banner shows the number of unsent changes. When the connection returns the
+queue is replayed against the server, temporary ids are swapped for real ones, and the banner clears.
+The queue also survives a reload — see [Offline Mode](#offline-mode).
+
+### Touch conventions
+
+Every page is measured against these rules on iPhone (390 px), Pixel (412 px) and iPad (810 px):
+
+- no horizontal overflow, and no content clipped by `overflow-x-hidden`
+- tap targets ≥ 44 × 44 px (WCAG 2.5.5; inline links in running text excepted)
+- form fields ≥ 16 px font size — below that iOS zooms in on focus
+- modals become bottom sheets under `md`; sticky action bars sit above the home indicator
+  (`safe-area-inset-bottom`)
+
+The shared utilities (`min-tap`, `safe-area-inset-*`, `scrollbar-none`) live in
+`frontend/src/app/globals.css`; the touch-only variants use `pointer-coarse:`.
+`frontend/tests/mobile-navigation.spec.ts` enforces all four rules on every route.
 
 ---
 
@@ -302,7 +388,9 @@ npm run test:watch            # Vitest watch mode
 npx drizzle-kit generate      # Generate migration from schema changes
 npx drizzle-kit migrate       # Apply pending migrations
 npx drizzle-kit studio        # Visual DB browser
-npx playwright test           # E2E tests (port 3002)
+npx playwright install        # First run: Chromium + WebKit browsers
+npx playwright test           # E2E tests, all four projects (port 3002)
+npx playwright test --project=chromium   # Only the desktop phase specs
 npx playwright test --ui      # Interactive Playwright UI
 npx playwright show-report    # View last test report
 ```
@@ -469,10 +557,16 @@ HNSW index on `recipes.embedding` for production-scale vector search.
 
 ### Offline Mode
 
-- Service Worker intercepts fetch events (CacheFirst for assets, NetworkFirst for API)
+- Service Worker intercepts fetch events (CacheFirst for assets, NetworkFirst for navigations).
+  API routes are deliberately **network-only** — they carry auth-scoped data and are never cached.
 - "Offline verfügbar" toggle on recipe detail → stores JSON + thumbnail in IndexedDB
 - `/offline` and `/offline/rezept` pages work fully without a network connection
-- Sync resumes automatically when connectivity is restored
+- **Shopping list write queue** (`frontend/src/lib/offline/shopping-sync.ts`): every tick, addition
+  and deletion is applied optimistically, persisted to IndexedDB and queued as a pending op.
+  Consecutive ops on the same item are collapsed, offline-created items get a temporary id that is
+  swapped for the server id after the flush, and permanent server rejections (4xx) drop the op
+  instead of retrying forever.
+- Sync resumes automatically on `online`, on tab focus and on page load
 
 ### Admin Re-Embedding
 
@@ -526,21 +620,48 @@ Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connec
 
 ### Layer 3 — E2E Tests (Playwright)
 
-Full user journeys across all 18 phases.
+Full user journeys across all 18 phases, plus a device suite for the mobile experience.
 
 ```bash
 cd frontend
-npx playwright test                         # All phases
-npx playwright test tests/phase-8.spec.ts  # Single phase
-npx playwright test --ui                    # Interactive mode
-npx playwright show-report                  # HTML report
+npx playwright install                        # First run: downloads Chromium + WebKit
+npx playwright test                           # Everything, all four projects
+npx playwright test --project=chromium        # Only the 19 phase specs (desktop)
+npx playwright test --project=mobile-safari   # Only the mobile suite on iPhone 14
+npx playwright test tests/phase-8.spec.ts     # Single phase
+npx playwright test --ui                      # Interactive mode
+npx playwright show-report                    # HTML report
 ```
 
 > Tests run on port **3002** (separate from the dev server on 3001). Playwright config: `frontend/playwright.config.ts`.
 
-### Phase Test Files
+#### Projects
 
-Each implementation phase has a corresponding test file (`frontend/tests/phase-{N}.spec.ts`). All 18 are implemented and passing.
+| Project | Device | Runs |
+| ------- | ------ | ---- |
+| `chromium` | Desktop Chrome | `tests/phase-*.spec.ts` — the 19 phase specs, unchanged |
+| `mobile-safari` | iPhone 14 (WebKit) | `tests/mobile-*.spec.ts` |
+| `mobile-chrome` | Pixel 7 (Chromium) | `tests/mobile-*.spec.ts` |
+| `tablet` | iPad gen 7 (WebKit) | `tests/mobile-*.spec.ts` |
+
+The split runs on the filename, so the phase specs never execute on viewports they were not written
+for. The three device projects share one login (`tests/mobile-auth.setup.ts` → `.auth/mobile.json`)
+and block the Service Worker: without that, WebKit routes `fetch` calls past `page.route` and the
+suite would fire real Gemini requests instead of checking the call contract. Service Worker
+registration, caching and the offline fallback are covered by `phase-17` in the `chromium` project.
+
+### Test Files
+
+| File | Covers |
+| ---- | ------ |
+| `tests/phase-{1..18}.spec.ts` | One implementation phase each — all 18 implemented and passing |
+| `tests/mobile-navigation.spec.ts` | Every area reachable by tapping (tab bar → *Mehr*, sidebar on tablet); per-page overflow, tap-target and font-size audit |
+| `tests/mobile-erfassen.spec.ts` | `[+]` sheet → all three capture routes; two photos → **one** OCR call with two `imageIds` |
+| `tests/mobile-import.spec.ts` | Share target (`?url=`, `?text=`), manifest wiring, address surviving the login redirect |
+| `tests/mobile-einkaufsliste.spec.ts` | Tick and add offline, queue replay, server state after reconnect |
+
+Credentials come from `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` in the root `.env`; without them the
+mobile suite skips instead of failing.
 
 ### Example GitHub Actions CI
 
@@ -833,6 +954,26 @@ psql postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister -c "SELECT
 - Dev server must be running: `npm run dev` (port 3001)
 - Docker services must be running: `docker compose up -d`
 - Increase timeout in `playwright.config.ts`: `timeout: 30_000`
+
+### "Executable doesn't exist at .../webkit-.../pw_run.sh"
+
+The mobile projects `mobile-safari` and `tablet` run on WebKit, which is not installed by default:
+
+```bash
+cd frontend && npx playwright install webkit
+```
+
+### "Camera button does nothing on my phone"
+
+`getUserMedia` and the file input's `capture` attribute require a secure context. A LAN address such
+as `http://192.168.1.20:3001` is not one — use HTTPS (the Vercel preview URL or a tunnel). The same
+applies to the Service Worker, so offline mode will be missing too.
+
+### "The installed app shows an old version"
+
+The Service Worker serves the previous build until it activates. Close every tab of the app (or use
+*Entwickler → Website-Daten löschen* on iOS) and reopen it. The registration logs
+`[SW] Neue Version aktiviert.` to the console once the new worker takes over.
 
 ### "Rate limiting blocks requests in development"
 

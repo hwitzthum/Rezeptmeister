@@ -14,6 +14,8 @@
 /coverage
 /test-results/
 /playwright-report/
+# Angemeldete Sitzung der Mobile-Suite (mobile-auth.setup.ts)
+/.auth/
 
 # next.js
 /.next/

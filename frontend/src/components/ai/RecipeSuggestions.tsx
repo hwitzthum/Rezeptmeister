@@ -280,7 +280,7 @@ export default function RecipeSuggestions() {
                 onChange={(e) => setForm((f) => ({ ...f, ingredientInput: e.target.value }))}
                 onKeyDown={handleIngredientKeyDown}
                 onBlur={() => { if (form.ingredientInput.trim()) addIngredient(form.ingredientInput); }}
-                className="flex-1 min-w-[120px] text-sm text-[var(--text-primary)] bg-transparent outline-none placeholder:text-warm-400"
+                className="flex-1 min-w-[120px] pointer-coarse:min-h-11 text-sm text-[var(--text-primary)] bg-transparent outline-none placeholder:text-warm-400"
               />
             </div>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
@@ -314,7 +314,7 @@ export default function RecipeSuggestions() {
               step={5}
               value={form.timeBudget}
               onChange={(e) => setForm((f) => ({ ...f, timeBudget: Number(e.target.value) }))}
-              className="w-full accent-terra-500"
+              className="w-full pointer-coarse:min-h-11 accent-terra-500"
             />
             <div className="flex justify-between text-xs text-[var(--text-muted)] mt-0.5">
               <span>15 Min.</span>
@@ -334,7 +334,7 @@ export default function RecipeSuggestions() {
               ].map(({ key, label }) => (
                 <label
                   key={key}
-                  className="flex items-center gap-2.5 cursor-pointer group"
+                  className="flex items-center gap-2.5 pointer-coarse:min-h-11 cursor-pointer group"
                 >
                   <input
                     type="checkbox"
