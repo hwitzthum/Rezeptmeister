@@ -14,8 +14,13 @@ const PRECACHE_URLS = [OFFLINE_URL, "/einkaufsliste"];
 
 // ── Install ──────────────────────────────────────────────────────────────────
 
+// Bewusst ohne skipWaiting: eine neue Fassung wartet, bis der Nutzer sie
+// annimmt (Hinweis in ServiceWorkerRegistration.tsx, Nachricht SKIP_WAITING).
+// Uebernaehme sie sofort, liefe die offene Seite mit altem JavaScript gegen
+// einen neuen Cache — und der Nutzer erfuehre nie, dass sich etwas geaendert
+// hat, weil die Seite ja stehen bleibt.
 self.addEventListener("install", (event) => {
-  event.waitUntil(precache().then(() => self.skipWaiting()));
+  event.waitUntil(precache());
 });
 
 // cache.addAll() would abort the whole install if a single URL fails — and

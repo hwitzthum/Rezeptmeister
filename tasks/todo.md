@@ -496,6 +496,17 @@
 - [x] **20.5.3** E2E: `tests/phase-20.spec.ts` (16 Tests) + Ergänzung in `tests/mobile-navigation.spec.ts`
 - [x] **20.5.4** Regressionslauf: 229 Chromium-E2E, 48 Mobile/Tablet, 83 Pytest, 155 Vitest, `npm run build`
 
+### 20.6 Nacharbeiten aus dem Betrieb
+- [x] **20.6.1** Service Worker: `CACHE_NAME` auf v4 — die vorgehaltene Kopie von `/einkaufsliste` wäre sonst offline auf dem Stand vor Phase 20 geblieben
+- [x] **20.6.2** Sichtbarer Hinweis auf neue Versionen (`lib/pwa/sw-update.ts`, `ServiceWorkerRegistration.tsx`): Erkennung, Hinweis, Übernahme auf Tippen, Prüfung beim Start und bei Rückkehr in den Vordergrund
+- [x] **20.6.3** `sw.js` übernimmt nicht mehr ungefragt (kein `skipWaiting` beim Installieren) — Übernahme nur auf Nachricht `SKIP_WAITING`
+- [x] **20.6.4** Modell-Deprecation behoben: `gemini-2.5-flash` → `gemini-3.6-flash`, `gemini-2.5-flash-image` → `gemini-3.1-flash-image`. Google hatte die 2.5er-Reihe für neue Schlüssel abgeschaltet; betroffen waren Vorschläge, Rezeptgenerierung, Skalierungshinweise, Nährwerte, Websuche, URL-Import und Bildgenerierung
+- [x] **20.6.5** `thinking_level="low"` für Vorschläge: 40 s → 10 s; bei `high` lief das Token-Budget vor der Antwort leer. `max_output_tokens` auf 16384 angehoben
+- [x] **20.6.6** Kochmützen-Icon neu gezeichnet — der alte Pfad war der eines aufgeschlagenen Buchs und sah aus wie ein Regenschirm; im Sidebar-Quadrat fehlte zudem die Vordergrundfarbe (fast schwarz auf Terrakotta)
+- [x] **20.6.7** Seitenkopf enger gesetzt, damit der Titel neben dem Home-Knopf nicht abgeschnitten wird
+- [x] **20.6.8** Tests: `sw-update.test.ts` (10 Unit), `phase-20-update.spec.ts` (5 E2E)
+
+
 ---
 
 ## Querschnittsthemen (begleitend durch alle Phasen)

@@ -16,6 +16,7 @@ async def generate_structured(
     model: str,
     temperature: float = 0.7,
     max_output_tokens: int | None = None,
+    thinking_level: str | None = None,
 ) -> Any:
     """
     Generiert strukturierte JSON-Ausgabe mit Gemini response_schema.
@@ -23,6 +24,12 @@ async def generate_structured(
 
     `max_output_tokens` anheben, wenn das Antwortschema umfangreich ist:
     abgeschnittenes JSON lässt sich nicht parsen und landet als ValueError.
+
+    `thinking_level` steuert, wie ausführlich das Modell vor der Antwort
+    nachdenkt. Die Denk-Token zählen gegen `max_output_tokens` — bei "high"
+    kann das Budget aufgebraucht sein, bevor überhaupt JSON entsteht (gemessen:
+    51 s und eine leere Antwort). Für Aufgaben, die Sorgfalt statt tiefer
+    Herleitung brauchen, ist "low" schneller *und* verlässlicher.
     """
     client = get_gemini_client(api_key)
     config_kwargs: dict[str, Any] = {
@@ -32,6 +39,10 @@ async def generate_structured(
     }
     if max_output_tokens is not None:
         config_kwargs["max_output_tokens"] = max_output_tokens
+    if thinking_level is not None:
+        config_kwargs["thinking_config"] = types.ThinkingConfig(
+            thinking_level=thinking_level
+        )
     response = await client.aio.models.generate_content(
         model=model,
         contents=prompt,

@@ -43,8 +43,14 @@ router = APIRouter(tags=["AI"])
 settings = get_settings()
 
 # Fünf Vorschläge mit je acht Feldern sprengen die Vorgabe des Modells sonst
-# mitten in der Antwort — abgeschnittenes JSON lässt sich nicht parsen.
-SUGGEST_MAX_OUTPUT_TOKENS = 8192
+# mitten in der Antwort — abgeschnittenes JSON lässt sich nicht parsen. Die
+# Denk-Token zählen mit, deshalb reichlich Luft.
+SUGGEST_MAX_OUTPUT_TOKENS = 16384
+
+# Vorschläge brauchen Einfallsreichtum und Regeltreue, keine tiefe Herleitung.
+# Gemessen an derselben Anfrage: "low" 10 s mit fünf Vorschlägen, Vorgabe 40 s,
+# "high" 51 s und eine leere Antwort, weil das Denken das Budget aufbrauchte.
+SUGGEST_THINKING_LEVEL = "low"
 
 
 def _process_generated_image(
@@ -112,6 +118,7 @@ async def suggest_recipes(
             settings.gemini_flash_model,
             temperature=0.9,
             max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
+            thinking_level=SUGGEST_THINKING_LEVEL,
         )
         suggestions = list(result.suggestions)
 
@@ -125,6 +132,7 @@ async def suggest_recipes(
                 settings.gemini_flash_model,
                 temperature=0.9,
                 max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
+                thinking_level=SUGGEST_THINKING_LEVEL,
             )
             retry_suggestions = list(retry.suggestions)
             # Nur uebernehmen, wenn der Nachschlag wirklich besser ist —

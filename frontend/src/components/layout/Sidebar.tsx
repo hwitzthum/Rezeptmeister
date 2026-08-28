@@ -71,7 +71,7 @@ export function Sidebar({ isAdmin = false, userName }: SidebarProps) {
           className="pointer-coarse:min-tap flex items-center gap-3 group"
           aria-label="Rezeptmeister – Startseite"
         >
-          <div className="w-9 h-9 rounded-xl bg-terra-500 flex items-center justify-center shadow-warm-sm">
+          <div className="w-9 h-9 rounded-xl bg-terra-500 text-cream-50 flex items-center justify-center shadow-warm-sm">
             <ChefHatIcon />
           </div>
           <span className="font-display font-bold text-lg text-[var(--text-primary)] group-hover:text-terra-600 dark:group-hover:text-terra-400 transition-colors">
