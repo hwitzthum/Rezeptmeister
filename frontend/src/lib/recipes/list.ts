@@ -3,6 +3,13 @@ import { recipes, recipeNotes } from "@/lib/db/schema";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { thumbnailUrl } from "@/lib/images";
+import {
+  buildPrefixTsQuery,
+  escapeLike,
+  normalizeForSearch,
+  INGREDIENT_SIMILARITY_THRESHOLD,
+  TITLE_SIMILARITY_THRESHOLD,
+} from "@/lib/recipes/search-query";
 
 // Shared query schema for the recipe list. Used by the GET API route (parsing
 // search params) and the recipe list page (server-rendering the default view).
@@ -55,6 +62,35 @@ export interface RecipeListResult {
 }
 
 /**
+ * Trifft der Suchbegriff eine Zutat dieses Rezepts — als Teilzeichenkette
+ * oder trigramm-aehnlich? Wird in der WHERE-Bedingung und in der
+ * Relevanzberechnung gebraucht, deshalb einmal an einer Stelle.
+ *
+ * `normQ` ist bereits normalisiert; verglichen wird gegen `rm_normalize(name)`,
+ * worauf auch der GIN-Trigramm-Index liegt.
+ */
+function ingredientMatch(normQ: string) {
+  return sql`EXISTS (
+    SELECT 1 FROM ingredients i
+    WHERE i.recipe_id = recipes.id
+      AND (
+        rm_normalize(i.name) LIKE ${`%${escapeLike(normQ)}%`} ESCAPE '!'
+        OR word_similarity(${normQ}, rm_normalize(i.name)) > ${INGREDIENT_SIMILARITY_THRESHOLD}
+      )
+  )`;
+}
+
+/**
+ * Wie aehnlich ist der Suchbegriff dem Rezepttitel? `word_similarity` sucht
+ * den aehnlichsten Ausschnitt im Titel, statt die ganze Zeichenkette zu
+ * vergleichen — sonst verduennt ein mehrwortiger Titel jeden Treffer
+ * ("roesti" gegen "Berner Rösti" faellt von 1.0 auf 0.18).
+ */
+function titleSimilarity(normQ: string) {
+  return sql`word_similarity(${normQ}, rm_normalize(recipes.title))`;
+}
+
+/**
  * Loads a paginated, filtered recipe list scoped to a single user.
  *
  * Extracted from the GET /api/recipes handler so both the route and the
@@ -83,10 +119,27 @@ export async function listRecipes(
   // Does NOT include kategorie/kueche/schwierigkeit so facets can be computed
   // without the respective dimension's own filter.
   const alwaysConditions = [eq(recipes.userId, userId)];
-  if (q)
+
+  // Suchbegriff auf vier Wegen: Volltext mit Praefix (greift ab dem zweiten
+  // Buchstaben), Teilzeichenkette im normalisierten Titel (faengt Treffer in
+  // Wortmitte und abweichende Umlautschreibung), Trigramm-Aehnlichkeit
+  // (faengt Tippfehler) und Treffer in den Zutatennamen. Ohne verwertbares
+  // Token — etwa bei einer Eingabe aus reinen Satzzeichen — bleibt der
+  // Suchbegriff wirkungslos, statt die Liste zu leeren.
+  const prefixQuery = q ? buildPrefixTsQuery(q) : null;
+  const normQ = q ? normalizeForSearch(q) : null;
+  const searchActive = Boolean(prefixQuery && normQ);
+
+  if (prefixQuery && normQ) {
     alwaysConditions.push(
-      sql`recipes.fts_vector @@ websearch_to_tsquery('german', ${q})`,
+      sql`(
+        recipes.fts_vector @@ to_tsquery('german', ${prefixQuery})
+        OR rm_normalize(recipes.title) LIKE ${`%${escapeLike(normQ)}%`} ESCAPE '!'
+        OR ${titleSimilarity(normQ)} > ${TITLE_SIMILARITY_THRESHOLD}
+        OR ${ingredientMatch(normQ)}
+      )`,
     );
+  }
   if (favoriten === "true") alwaysConditions.push(eq(recipes.isFavorite, true));
   if (zeitaufwand)
     alwaysConditions.push(sql`${recipes.totalTimeMinutes} <= ${zeitaufwand}`);
@@ -94,13 +147,8 @@ export async function listRecipes(
     // scalar = ANY(array_column): correct PostgreSQL idiom — "is this value in the array?"
     alwaysConditions.push(sql`${ernaehrungsform} = ANY(${recipes.tags})`);
   if (zutaten) {
-    // Escape LIKE metacharacters so user input cannot widen the match pattern.
-    const zutatenEscaped = zutaten
-      .replace(/!/g, "!!")
-      .replace(/%/g, "!%")
-      .replace(/_/g, "!_");
     alwaysConditions.push(
-      sql`${recipes.id} IN (SELECT recipe_id FROM ingredients WHERE name ILIKE ${`%${zutatenEscaped}%`} ESCAPE '!')`,
+      sql`${recipes.id} IN (SELECT recipe_id FROM ingredients WHERE name ILIKE ${`%${escapeLike(zutaten)}%`} ESCAPE '!')`,
     );
   }
 
@@ -123,9 +171,17 @@ export async function listRecipes(
     .from(recipes)
     .where(where);
 
+  // Relevanz setzt einen Suchbegriff voraus; die Oberflaeche waehlt sie
+  // automatisch, sobald eine Suche beginnt (siehe SuchePage/RezeptListeClient).
+  const relevanceRequested = searchActive && sortierung === "relevanz";
+
   const orderBy =
-    sortierung === "relevanz" && q
-      ? sql`ts_rank(recipes.fts_vector, websearch_to_tsquery('german', ${q})) DESC`
+    relevanceRequested && prefixQuery && normQ
+      ? sql`(
+          ts_rank(recipes.fts_vector, to_tsquery('german', ${prefixQuery})) * 1.0
+          + ${titleSimilarity(normQ)} * 0.6
+          + (CASE WHEN ${ingredientMatch(normQ)} THEN 0.2 ELSE 0 END)
+        ) DESC, recipes.created_at DESC`
       : sortierung === "alphabetisch"
         ? asc(recipes.title)
         : sortierung === "bearbeitet"

@@ -288,6 +288,61 @@ test.describe("C1.2 — Layout-Kriterien je Seite", () => {
   });
 });
 
+test.describe("C1.2 — Rueckweg aufs Dashboard (Phase 20)", () => {
+  /**
+   * Die Tab-Leiste hat fuenf Plaetze und keinen davon fuer das Dashboard.
+   * Statt eines sechsten Tabs sitzt der Einstieg als Marke links im
+   * Seitenkopf — auf dem Handy, wo die Sidebar fehlt.
+   */
+  const BEREICHE = [
+    "/rezepte",
+    "/suche",
+    "/einkaufsliste",
+    "/wochenplan",
+    "/sammlungen",
+    "/bilder",
+    "/vorschlaege",
+    "/werkzeuge",
+    "/einstellungen",
+    "/mehr",
+  ];
+
+  test("jeder Hauptbereich fuehrt per Antippen zurueck aufs Dashboard", async ({ page }) => {
+    await page.goto("/rezepte");
+    await settle(page);
+
+    if (!(await isPhoneLayout(page))) {
+      // Ab `md` fuehrt die Sidebar; der Marken-Knopf ist dort bewusst verborgen.
+      await expect(page.getByTestId("home-link")).toBeHidden();
+      await expect(page.getByTestId("sidebar")).toBeVisible();
+      return;
+    }
+
+    for (const bereich of BEREICHE) {
+      await page.goto(bereich);
+      await settle(page);
+
+      const home = page.getByTestId("home-link");
+      await expect(home, `Kein Rueckweg aufs Dashboard von ${bereich}`).toBeVisible();
+
+      const box = await home.boundingBox();
+      expect(box, `Home-Knopf ohne Box auf ${bereich}`).not.toBeNull();
+      expect(box!.width, `Tippziel zu schmal auf ${bereich}`).toBeGreaterThanOrEqual(44);
+      expect(box!.height, `Tippziel zu flach auf ${bereich}`).toBeGreaterThanOrEqual(44);
+
+      await home.tap();
+      await expect(page).toHaveURL("/", { timeout: 15_000 });
+      await expect(page.getByTestId("dashboard")).toBeVisible();
+    }
+  });
+
+  test("auf dem Dashboard selbst gibt es keinen Knopf ins Nichts", async ({ page }) => {
+    await page.goto("/");
+    await settle(page);
+    await expect(page.getByTestId("home-link")).toHaveCount(0);
+  });
+});
+
 test.describe("C1.2 — Anmeldeseiten", () => {
   // Bewusst abgemeldet: angemeldet leitet `proxy.ts` von /auth/* auf / um.
   test.use({ storageState: { cookies: [], origins: [] } });

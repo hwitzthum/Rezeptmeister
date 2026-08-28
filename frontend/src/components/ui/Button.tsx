@@ -105,6 +105,43 @@ function Spinner({ size = "sm" }: { size?: "xs" | "sm" | "md" }) {
   );
 }
 
+/**
+ * Berechnet die Klassen eines Buttons.
+ *
+ * Ausgelagert, damit auch Elemente, die kein <button> sein duerfen, exakt
+ * gleich aussehen — vor allem LinkButton: ein <button> in einem <a> ist
+ * ungueltiges HTML, ein gestylter <a> die richtige Loesung.
+ */
+export function buttonClasses({
+  variant = "primary",
+  size = "md",
+  fullWidth = false,
+  className = "",
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
+  className?: string;
+} = {}): string {
+  return [
+    "inline-flex items-center justify-center font-medium",
+    // Auf Touch-Geraeten das Tippziel auf 44x44 px anheben (globals.css
+    // `min-tap`). Nur unter `pointer: coarse`, damit die kompakte
+    // Desktop-Typografie unveraendert bleibt — dieselbe Weiche, die
+    // schon die 16-px-Regel fuer Formularfelder steuert.
+    "pointer-coarse:min-tap",
+    "transition-all duration-150",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-warm-900",
+    "select-none cursor-pointer",
+    variantStyles[variant],
+    sizeStyles[size],
+    fullWidth ? "w-full" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -127,23 +164,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={isDisabled}
-        className={[
-          "inline-flex items-center justify-center font-medium",
-          // Auf Touch-Geraeten das Tippziel auf 44x44 px anheben (globals.css
-          // `min-tap`). Nur unter `pointer: coarse`, damit die kompakte
-          // Desktop-Typografie unveraendert bleibt — dieselbe Weiche, die
-          // schon die 16-px-Regel fuer Formularfelder steuert.
-          "pointer-coarse:min-tap",
-          "transition-all duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-warm-900",
-          "select-none cursor-pointer",
-          variantStyles[variant],
-          sizeStyles[size],
-          fullWidth ? "w-full" : "",
-          className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className={buttonClasses({ variant, size, fullWidth, className })}
         aria-busy={loading}
         {...props}
       >

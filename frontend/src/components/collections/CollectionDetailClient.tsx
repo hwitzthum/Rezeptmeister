@@ -22,7 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import toast from "react-hot-toast";
-import { Button, Modal, ConfirmDialog } from "@/components/ui";
+import { Button, Modal, ConfirmDialog, ActionBar } from "@/components/ui";
 import type { RecipeDetail } from "@/components/recipes/RecipeDetailClient";
 
 // ── Typen ────────────────────────────────────────────────────────────────────
@@ -420,7 +420,7 @@ export default function CollectionDetailClient({
             {recipesList.length === 1 ? "Rezept" : "Rezepte"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:shrink-0">
+        <ActionBar mobileColumns={3} className="sm:shrink-0">
           <Button
             data-testid="collection-pdf-export"
             variant="outline"
@@ -448,7 +448,7 @@ export default function CollectionDetailClient({
           >
             Löschen
           </Button>
-        </div>
+        </ActionBar>
       </div>
 
       {/* Recipe list with DnD */}

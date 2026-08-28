@@ -10,6 +10,16 @@ import { Button, ConfirmDialog } from "@/components/ui";
 interface SuggestionItem {
   title: string;
   description: string;
+  /** Ein Satz mit konkretem Bezug zur Sammlung oder zu den Vorgaben. */
+  why_it_fits?: string;
+  /** Ein Satz zur Technik oder Wendung, die das Gericht besonders macht. */
+  highlight?: string;
+  /** Tragende Zutaten des Gerichts. */
+  key_ingredients?: string[];
+  /** Davon muss noch eingekauft werden. */
+  missing_ingredients?: string[];
+  cuisine?: string;
+  category?: string;
   time_estimate_minutes: number;
   difficulty: "einfach" | "mittel" | "anspruchsvoll";
 }
@@ -92,6 +102,16 @@ const selectCls =
 
 const labelCls = "block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1.5";
 
+/**
+ * Welche der tragenden Zutaten fehlen noch? Der Vergleich laeuft ueber
+ * Kleinschreibung, damit "Butter" und "butter" dasselbe sind.
+ */
+function missingSet(suggestion: SuggestionItem): Set<string> {
+  return new Set(
+    (suggestion.missing_ingredients ?? []).map((z) => z.toLowerCase()),
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function RecipeSuggestions() {
@@ -161,6 +181,9 @@ export default function RecipeSuggestions() {
           time_budget_minutes: form.timeBudget,
           dietary: dietaryRestrictions,
           season: form.season || undefined,
+          // Beim erneuten Vorschlagen soll etwas Neues kommen — was gerade
+          // auf dem Schirm steht, ist ausgeschlossen.
+          exclude_titles: suggestions.map((s) => s.title),
         }),
       });
       if (!res.ok) {
@@ -441,7 +464,9 @@ export default function RecipeSuggestions() {
         {/* Cards */}
         {!loading && suggestions.length > 0 && (
           <div className="grid gap-4">
-            {suggestions.map((suggestion, i) => (
+            {suggestions.map((suggestion, i) => {
+              const fehlende = missingSet(suggestion);
+              return (
               <button
                 key={i}
                 type="button"
@@ -455,10 +480,58 @@ export default function RecipeSuggestions() {
                 >
                   {suggestion.title}
                 </h3>
-                <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-3">
+                <p className="text-sm text-[var(--text-secondary)] mb-3">
                   {suggestion.description}
                 </p>
+
+                {suggestion.why_it_fits && (
+                  <p className="text-sm text-[var(--text-primary)] mb-2 pl-3 border-l-2 border-terra-300 dark:border-terra-700">
+                    <span className="font-semibold text-terra-700 dark:text-terra-400">
+                      Warum das passt:{" "}
+                    </span>
+                    {suggestion.why_it_fits}
+                  </p>
+                )}
+
+                {suggestion.highlight && (
+                  <p className="text-sm text-[var(--text-secondary)] mb-3 pl-3 border-l-2 border-gold-300 dark:border-gold-700">
+                    <span className="font-semibold text-gold-700 dark:text-gold-400">
+                      Das Besondere:{" "}
+                    </span>
+                    {suggestion.highlight}
+                  </p>
+                )}
+
+                {(suggestion.key_ingredients?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {suggestion.key_ingredients!.map((zutat) => {
+                      const fehlt = fehlende.has(zutat.toLowerCase());
+                      return (
+                        <span
+                          key={zutat}
+                          data-testid={fehlt ? "zutat-fehlt" : "zutat-vorhanden"}
+                          title={fehlt ? "Muss eingekauft werden" : "Hast du bereits"}
+                          className={[
+                            "text-xs px-2 py-0.5 rounded-full border",
+                            fehlt
+                              ? "bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-base)] border-dashed"
+                              : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
+                          ].join(" ")}
+                        >
+                          {fehlt ? "+ " : "\u2713 "}
+                          {zutat}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 flex-wrap">
+                  {suggestion.cuisine && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
+                      {suggestion.cuisine}
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                     <ClockIcon />
                     {suggestion.time_estimate_minutes} Min.
@@ -474,7 +547,8 @@ export default function RecipeSuggestions() {
                   )}
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

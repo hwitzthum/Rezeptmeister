@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { RecipeCard, Button, PageHeader } from "@/components/ui";
+import { RecipeCard, Button, LinkButton, PageHeader } from "@/components/ui";
 import toast from "react-hot-toast";
 import type { RecipeListItem } from "@/lib/recipes/list";
 
@@ -40,7 +39,22 @@ export default function RezeptListeClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const debouncedQ = useDebounce(q, 300);
+  const debouncedQ = useDebounce(q, 250);
+
+  // Sortierung folgt dem Suchbegriff: bei beginnender Suche zaehlt Relevanz,
+  // beim Leeren wieder Aktualitaet. Nur beim Wechsel zwischen leer und
+  // gefuellt, damit eine bewusste Auswahl bestehen bleibt.
+  const prevQRef = useRef(debouncedQ);
+  useEffect(() => {
+    const hadQuery = Boolean(prevQRef.current);
+    const hasQuery = Boolean(debouncedQ);
+    prevQRef.current = debouncedQ;
+    if (!hadQuery && hasQuery && sortierung === "neueste") {
+      setSortierung("relevanz");
+    } else if (hadQuery && !hasQuery && sortierung === "relevanz") {
+      setSortierung("neueste");
+    }
+  }, [debouncedQ, sortierung]);
 
   // ── Daten laden ─────────────────────────────────────────────────────────
 
@@ -118,11 +132,9 @@ export default function RezeptListeClient({
         title="Meine Rezepte"
         count={total}
         action={
-          <Link href="/rezepte/neu" className="inline-flex">
-            <Button variant="primary" size="sm" icon={<PlusIcon />}>
-              Neues Rezept
-            </Button>
-          </Link>
+          <LinkButton href="/rezepte/neu" variant="primary" size="sm" icon={<PlusIcon />}>
+            Neues Rezept
+          </LinkButton>
         }
       />
 
@@ -204,6 +216,7 @@ export default function RezeptListeClient({
                 "focus:outline-none focus:ring-2 focus:ring-terra-400",
               ].join(" ")}
             >
+              {debouncedQ && <option value="relevanz">Relevanz</option>}
               <option value="neueste">Neueste zuerst</option>
               <option value="alphabetisch">Alphabetisch</option>
               <option value="bearbeitet">Zuletzt bearbeitet</option>
@@ -378,12 +391,10 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
         Beginnen Sie Ihre digitale Rezeptsammlung. Erstellen, importieren oder
         fotografieren Sie Ihr erstes Rezept.
       </p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <Link href="/rezepte/neu">
-          <Button variant="primary" icon={<PlusIcon />}>
-            Rezept erstellen
-          </Button>
-        </Link>
+      <div className="flex justify-center">
+        <LinkButton href="/rezepte/neu" variant="primary" icon={<PlusIcon />}>
+          Rezept erstellen
+        </LinkButton>
       </div>
     </div>
   );

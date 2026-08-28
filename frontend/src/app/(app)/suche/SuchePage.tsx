@@ -15,6 +15,7 @@ import { formatTime } from "@/lib/format";
 import { Input, Select, IngredientTagInput } from "@/components/ui";
 import WebSearchResults from "@/components/ai/WebSearchResults";
 import UrlImportDialog from "@/components/ai/UrlImportDialog";
+import HomeLink from "@/components/layout/HomeLink";
 
 // ── Zutaten match types ──────────────────────────────────────────────────────
 
@@ -191,13 +192,22 @@ export default function SuchePage() {
   const zutatenAbortRef = useRef<AbortController | null>(null);
 
   // ── Debounced text inputs ─────────────────────────────────────────────────
-  const debouncedQ = useDebounce(q, 400);
+  const debouncedQ = useDebounce(q, 250);
   const debouncedZutaten = useDebounce(zutaten, 400);
   const debouncedErnaehrungsform = useDebounce(ernaehrungsform, 400);
 
-  // ── Reset "Relevanz" sort when query is cleared ───────────────────────────
+  // ── Sortierung folgt dem Suchbegriff ──────────────────────────────────────
+  // Beim Beginn einer Suche ist Relevanz das sinnvolle Kriterium, beim Leeren
+  // wieder "Neueste". Ausgeloest wird das nur beim Wechsel zwischen leer und
+  // gefuellt — eine bewusste Auswahl des Nutzers bleibt danach bestehen.
+  const prevQRef = useRef(debouncedQ);
   useEffect(() => {
-    if (!debouncedQ && sortierung === "relevanz") {
+    const hadQuery = Boolean(prevQRef.current);
+    const hasQuery = Boolean(debouncedQ);
+    prevQRef.current = debouncedQ;
+    if (!hadQuery && hasQuery && sortierung === "neueste") {
+      setSortierung("relevanz");
+    } else if (hadQuery && !hasQuery && sortierung === "relevanz") {
       setSortierung("neueste");
     }
   }, [debouncedQ, sortierung]);
@@ -464,9 +474,12 @@ export default function SuchePage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-6 lg:px-10 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
-            Suche &amp; Entdecken
-          </h1>
+          <div className="flex items-center gap-1 min-w-0">
+            <HomeLink />
+            <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
+              Suche &amp; Entdecken
+            </h1>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Mode toggle */}
             <div

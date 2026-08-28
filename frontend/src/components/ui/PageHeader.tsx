@@ -1,4 +1,5 @@
 import React from "react";
+import HomeLink from "@/components/layout/HomeLink";
 
 interface PageHeaderProps {
   /** Small uppercase label above the title (e.g. "Rezepte") */
@@ -13,6 +14,11 @@ interface PageHeaderProps {
   action?: React.ReactNode;
   /** Use sticky positioning with backdrop blur (default: true) */
   sticky?: boolean;
+  /**
+   * Zeigt links den mobilen Einstieg zum Dashboard (default: true).
+   * Auf Detail- und Flow-Seiten mit eigenem Zurueck-Pfeil auf `false` setzen.
+   */
+  showHome?: boolean;
 }
 
 export function PageHeader({
@@ -22,6 +28,7 @@ export function PageHeader({
   description,
   action,
   sticky = true,
+  showHome = true,
 }: PageHeaderProps) {
   return (
     <header
@@ -42,7 +49,8 @@ export function PageHeader({
           </p>
         )}
         <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
+          {showHome && <HomeLink />}
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] truncate">
               {title}
               {count !== undefined && count > 0 && (

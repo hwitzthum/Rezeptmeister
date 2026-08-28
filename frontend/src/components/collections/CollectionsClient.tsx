@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { Button, Modal, ConfirmDialog } from "@/components/ui";
+import HomeLink from "@/components/layout/HomeLink";
 
 // ── Typen ────────────────────────────────────────────────────────────────────
 
@@ -161,9 +162,12 @@ export default function CollectionsClient({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
-          Sammlungen
-        </h1>
+        <div className="flex items-center gap-1 min-w-0">
+          <HomeLink />
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
+            Sammlungen
+          </h1>
+        </div>
         <Button
           data-testid="create-collection-button"
           onClick={openCreateDialog}

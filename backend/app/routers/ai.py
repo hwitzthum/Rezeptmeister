@@ -27,11 +27,24 @@ from app.models.image import Image
 from app.routers.embed import _bg_embed_image
 from app.services._utils import get_gemini_client
 from app.services.ai_service import generate_structured
+from app.services.suggestion_service import (
+    SuggestRequest,
+    SuggestResponse,
+    build_retry_prompt,
+    build_suggest_prompt,
+    drop_unusable,
+    find_quality_issues,
+    normalize_suggestions,
+)
 from app.services.ocr_service import OcrResult
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["AI"])
 settings = get_settings()
+
+# Fünf Vorschläge mit je acht Feldern sprengen die Vorgabe des Modells sonst
+# mitten in der Antwort — abgeschnittenes JSON lässt sich nicht parsen.
+SUGGEST_MAX_OUTPUT_TOKENS = 8192
 
 
 def _process_generated_image(
@@ -71,62 +84,66 @@ def _process_generated_image(
 
 # ── /ai/suggest ────────────────────────────────────────────────────────────────
 
-class SuggestRequest(BaseModel):
-    ingredients: list[Annotated[str, Field(max_length=100)]] = Field(default=[], max_length=50)
-    cuisine: Annotated[str, Field(max_length=100)] = ""
-    time_budget_minutes: Annotated[int, Field(ge=5, le=480)] = 60
-    dietary: list[Annotated[str, Field(max_length=50)]] = Field(default=[], max_length=20)
-    season: Annotated[str, Field(max_length=50)] = ""
-
-
-class RecipeSuggestion(BaseModel):
-    id: int
-    title: str
-    description: str
-    time_estimate_minutes: int
-    difficulty: str
-
-
-class SuggestResponse(BaseModel):
-    suggestions: list[RecipeSuggestion]
-
 
 @router.post("/suggest")
 async def suggest_recipes(
     body: SuggestRequest,
     x_gemini_api_key: Optional[str] = Header(None),
 ):
-    """Schlägt 5 passende Schweizer Rezepte basierend auf Zutaten und Präferenzen vor."""
+    """
+    Schlägt fünf Rezepte vor, die zur Sammlung, zu den Vorgaben und zur
+    Schweizer Saison passen.
+
+    Das Ergebnis wird geprüft, bevor es rausgeht: fehlende Pflichtangaben,
+    Wiederholungen aus der Sammlung oder eine Häufung derselben Küche lösen
+    genau einen Nachschlag mit benannten Beanstandungen aus. Bleibt auch der
+    fehlerhaft, wird gefiltert statt Ausschuss ausgeliefert.
+    """
     if not x_gemini_api_key:
         raise HTTPException(status_code=400, detail="Kein KI-Schlüssel angegeben.")
 
-    parts = ["Du bist ein Schweizer Kochbuch-Assistent. Schlage genau 5 Rezepte vor."]
-    if body.ingredients:
-        parts.append(f"Verfügbare Zutaten: {', '.join(body.ingredients)}")
-    if body.cuisine:
-        parts.append(f"Küche/Stil: {body.cuisine}")
-    if body.time_budget_minutes:
-        parts.append(f"Maximale Gesamtzeit: {body.time_budget_minutes} Minuten")
-    if body.dietary:
-        parts.append(f"Ernährungsweise: {', '.join(body.dietary)}")
-    if body.season:
-        parts.append(f"Saison: {body.season}")
-    parts.append(
-        "Antworte auf Deutsch (Schweizer Standard, 'ss' statt 'ss'). "
-        "Jedes Rezept braucht: id (1–5), title, description (1–2 Sätze), "
-        "time_estimate_minutes (ganzzahlig), difficulty ('einfach', 'mittel' oder 'anspruchsvoll')."
-    )
-    prompt = "\n".join(parts)
+    prompt = build_suggest_prompt(body)
 
     try:
         result: SuggestResponse = await generate_structured(
-            prompt, SuggestResponse, x_gemini_api_key, settings.gemini_flash_model, temperature=0.8
+            prompt,
+            SuggestResponse,
+            x_gemini_api_key,
+            settings.gemini_flash_model,
+            temperature=0.9,
+            max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
         )
+        suggestions = list(result.suggestions)
+
+        issues = find_quality_issues(suggestions, body)
+        if issues:
+            logger.info(f"Vorschlaege nachgefordert: {'; '.join(issues)}")
+            retry: SuggestResponse = await generate_structured(
+                build_retry_prompt(prompt, issues),
+                SuggestResponse,
+                x_gemini_api_key,
+                settings.gemini_flash_model,
+                temperature=0.9,
+                max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
+            )
+            retry_suggestions = list(retry.suggestions)
+            # Nur uebernehmen, wenn der Nachschlag wirklich besser ist —
+            # sonst bliebe ein schlechterer zweiter Versuch stehen.
+            if len(find_quality_issues(retry_suggestions, body)) < len(issues):
+                suggestions = retry_suggestions
+
+        suggestions = normalize_suggestions(suggestions)
+        if find_quality_issues(suggestions, body):
+            suggestions = drop_unusable(suggestions, body)
     except Exception as e:
         logger.error(f"Suggest-Fehler: {type(e).__name__}: {e}")
         raise HTTPException(status_code=502, detail="KI-Dienst momentan nicht verfügbar.")
 
-    return {"suggestions": result.suggestions, "tokens_used": 0}
+    # Fortlaufende Nummerierung, auch wenn gefiltert wurde.
+    for index, suggestion in enumerate(suggestions, start=1):
+        suggestion.id = index
+
+    return {"suggestions": suggestions, "tokens_used": 0}
 
 
 # ── /ai/generate-recipe ────────────────────────────────────────────────────────
@@ -216,7 +233,6 @@ async def generate_image(
     # Gemini Image Generation aufrufen (mit Retry bei fehlendem Bild)
     client = get_gemini_client(x_gemini_api_key)
     image_bytes: Optional[bytes] = None
-    mime_type: str = "image/webp"
     max_attempts = 3
 
     for attempt in range(1, max_attempts + 1):
@@ -239,7 +255,6 @@ async def generate_image(
             for part in response.candidates[0].content.parts:
                 if part.inline_data and part.inline_data.data:
                     image_bytes = part.inline_data.data
-                    mime_type = part.inline_data.mime_type or "image/webp"
                     break
 
         if image_bytes:

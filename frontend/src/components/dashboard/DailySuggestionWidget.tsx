@@ -12,8 +12,14 @@ interface Props {
 interface Suggestion {
   title: string;
   description: string;
+  /** Ein Satz mit konkretem Bezug zur Sammlung. */
+  why_it_fits?: string;
   difficulty?: string;
-  time_minutes?: number;
+  /**
+   * Feldname der API. Zuvor stand hier `time_minutes` — den Namen liefert die
+   * Antwort nicht, weshalb die Zeitangabe nie erschien.
+   */
+  time_estimate_minutes?: number;
 }
 
 const CACHE_KEY_PREFIX = "rezeptmeister-daily-suggestion-";
@@ -47,7 +53,12 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
       const res = await fetch("/api/ai/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ time_budget_minutes: 45 }),
+        // Der aktuelle Vorschlag ist ausgeschlossen, sonst kommt beim
+        // Nachladen wieder derselbe.
+        body: JSON.stringify({
+          time_budget_minutes: 45,
+          exclude_titles: suggestion ? [suggestion.title] : [],
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -107,13 +118,18 @@ export default function DailySuggestionWidget({ hasApiKey, userId }: Props) {
           <p className="text-sm text-[var(--text-secondary)] mt-1.5 line-clamp-3 leading-relaxed">
             {suggestion.description}
           </p>
+          {suggestion.why_it_fits && (
+            <p className="text-sm text-[var(--text-primary)] mt-2 pl-3 border-l-2 border-gold-400/60 leading-relaxed">
+              {suggestion.why_it_fits}
+            </p>
+          )}
           <div className="flex items-center gap-3 mt-3 text-xs text-[var(--text-muted)]">
-            {suggestion.time_minutes && (
+            {suggestion.time_estimate_minutes && (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-warm-100/80 dark:bg-warm-800/80">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
                 </svg>
-                ca. {suggestion.time_minutes} Min.
+                ca. {suggestion.time_estimate_minutes} Min.
               </span>
             )}
             {suggestion.difficulty && (
