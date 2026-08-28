@@ -9,6 +9,11 @@ interface ModalProps {
   title?: string;
   description?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
+  /**
+   * "dialog" (Vorgabe) — zentriert, wie bisher.
+   * "sheet"  — unter md von unten eingeschoben, ab md identisch zum Dialog.
+   */
+  variant?: "dialog" | "sheet";
   children: React.ReactNode;
   footer?: React.ReactNode;
   closeOnBackdrop?: boolean;
@@ -23,6 +28,16 @@ const sizeStyles = {
   full: "max-w-[95vw] max-h-[95dvh]",
 };
 
+// Als Sheet nimmt das Panel unter md die volle Breite ein; ab md greifen
+// dieselben Grenzen wie beim Dialog.
+const sheetSizeStyles = {
+  sm:   "md:max-w-sm",
+  md:   "md:max-w-md",
+  lg:   "md:max-w-lg",
+  xl:   "md:max-w-2xl",
+  full: "md:max-w-[95vw] md:max-h-[95dvh]",
+};
+
 let openModalCount = 0;
 
 export function Modal({
@@ -31,6 +46,7 @@ export function Modal({
   title,
   description,
   size = "md",
+  variant = "dialog",
   children,
   footer,
   closeOnBackdrop = true,
@@ -95,6 +111,8 @@ export function Modal({
 
   if (!mounted || !visible) return null;
 
+  const isSheet = variant === "sheet";
+
   return createPortal(
     <div
       role="dialog"
@@ -102,7 +120,10 @@ export function Modal({
       aria-labelledby={title ? "modal-title" : undefined}
       aria-describedby={description ? "modal-description" : undefined}
       className={[
-        "fixed inset-0 z-50 flex items-center justify-center p-4",
+        "fixed inset-0 z-50 flex justify-center",
+        isSheet
+          ? "items-end p-0 md:items-center md:p-4"
+          : "items-center p-4",
         open ? "animate-fade-in" : "opacity-0",
       ].join(" ")}
     >
@@ -123,16 +144,32 @@ export function Modal({
         className={[
           "relative w-full bg-[var(--bg-surface)]",
           "border border-[var(--border-base)]",
-          "rounded-2xl shadow-warm-xl",
-          "flex flex-col max-h-[90dvh]",
+          "shadow-warm-xl flex flex-col",
           "transition-all duration-200",
-          open ? "animate-scale-in" : "scale-95 opacity-0",
-          sizeStyles[size],
+          isSheet
+            ? "rounded-t-2xl rounded-b-none md:rounded-2xl max-h-[92dvh] md:max-h-[90dvh]"
+            : "rounded-2xl max-h-[90dvh]",
+          open
+            ? isSheet
+              ? "animate-sheet-up"
+              : "animate-scale-in"
+            : isSheet
+              ? "translate-y-full opacity-0 md:translate-y-0 md:scale-95"
+              : "scale-95 opacity-0",
+          isSheet ? sheetSizeStyles[size] : sizeStyles[size],
           className,
         ]
           .filter(Boolean)
           .join(" ")}
       >
+        {/* Greifleiste — nur als Sheet auf schmalen Viewports */}
+        {isSheet && (
+          <div
+            className="md:hidden mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]"
+            aria-hidden="true"
+          />
+        )}
+
         {/* Header */}
         {(title || description) && (
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-[var(--border-base)] shrink-0">
@@ -169,9 +206,28 @@ export function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-base)] bg-[var(--bg-subtle)] rounded-b-2xl">
+          <div
+            className={[
+              "shrink-0 flex items-center justify-end gap-3 px-6 py-4",
+              "border-t border-[var(--border-base)] bg-[var(--bg-subtle)]",
+              isSheet ? "rounded-b-none md:rounded-b-2xl" : "rounded-b-2xl",
+            ].join(" ")}
+          >
             {footer}
           </div>
+        )}
+
+        {/* Ein Sheet klebt am unteren Rand — dieser Streifen hält es über dem
+            Home-Indicator. Ohne Notch kollabiert er auf 0 px. */}
+        {isSheet && (
+          <div
+            aria-hidden="true"
+            className={[
+              "shrink-0 md:hidden",
+              footer ? "bg-[var(--bg-subtle)]" : "",
+            ].join(" ")}
+            style={{ height: "env(safe-area-inset-bottom, 0px)" }}
+          />
         )}
       </div>
     </div>,

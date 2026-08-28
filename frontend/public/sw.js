@@ -1,22 +1,38 @@
 /// Rezeptmeister Service Worker
 /// Hand-written — no build step required.
 
-const CACHE_NAME = "rezeptmeister-v2";
+const CACHE_NAME = "rezeptmeister-v3";
 const OFFLINE_URL = "/offline";
 
-// Assets to pre-cache on install
-const PRECACHE_URLS = [OFFLINE_URL];
+// Assets to pre-cache on install.
+// /einkaufsliste is auth-gated, so it is precached best-effort (see precache()).
+const PRECACHE_URLS = [OFFLINE_URL, "/einkaufsliste"];
 
 // ── Install ──────────────────────────────────────────────────────────────────
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
+
+// cache.addAll() would abort the whole install if a single URL fails — and
+// /einkaufsliste redirects to the login page whenever no session cookie is
+// present. Fetch each URL on its own, skip redirects so no login page ends up
+// cached under an app URL, and never let a failure block activation.
+async function precache() {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.all(
+    PRECACHE_URLS.map(async (url) => {
+      try {
+        const response = await fetch(url, { credentials: "same-origin" });
+        if (response.ok && !response.redirected) {
+          await cache.put(url, response);
+        }
+      } catch {
+        // Offline during install — navigationHandler still degrades gracefully.
+      }
+    }),
+  );
+}
 
 // ── Activate ─────────────────────────────────────────────────────────────────
 
@@ -118,9 +134,13 @@ async function navigationHandler(request) {
     const response = await fetch(request);
     return response;
   } catch {
-    // Offline — serve the offline page
-    const cached = await caches.match(OFFLINE_URL);
-    return cached || new Response("Offline", { status: 503 });
+    // Offline — prefer a precached copy of this very page (e.g. /einkaufsliste),
+    // otherwise fall back to the generic offline page.
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) return cached;
+
+    const offline = await caches.match(OFFLINE_URL);
+    return offline || new Response("Offline", { status: 503 });
   }
 }
 

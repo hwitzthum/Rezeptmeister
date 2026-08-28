@@ -158,6 +158,66 @@ body::before {
   filter: invert(1);
 }
 
+/* ── Mobile / Touch Foundation ──
+   Diese Utilities sind die geteilte Basis aller Mobile-Streams.
+   Sie setzen `viewportFit: "cover"` aus app/layout.tsx voraus — ohne das
+   liefert env(safe-area-inset-*) auf iOS konstant 0px zurueck. */
+
+@utility safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility safe-area-inset-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Apple HIG / WCAG 2.5.5 Mindestgroesse fuer Tippziele */
+@utility min-tap {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Kein graues Aufblitzen beim Antippen, keine 300-ms-Verzoegerung */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"],
+label,
+summary,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Verhindert, dass Scrollen am Seitenende die Browser-Oberflaeche
+   mitzieht (Pull-to-Refresh / Overscroll-Chaining) */
+html,
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* iOS zoomt beim Fokussieren automatisch hinein, sobald ein Formularfeld
+   kleiner als 16px rendert. Nur auf Touch-Geraeten erzwingen, damit die
+   Desktop-Typografie (text-sm in components/ui/Input.tsx) unveraendert
+   bleibt. Diese Regel steht ausserhalb jeder @layer und gewinnt daher
+   gegen Tailwind-Utilities. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* ── Typography ── */
 h1, h2, h3 {
   font-family: var(--font-display);
@@ -240,6 +300,11 @@ h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 
+@keyframes sheetUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(100%); }
   to   { opacity: 1; transform: translateX(0); }
@@ -250,6 +315,12 @@ h4, h5, h6 {
 .animate-slide-down    { animation: slideDown 0.25s var(--ease-smooth) both; }
 .animate-scale-in      { animation: scaleIn 0.2s var(--ease-spring) both; }
 .animate-slide-in-right { animation: slideInRight 0.3s var(--ease-smooth) both; }
+
+/* Modal variant="sheet": unter md von unten einschieben, ab md wie ein Dialog */
+.animate-sheet-up      { animation: sheetUp 0.28s var(--ease-smooth) both; }
+@media (min-width: 48rem) {
+  .animate-sheet-up    { animation: scaleIn 0.2s var(--ease-spring) both; }
+}
 
 /* Staggered children */
 .stagger-children > * { animation-fill-mode: both; }

@@ -20,7 +20,15 @@ const dmSans = DM_Sans({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#C24D2C",
+  width: "device-width",
+  initialScale: 1,
+  // Lets env(safe-area-inset-*) resolve to real values on notched devices.
+  // Zoom stays enabled on purpose (kein maximumScale / userScalable: false).
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFF8F0" },
+    { media: "(prefers-color-scheme: dark)", color: "#1C1A16" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -35,6 +43,16 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Rezeptmeister",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   other: {
     "mobile-web-app-capable": "yes",
