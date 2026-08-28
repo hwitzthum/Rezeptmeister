@@ -82,3 +82,77 @@ class TestExtractRecipeFromImage:
             result = await extract_recipe_from_image(str(minimal_jpeg), "fake-key")
 
         assert result.difficulty in ("einfach", "mittel", "anspruchsvoll", None)
+
+
+class TestExtractRecipesFromImages:
+    """Mehrseitiges OCR: alle Seiten in EINEN Gemini-Aufruf, EIN Rezept zurück."""
+
+    @pytest.mark.asyncio
+    async def test_raises_on_empty_list(self):
+        from app.services.ocr_service import extract_recipes_from_images
+        with pytest.raises(ValueError):
+            await extract_recipes_from_images([], "fake-key")
+
+    @pytest.mark.asyncio
+    async def test_raises_on_missing_file(self, minimal_jpeg):
+        from app.services.ocr_service import extract_recipes_from_images
+        with pytest.raises(FileNotFoundError):
+            await extract_recipes_from_images(
+                [str(minimal_jpeg), "/nonexistent/seite-2.jpg"], "fake-key"
+            )
+
+    @pytest.mark.asyncio
+    async def test_two_pages_produce_exactly_one_recipe(self, tmp_path, minimal_jpeg):
+        page_two = tmp_path / "seite-2.jpg"
+        page_two.write_bytes(minimal_jpeg.read_bytes())
+
+        mock_client = _make_ocr_mock_client(SAMPLE_OCR_RESPONSE)
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            from app.services.ocr_service import extract_recipes_from_images
+            result = await extract_recipes_from_images(
+                [str(minimal_jpeg), str(page_two)], "fake-key"
+            )
+
+        assert len(result.recipes) == 1
+        assert result.recipes[0].title == "Zürcher Geschnetzeltes"
+        assert result.recipes[0].source_type == "image_ocr"
+
+        # Ein einziger Aufruf mit beiden Bildern in Reihenfolge.
+        mock_client.aio.models.generate_content.assert_awaited_once()
+        kwargs = mock_client.aio.models.generate_content.await_args.kwargs
+        contents = kwargs["contents"]
+        image_parts = [p for p in contents if getattr(p, "inline_data", None) is not None]
+        assert len(image_parts) == 2
+        # Antwortschema ist die Einzahl-Form: strukturell genau ein Rezept.
+        from app.services.ocr_service import OcrResult
+        assert kwargs["config"].response_schema is OcrResult
+        # max_output_tokens bleibt ungesetzt (Modell-Standard, ~64k).
+        assert getattr(kwargs["config"], "max_output_tokens", None) is None
+
+    @pytest.mark.asyncio
+    async def test_single_path_delegates_to_multi_recipe_variant(self, minimal_jpeg):
+        """Ein Bild = Galerie-Semantik: mehrere eigenständige Rezepte bleiben getrennt."""
+        mock_client = _make_ocr_mock_client(
+            {"recipes": [SAMPLE_OCR_RESPONSE, {**SAMPLE_OCR_RESPONSE, "title": "Rösti"}]}
+        )
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            from app.services.ocr_service import extract_recipes_from_images
+            result = await extract_recipes_from_images([str(minimal_jpeg)], "fake-key")
+
+        assert len(result.recipes) == 2
+        assert result.recipes[1].title == "Rösti"
+
+    @pytest.mark.asyncio
+    async def test_multipage_prompt_demands_completeness(self):
+        from app.services.ocr_service import _OCR_MULTIPAGE_PROMPT
+        prompt = _OCR_MULTIPAGE_PROMPT.format(page_count=2)
+        assert "AUFEINANDERFOLGENDE SEITEN" in prompt
+        assert "GENAU EINEM" in prompt or "GENAU EIN" in prompt
+        assert "ALLE Zutaten" in prompt and "ALLE Schritte" in prompt
+        assert "KEINE DUPLIKATE" in prompt
+        assert "Seitenzahlen" in prompt
+        # Schweizer Masseinheiten und Sprache auch im Mehrseiten-Prompt.
+        assert "dl" in prompt and "EL" in prompt
+        assert "ss" in prompt
+        # Keine permissiven Mengenangaben.
+        assert "3-5" not in prompt and "3–5" not in prompt

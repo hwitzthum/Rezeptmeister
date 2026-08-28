@@ -25,5 +25,7 @@ export default async function EinkaufslistePage() {
   // Serialize dates to strings for client component
   const serialized = JSON.parse(JSON.stringify(items));
 
-  return <ShoppingListClient initialItems={serialized} />;
+  return (
+    <ShoppingListClient initialItems={serialized} userId={session.user.id} />
+  );
 }

@@ -163,7 +163,9 @@ test.describe("Phase 6 – Embedding & OCR", () => {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const pngBuffer = Buffer.from(pngBase64, "base64");
 
-    const uploadInput = page.locator('input[type="file"]');
+    // .first() = Galerie-Input; seit dem Scan-Flow enthaelt die Komponente
+    // zusaetzlich ein Kamera-Input (capture="environment").
+    const uploadInput = page.locator('input[type="file"]').first();
     await uploadInput.setInputFiles({
       name: `test-${RUN_ID}.png`,
       mimeType: "image/png",

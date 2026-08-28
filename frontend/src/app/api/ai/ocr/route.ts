@@ -5,9 +5,23 @@ import { proxyAiRequest } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 
-const bodySchema = z.object({
-  imageId: z.string().uuid(),
-});
+/**
+ * Mehrseitiges OCR (bis zu 10 Buchseiten in einem Gemini-Aufruf) braucht deutlich
+ * mehr Zeit als ein Einzelbild. Ohne angehobene Funktionslaufzeit würde die
+ * Plattform den Aufruf vor dem 120-s-Proxy-Timeout abschneiden.
+ */
+export const maxDuration = 300;
+
+/** Vertrag 4.1: `imageIds` (Reihenfolge = Seitenreihenfolge), `imageId` bleibt gültig. */
+const bodySchema = z
+  .object({
+    imageId: z.string().uuid().optional(),
+    imageIds: z.array(z.string().uuid()).min(1).max(10).optional(),
+  })
+  .refine((v) => v.imageIds !== undefined || v.imageId !== undefined, {
+    message: "imageIds oder imageId ist erforderlich.",
+  })
+  .transform((v) => ({ imageIds: v.imageIds ?? [v.imageId as string] }));
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -49,8 +63,8 @@ export async function POST(request: Request) {
   return proxyAiRequest(
     "/ocr/extract",
     geminiKey,
-    { image_id: parsed.data.imageId, user_id: session.user.id },
+    { image_ids: parsed.data.imageIds, user_id: session.user.id },
     "OCR-Extraktion fehlgeschlagen.",
-    60_000,
+    120_000,
   );
 }

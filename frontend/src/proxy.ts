@@ -67,7 +67,8 @@ export default auth((req) => {
   // Nicht angemeldet → zum Login umleiten
   if (!isLoggedIn && !isPublicRoute) {
     const loginUrl = new URL("/auth/anmelden", nextUrl);
-    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+    // pathname + search: sonst geht die geteilte Rezept-URL beim Login verloren
+    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

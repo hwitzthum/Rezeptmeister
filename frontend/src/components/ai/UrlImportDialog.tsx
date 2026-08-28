@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal, Button } from "@/components/ui";
-import OcrPreviewPanel, { type OcrResult } from "@/components/ocr/OcrPreviewPanel";
+import OcrPreviewPanel, {
+  type OcrResult,
+} from "@/components/ocr/OcrPreviewPanel";
 
 interface UrlImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
   initialUrl?: string;
+  /** Import sofort starten, sobald der Dialog mit gültiger `initialUrl` geöffnet wird. */
+  autoStart?: boolean;
 }
 
 function isValidUrl(str: string): boolean {
@@ -24,53 +28,117 @@ export default function UrlImportDialog({
   isOpen,
   onClose,
   initialUrl = "",
+  autoStart = false,
 }: UrlImportDialogProps) {
   const router = useRouter();
   const [step, setStep] = useState<"url" | "preview">("url");
   const [url, setUrl] = useState(initialUrl);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [canPaste, setCanPaste] = useState(false);
   const [importedData, setImportedData] = useState<OcrResult | null>(null);
   const [importedImageId, setImportedImageId] = useState<string | null>(null);
+  const autoStartedRef = useRef(false);
 
-  // Sync initialUrl when dialog opens with a pre-filled URL
-  // (handled via key reset in parent or direct prop — just keep url in sync)
+  // Feature-Detection erst nach dem Mounten — beim Rendern auf dem Server gibt es
+  // kein `navigator`, ein Unterschied dort führte zu einem Hydration-Mismatch.
+  useEffect(() => {
+    setCanPaste(
+      typeof navigator !== "undefined" &&
+        typeof navigator.clipboard?.readText === "function",
+    );
+  }, []);
 
-  async function handleImport() {
-    if (!url.trim()) {
-      setError("Bitte eine URL eingeben.");
-      return;
-    }
-    if (!isValidUrl(url.trim())) {
-      setError("Ungültige URL. Bitte eine vollständige URL eingeben (z.B. https://…).");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/ai/import-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(
-          data.error ?? "Import fehlgeschlagen. Bitte überprüfen Sie die URL.",
-        );
+  const handleImport = useCallback(
+    async (overrideUrl?: string) => {
+      const candidate = (overrideUrl ?? url).trim();
+      if (!candidate) {
+        setError("Bitte eine URL eingeben.");
+        return;
       }
-      const data = (await res.json()) as OcrResult & { imageId?: string | null };
-      setImportedImageId(data.imageId ?? null);
-      setImportedData(data);
-      setStep("preview");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Import fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      if (!isValidUrl(candidate)) {
+        setError(
+          "Ungültige URL. Bitte eine vollständige URL eingeben (z.B. https://…).",
+        );
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const res = await fetch("/api/ai/import-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: candidate }),
+        });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          throw new Error(
+            data.error ??
+              "Import fehlgeschlagen. Bitte überprüfen Sie die URL.",
+          );
+        }
+        const data = (await res.json()) as OcrResult & {
+          imageId?: string | null;
+        };
+        setImportedImageId(data.imageId ?? null);
+        setImportedData(data);
+        setStep("preview");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Import fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [url],
+  );
+
+  // Über eine Ref, damit der Effekt unten nicht bei jedem Tastendruck erneut
+  // läuft — sonst überschriebe er die Eingabe wieder mit `initialUrl`.
+  const handleImportRef = useRef(handleImport);
+  useEffect(() => {
+    handleImportRef.current = handleImport;
+  }, [handleImport]);
+
+  // Vorbefüllte URL übernehmen (Share-Target, Kurzbefehl) und den Import auf
+  // Wunsch gleich anstossen — genau einmal pro Öffnen.
+  useEffect(() => {
+    if (!isOpen) {
+      autoStartedRef.current = false;
+      return;
+    }
+    if (initialUrl) setUrl(initialUrl);
+    if (!autoStart || autoStartedRef.current) return;
+    const candidate = initialUrl.trim();
+    if (!candidate || !isValidUrl(candidate)) return;
+    autoStartedRef.current = true;
+    void handleImportRef.current(candidate);
+  }, [isOpen, initialUrl, autoStart]);
+
+  async function handlePasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const candidate = text.trim();
+      if (!candidate) {
+        setNotice("Die Zwischenablage ist leer.");
+        return;
+      }
+      setUrl(candidate);
+      setError(null);
+      setNotice(
+        isValidUrl(candidate)
+          ? null
+          : "Der eingefügte Text ist keine vollständige Web-Adresse.",
       );
-    } finally {
-      setLoading(false);
+    } catch {
+      setNotice(
+        "Der Zugriff auf die Zwischenablage wurde nicht erlaubt. Bitte die Adresse von Hand einfügen.",
+      );
     }
   }
 
@@ -78,6 +146,7 @@ export default function UrlImportDialog({
     setStep("url");
     setUrl(initialUrl);
     setError(null);
+    setNotice(null);
     setImportedData(null);
     setImportedImageId(null);
     onClose();
@@ -100,20 +169,32 @@ export default function UrlImportDialog({
       title="Rezept von URL importieren"
       description="Geben Sie die Adresse einer Rezeptseite ein. Die KI extrahiert das Rezept automatisch."
       size="xl"
+      variant="sheet"
     >
       {step === "url" && (
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="url-import-step-url">
           <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            <label
+              htmlFor="url-import-field"
+              className="block text-sm font-medium text-[var(--text-primary)] mb-1.5"
+            >
               Rezept-URL
             </label>
             <input
+              id="url-import-field"
+              data-testid="url-import-input"
               type="url"
+              inputMode="url"
+              autoComplete="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="https://www.beispiel.ch/rezepte/mein-rezept"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
                 setError(null);
+                setNotice(null);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void handleImport();
@@ -135,17 +216,48 @@ export default function UrlImportDialog({
                 {error}
               </p>
             )}
+            {!error && notice && (
+              <p
+                className="mt-1.5 text-xs text-[var(--text-muted)]"
+                role="status"
+              >
+                {notice}
+              </p>
+            )}
           </div>
 
+          {canPaste && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void handlePasteFromClipboard();
+              }}
+              disabled={loading}
+              data-testid="url-import-paste"
+              className="min-tap"
+            >
+              Aus Zwischenablage einfügen
+            </Button>
+          )}
+
           <div className="flex justify-end gap-3 pt-2 border-t border-[var(--border-subtle)]">
-            <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              disabled={loading}
+            >
               Abbrechen
             </Button>
             <Button
               variant="primary"
               size="sm"
               loading={loading}
-              onClick={() => { void handleImport(); }}
+              onClick={() => {
+                void handleImport();
+              }}
+              data-testid="url-import-submit"
             >
               {loading ? "Importiere…" : "Importieren"}
             </Button>
@@ -159,8 +271,18 @@ export default function UrlImportDialog({
             onClick={handleBack}
             className="flex items-center gap-1 text-sm text-[var(--text-secondary)] hover:text-terra-600 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 19.5L8.25 12l7.5-7.5" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15.75 19.5L8.25 12l7.5-7.5"
+              />
             </svg>
             Zurück
           </button>
@@ -172,7 +294,9 @@ export default function UrlImportDialog({
                 alt={importedData.title}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
               />
             </div>
           )}

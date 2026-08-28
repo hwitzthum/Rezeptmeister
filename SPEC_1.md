@@ -34,11 +34,11 @@ in maximal zwei Tipps erreichbar macht, mehrseitiges Abfotografieren beherrscht,
 | Welle | ID     | Workstream                            | Parallel?                 | Status | Fortschritt |
 | ----- | ------ | ------------------------------------- | ------------------------- | ------ | ----------- |
 | **0** | **F**  | Fundament & geteilte Primitive        | nein — muss allein laufen | ✅     | 6/6         |
-| **1** | **A1** | Navigation & Mehr-Menü                | ✅ parallel               | ⬜     | 0/5         |
-| **1** | **A2** | Backend: Mehrseiten-OCR               | ✅ parallel               | ⬜     | 0/4         |
-| **1** | **A3** | Frontend: Scan-Flow                   | ✅ parallel               | ⬜     | 0/6         |
-| **1** | **A4** | URL-Import unterwegs                  | ✅ parallel               | ⬜     | 0/4         |
-| **1** | **A5** | Einkaufsliste offline + Sync          | ✅ parallel               | ⬜     | 0/6         |
+| **1** | **A1** | Navigation & Mehr-Menü                | ✅ parallel               | ✅     | 5/5         |
+| **1** | **A2** | Backend: Mehrseiten-OCR               | ✅ parallel               | ✅     | 4/4         |
+| **1** | **A3** | Frontend: Scan-Flow                   | ✅ parallel               | ✅     | 6/6         |
+| **1** | **A4** | URL-Import unterwegs                  | ✅ parallel               | ✅     | 4/4         |
+| **1** | **A5** | Einkaufsliste offline + Sync          | ✅ parallel               | ✅     | 6/6         |
 | **2** | **B1** | Seiten-Sweep: Rezepte-Bereich         | ✅ parallel               | ⬜     | 0/5         |
 | **2** | **B2** | Seiten-Sweep: Planen & Entdecken      | ✅ parallel               | ⬜     | 0/5         |
 | **2** | **B3** | Seiten-Sweep: Admin, Konto, Sonstiges | ✅ parallel               | ⬜     | 0/5         |
@@ -177,64 +177,64 @@ Kurz gehalten, damit die Parallelisierung schnell startet.
 
 ### A1 — Navigation & Mehr-Menü _(grösster Hebel)_
 
-- [ ] **A1.1** Breakpoint `lg:` → `md:` in `Sidebar.tsx` und `app/(app)/layout.tsx` — ab 768 px
+- [x] **A1.1** Breakpoint `lg:` → `md:` in `Sidebar.tsx` und `app/(app)/layout.tsx` — ab 768 px
       (iPad hoch) erscheint die Sidebar, die Tab-Leiste verschwindet, `pb-16` entfällt.
-- [ ] **A1.2** Tab-Leiste neu belegen: `Rezepte · Suche · [+] · Einkauf · Mehr` (Dashboard wandert ins
+- [x] **A1.2** Tab-Leiste neu belegen: `Rezepte · Suche · [+] · Einkauf · Mehr` (Dashboard wandert ins
       Mehr-Menü, bleibt über das Logo erreichbar). Tap-Targets ≥ 44 px, `safe-area-inset-bottom`
       greift jetzt tatsächlich.
-- [ ] **A1.3** Neue Seite `app/(app)/mehr/page.tsx`: gruppierte Liste **aller** übrigen Bereiche
+- [x] **A1.3** Neue Seite `app/(app)/mehr/page.tsx`: gruppierte Liste **aller** übrigen Bereiche
       (Dashboard, Wochenplan, Sammlungen, Bildergalerie, Vorschläge, Werkzeuge, Einstellungen, Admin
       nur bei `USER_ROLE.admin`) plus `ThemeToggle`, Benutzername, Abmelden — gespeist aus `nav-items`.
-- [ ] **A1.4** `CreateActionSheet`: `[+]` öffnet ein Sheet mit drei Wegen — _Rezept abfotografieren_
+- [x] **A1.4** `CreateActionSheet`: `[+]` öffnet ein Sheet mit drei Wegen — _Rezept abfotografieren_
       → `/rezepte/scannen`, _Von URL importieren_ → `UrlImportDialog`, _Manuell erfassen_ → `/rezepte/neu`.
-- [ ] **A1.5** Sidebar liest ihre Einträge aus `nav-items` statt aus lokalen Arrays (Desktop-Verhalten
+- [x] **A1.5** Sidebar liest ihre Einträge aus `nav-items` statt aus lokalen Arrays (Desktop-Verhalten
       unverändert).
 
 **DoD:** Jede Route ist rein per Antippen erreichbar; Desktop-Layout unverändert.
 
 ### A2 — Backend: Mehrseiten-OCR
 
-- [ ] **A2.1** `extract_recipes_from_images(image_paths: list[str], api_key)` in `ocr_service.py`:
+- [x] **A2.1** `extract_recipes_from_images(image_paths: list[str], api_key)` in `ocr_service.py`:
       alle Bilder als `types.Part.from_bytes` in **einen** Gemini-Aufruf. Einzelbild-Funktion bleibt
       für den Galerie-Weg bestehen.
-- [ ] **A2.2** Prompt-Variante, die explizit sagt: die Bilder sind **aufeinanderfolgende Seiten
+- [x] **A2.2** Prompt-Variante, die explizit sagt: die Bilder sind **aufeinanderfolgende Seiten
       desselben Rezepts** → zu einem Rezept zusammenführen (fortgesetzte Zutatenliste, Schritte
       weiterzählen, keine Duplikate, Kopf-/Fusszeilen ignorieren).
-- [ ] **A2.3** `routers/ocr.py`: `image_ids: list[UUID]` (1–10), `image_id` bleibt optional.
+- [x] **A2.3** `routers/ocr.py`: `image_ids: list[UUID]` (1–10), `image_id` bleibt optional.
       Eigentumsprüfung für **jedes** Bild; Pfadauflösung über `contextlib.AsyncExitStack` um die
       vorhandene `_utils.resolved_image_path`.
-- [ ] **A2.4** Pytest im Muster der bestehenden Backend-Tests (echte Postgres-Instanz,
+- [x] **A2.4** Pytest im Muster der bestehenden Backend-Tests (echte Postgres-Instanz,
       `skipif` bei fehlender DB): Fremdbild → 403, unbekannte ID → 404, zwei Seiten → ein Rezept.
 
 **DoD:** `uv run pytest` grün; Vertrag 4.1 erfüllt.
 
 ### A3 — Frontend: Scan-Flow
 
-- [ ] **A3.1** Neue Route `app/(app)/rezepte/scannen/page.tsx`, kamera-first:
+- [x] **A3.1** Neue Route `app/(app)/rezepte/scannen/page.tsx`, kamera-first:
       `<input type="file" accept="image/*" capture="environment" multiple>`, zusätzlich
       „Aus Galerie wählen" ohne `capture`.
-- [ ] **A3.2** Seitenliste mit Thumbnails, Reihenfolge ändern, einzelne Seiten löschen,
+- [x] **A3.2** Seitenliste mit Thumbnails, Reihenfolge ändern, einzelne Seiten löschen,
       „Weitere Seite aufnehmen".
-- [ ] **A3.3** `lib/images/downscale.ts`: Canvas-Downscaling (max. Kante ~2000 px, JPEG q0.85) **vor**
+- [x] **A3.3** `lib/images/downscale.ts`: Canvas-Downscaling (max. Kante ~2000 px, JPEG q0.85) **vor**
       dem Upload — iPhone-Fotos sind 3–5 MB und scheitern sonst am 10-MB-Limit bzw. an Mobilfunk.
-- [ ] **A3.4** Upload über die bestehende Route `POST /api/images/upload` (eine Anfrage pro Seite, mit
+- [x] **A3.4** Upload über die bestehende Route `POST /api/images/upload` (eine Anfrage pro Seite, mit
       Fortschrittsanzeige), danach **ein** OCR-Aufruf über alle `imageIds`.
-- [ ] **A3.5** `app/api/ai/ocr/route.ts`: zod auf `imageIds: z.array(z.string().uuid()).min(1).max(10)`
+- [x] **A3.5** `app/api/ai/ocr/route.ts`: zod auf `imageIds: z.array(z.string().uuid()).min(1).max(10)`
       erweitern, `imageId` weiter akzeptieren, Proxy-Timeout 120 s. Rate-Limit bleibt `AI_LIMIT`.
-- [ ] **A3.6** Ergebnis in den vorhandenen `components/ocr/OcrMultiPreview.tsx` geben (Speichern
+- [x] **A3.6** Ergebnis in den vorhandenen `components/ocr/OcrMultiPreview.tsx` geben (Speichern
       unverändert); `capture="environment"` als optionalen Kamera-Button in `ImageUploadZone` nachrüsten.
 
 **DoD:** Zwei Fotos → ein Rezept, gegen echtes Backend verifiziert.
 
 ### A4 — URL-Import unterwegs
 
-- [ ] **A4.1** `UrlImportDialog` nutzt `variant="sheet"`, bekommt `inputMode="url"`,
+- [x] **A4.1** `UrlImportDialog` nutzt `variant="sheet"`, bekommt `inputMode="url"`,
       `autocomplete="url"`, `autoCapitalize="none"`.
-- [ ] **A4.2** Button **„Aus Zwischenablage einfügen"** (`navigator.clipboard.readText()`, still
+- [x] **A4.2** Button **„Aus Zwischenablage einfügen"** (`navigator.clipboard.readText()`, still
       ausgeblendet wo nicht verfügbar).
-- [ ] **A4.3** Neue Seite `app/(app)/rezepte/importieren/page.tsx`: liest `?url=`, öffnet den Dialog
+- [x] **A4.3** Neue Seite `app/(app)/rezepte/importieren/page.tsx`: liest `?url=`, öffnet den Dialog
       vorbefüllt (`initialUrl`, `autoStart`) — Ziel des Android-Share-Targets aus F.3.
-- [ ] **A4.4** Text für die iOS-Kurzbefehl-Anleitung erstellen (Kurzbefehl mit _Teilen-Sheet-Eingabe_
+- [x] **A4.4** Text für die iOS-Kurzbefehl-Anleitung erstellen (Kurzbefehl mit _Teilen-Sheet-Eingabe_
       → _URL öffnen_ auf `https://…/rezepte/importieren?url=[Eingabe]`) und an **C2** übergeben; ein
       Kurz-Einstieg dazu erscheint auf der Mehr-Seite (Umsetzung dort durch A1 nach Textübergabe).
 
@@ -242,17 +242,17 @@ Kurz gehalten, damit die Parallelisierung schnell startet.
 
 ### A5 — Einkaufsliste offline + Sync
 
-- [ ] **A5.1** `lib/offline/db.ts` auf `DB_VERSION 3`, Stores `shoppingList` + `pendingOps` gemäss 4.2;
+- [x] **A5.1** `lib/offline/db.ts` auf `DB_VERSION 3`, Stores `shoppingList` + `pendingOps` gemäss 4.2;
       `recipes`-Store unangetastet (gemerkte Offline-Rezepte gehen nicht verloren).
-- [ ] **A5.2** `lib/offline/shopping-sync.ts`: `queueOp()`, `flushQueue()`, `sendOrQueue()`-Wrapper.
-- [ ] **A5.3** `ShoppingListClient` ersetzt seine fünf rohen `fetch`-Aufrufe durch den Wrapper — die
+- [x] **A5.2** `lib/offline/shopping-sync.ts`: `queueOp()`, `flushQueue()`, `sendOrQueue()`-Wrapper.
+- [x] **A5.3** `ShoppingListClient` ersetzt seine fünf rohen `fetch`-Aufrufe durch den Wrapper — die
       optimistische Update-Logik bleibt, nur der Rollback entfällt, wenn der Fehler „offline" heisst.
-- [ ] **A5.4** Hydration: beim Mount aus IndexedDB laden, dann gegen das Netz revalidieren; jede
+- [x] **A5.4** Hydration: beim Mount aus IndexedDB laden, dann gegen das Netz revalidieren; jede
       Server-Antwort aktualisiert den Snapshot.
-- [ ] **A5.5** Replay bei `online`-Event und Seiten-Fokus, in Reihenfolge, **Last-Write-Wins** pro
+- [x] **A5.5** Replay bei `online`-Event und Seiten-Fokus, in Reihenfolge, **Last-Write-Wins** pro
       Item-ID; erfolgreiche Ops löschen, dauerhaft fehlschlagende (404 = Item serverseitig weg)
       verwerfen statt endlos wiederholen.
-- [ ] **A5.6** `OfflineIndicator` zeigt „n Änderungen werden synchronisiert"; Unit-Tests für die
+- [x] **A5.6** `OfflineIndicator` zeigt „n Änderungen werden synchronisiert"; Unit-Tests für die
       Queue in `lib/offline/__tests__/` (Muster wie `lib/shopping/__tests__`).
 
 **DoD:** Im Flugmodus abhaken bleibt bestehen und synchronisiert nach Reconnect.
@@ -339,7 +339,7 @@ selbst gebaut.
 | Stream | Ergebnis | Abweichungen vom Plan | Tests |
 | ------ | -------- | --------------------- | ----- |
 | F      | Alle 6 Aufgaben umgesetzt | `sw.js`: statt `cache.addAll` ein tolerantes `precache()`, und `navigationHandler` bevorzugt jetzt die passende gecachte Seite — sonst wäre `/einkaufsliste` im Cache wirkungslos geblieben und ein Login-Redirect hätte den Install abgebrochen. `navGroups` wurde real verschoben (Sidebar importiert sie), damit keine zweite Quelle entsteht; `bottomNavItems` liegt bereit, wird aber erst von A1.2 verdrahtet. Icons über den bestehenden `scripts/generate-pwa-icons.ts` erzeugt statt einmalig. | `npm run build` grün · `npm run lint` grün · `tsc --noEmit` grün · Playwright 196 passed / 17 skipped / 0 failed (17 Skips = KI-Livetests ohne API-Schlüssel, unverändert) · Sheet-Variante im Browser bei 390 px und 1280 px vermessen |
-| A1–A5  | —        | —                     | —     |
+| A1–A5  | Alle 25 Aufgaben aus A1–A5 umgesetzt | **Ausserhalb der Besitzmatrix angefasst (jeweils zwingend, gemeldet statt still gelassen):** `src/proxy.ts` — der Login-Redirect verwarf `nextUrl.search`, wodurch die geteilte Rezept-URL aus dem Android-Share-Target beim Anmelden verloren ging; jetzt `pathname + search`. `tests/phase-6.spec.ts` — der Datei-Input-Selektor musste auf `.first()` (Galerie), weil `ImageUploadZone` seit A3.6 zusätzlich ein Kamera-Input enthält. `tests/phase-17.spec.ts` — die Tests öffneten IndexedDB fest mit Version 2; nach dem Sprung auf Version 3 (A5.1) hätte das einen `VersionError` geworfen, den der `onerror`-Pfad still geschluckt hätte — die Tests wären grün geblieben, ohne noch etwas zu prüfen. <br>**Zusätzliche Dateien über den Plan hinaus:** `lib/pwa/ios-shortcut.ts` (A4.4-Text als Modul statt als lose Notiz, damit `/mehr` und später das README aus derselben Quelle lesen), `rezepte/importieren/shared-url.ts` (URL-Normalisierung des Share-Targets, separat testbar). <br>**Bewusste Vertragsverschärfung (A2.2):** das Mehrseiten-Antwortschema ist `OcrResult` (Einzahl) statt `OcrResults` — dadurch ist strukturell genau ein zusammengeführtes Rezept garantiert, statt sich auf die Prompt-Formulierung zu verlassen. <br>**Offen:** die A3-DoD „gegen echtes Backend verifiziert" ist noch nicht erbracht — Gemini ist in den Tests gemockt. Zwei echte Fotos → ein Rezept gehört in die manuelle Abnahme D.5. | `npm run build` grün · `npm run lint` grün · `tsc --noEmit` grün · `vitest` 123/123 grün, davon 60 neu (shopping-sync 27, shared-url 14, downscale 11, nav-active 8) · `uv run pytest` 58/58 grün gegen echte Postgres, davon 22 OCR (Service + Route: Fremdbild 403, unbekannte ID 404, >10 Seiten 422, zwei Seiten → ein Rezept) · Playwright 212 passed / 0 failed / 1 flaky (`phase-6` 6.6 Schlüssel-Speicherung, im Retry grün, unabhängig von Welle 1 — dieser Lauf hatte anders als bei F einen API-Schlüssel, daher 212 statt 196 + 17 Skips) |
 | B1–B3  | —        | —                     | —     |
 | C1–C2  | —        | —                     | —     |
 | D      | —        | —                     | —     |

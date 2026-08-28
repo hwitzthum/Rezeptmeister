@@ -15,13 +15,25 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen flex bg-[var(--bg-base)]">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-terra-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-terra-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+      >
         Zum Hauptinhalt springen
       </a>
       <Sidebar isAdmin={isAdmin} userName={userName} />
-      <div id="main-content" className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0 overflow-x-hidden">
+      <div
+        id="main-content"
+        className="flex-1 flex flex-col min-w-0 overflow-x-hidden"
+      >
         <OfflineIndicator />
         {children}
+        {/* Platzhalter unter der fixierten Tab-Leiste: 64 px Leiste (box-content,
+            damit die Safe-Area-Polsterung obendrauf kommt) plus Home-Indicator. */}
+        <div
+          aria-hidden="true"
+          className="md:hidden shrink-0 h-16 box-content safe-area-inset-bottom"
+        />
       </div>
       <BottomNav />
       <Toaster

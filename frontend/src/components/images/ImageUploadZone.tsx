@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { downscaleImage } from "@/lib/images/downscale";
 
 // ── Typen ─────────────────────────────────────────────────────────────────────
 
@@ -26,34 +27,47 @@ interface ImageUploadZoneProps {
   onUploadComplete: (image: UploadedImage) => void;
   /** Wenn gesetzt: Bild wird nach Upload automatisch diesem Rezept zugeordnet */
   recipeId?: string;
+  /** Zusätzlicher Kamera-Button (mobil). Der Galerie-Weg bleibt unverändert. */
+  showCamera?: boolean;
   className?: string;
 }
 
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 10 * 1024 * 1024;
 
 // ── Komponente ────────────────────────────────────────────────────────────────
 
 export default function ImageUploadZone({
   onUploadComplete,
   recipeId,
+  showCamera = true,
   className = "",
 }: ImageUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  function handleFiles(fileList: FileList) {
-    const file = fileList[0];
-    if (!file) return;
+  async function handleFiles(fileList: FileList) {
+    const original = fileList[0];
+    if (!original) return;
+
+    // Kameraaufnahmen sind regelmässig grösser als 10 MB. Statt den Upload
+    // scheitern zu lassen, wird nur in diesem Fall lokal verkleinert —
+    // kleinere Dateien (Galerie-Weg) bleiben unverändert.
+    const file =
+      original.size > MAX_BYTES && original.type.startsWith("image/")
+        ? await downscaleImage(original)
+        : original;
 
     // Client-seitige Vorab-Validierung
     if (!ALLOWED_MIME.includes(file.type)) {
       setError("Nicht unterstütztes Format. Erlaubt: JPEG, PNG, WebP.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_BYTES) {
       setError("Datei zu gross. Maximum: 10 MB.");
       return;
     }
@@ -125,7 +139,7 @@ export default function ImageUploadZone({
     e.stopPropagation();
     setIsDragging(false);
     if (e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
+      void handleFiles(e.dataTransfer.files);
     }
   }
 
@@ -162,7 +176,9 @@ export default function ImageUploadZone({
         <div
           className={[
             "w-12 h-12 rounded-xl flex items-center justify-center",
-            isDragging ? "bg-terra-100 dark:bg-terra-900/40 text-terra-600" : "bg-warm-100 dark:bg-warm-800 text-warm-500 dark:text-warm-400",
+            isDragging
+              ? "bg-terra-100 dark:bg-terra-900/40 text-terra-600"
+              : "bg-warm-100 dark:bg-warm-800 text-warm-500 dark:text-warm-400",
           ].join(" ")}
         >
           <UploadIcon />
@@ -199,6 +215,26 @@ export default function ImageUploadZone({
         )}
       </div>
 
+      {/* Kamera-Weg (mobil) — zusätzlich zum Ablegen/Auswählen oben */}
+      {showCamera && (
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => cameraInputRef.current?.click()}
+          data-testid="upload-kamera-button"
+          className={[
+            "min-tap mt-3 w-full flex items-center justify-center gap-2",
+            "rounded-xl border border-[var(--border-base)] px-4 py-2.5",
+            "text-sm font-medium text-[var(--text-primary)]",
+            "hover:border-terra-300 hover:bg-[var(--bg-subtle)]",
+            "disabled:opacity-50 disabled:cursor-not-allowed transition-all",
+          ].join(" ")}
+        >
+          <CameraIcon />
+          Mit Kamera aufnehmen
+        </button>
+      )}
+
       {/* Fehlermeldung */}
       {error && (
         <p className="mt-2 text-sm text-red-600" role="alert">
@@ -215,21 +251,69 @@ export default function ImageUploadZone({
         tabIndex={-1}
         onChange={(e) => {
           if (e.target.files?.length) {
-            handleFiles(e.target.files);
+            void handleFiles(e.target.files);
             // Reset so the same file can be selected again
             e.target.value = "";
           }
         }}
       />
+
+      {/* Verstecktes Kamera-Input */}
+      {showCamera && (
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          tabIndex={-1}
+          data-testid="upload-kamera-input"
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              void handleFiles(e.target.files);
+              e.target.value = "";
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
+function CameraIcon() {
+  return (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
+      />
+    </svg>
+  );
+}
+
 function UploadIcon() {
   return (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
