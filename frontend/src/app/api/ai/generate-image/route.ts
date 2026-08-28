@@ -6,6 +6,7 @@ import { proxyAiRequest } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
+import { clampGenerateImagePayload } from "@/lib/ai/generate-image-payload";
 
 const bodySchema = z.object({
   recipe_id: z.string().uuid(),
@@ -66,7 +67,10 @@ export async function POST(request: Request) {
   return proxyAiRequest(
     "/ai/generate-image",
     geminiKey,
-    { ...parsed.data, user_id: session.user.id },
+    // Auf die Grenzen des Backend-Schemas kuerzen. Ohne das lehnte Pydantic ein
+    // Rezept mit mehr als 20 Zutaten mit 422 ab, und im Browser stand nur
+    // „Ungueltige Eingabedaten" — siehe lib/ai/generate-image-payload.ts.
+    { ...clampGenerateImagePayload(parsed.data), user_id: session.user.id },
     "Bild konnte nicht generiert werden.",
   );
 }
