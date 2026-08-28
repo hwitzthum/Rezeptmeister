@@ -220,7 +220,7 @@ function OfflineRecipeContent() {
           <h2 className="text-lg font-semibold mb-3">Zubereitung</h2>
           <div
             data-testid="offline-instructions"
-            className="prose prose-warm dark:prose-invert max-w-none text-warm-700 dark:text-warm-300 whitespace-pre-wrap"
+            className="max-w-none text-warm-700 dark:text-warm-300 whitespace-pre-wrap"
           >
             {recipe.instructions}
           </div>

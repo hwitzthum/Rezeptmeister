@@ -166,7 +166,7 @@ export default function ImageUploadZone({
           "rounded-2xl border-2 border-dashed p-8 text-center",
           "transition-all duration-200 cursor-pointer select-none",
           uploading
-            ? "border-terra-300 bg-terra-25 cursor-not-allowed"
+            ? "border-terra-300 bg-terra-50 cursor-not-allowed"
             : isDragging
               ? "border-terra-400 bg-terra-50 scale-[1.01]"
               : "border-[var(--border-base)] hover:border-terra-300 hover:bg-[var(--bg-subtle)]",

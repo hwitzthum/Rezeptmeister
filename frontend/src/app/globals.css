@@ -28,13 +28,23 @@
   --color-cream-300: #fcd5ad;
   --color-cream-400: #f9b97d;
 
-  /* Gold / Senf family */
+  /* Gold / Senf family.
+     Die Stufen 50–200 und 900–950 fehlten, waehrend zehn Aufrufstellen sie
+     benutzten (bg-gold-50, dark:bg-gold-950/30, from-gold-50/80 …). Tailwind
+     erzeugt fuer eine nicht definierte Stufe kein CSS — die Kacheln rendern
+     dann lautlos ohne Hintergrund. Die Skala laeuft jetzt wie terra und warm
+     durchgehend von 50 bis 950. */
+  --color-gold-50:  #fdf9ed;
+  --color-gold-100: #faf1d6;
+  --color-gold-200: #f4e3ae;
   --color-gold-300: #edcd7e;
   --color-gold-400: #e6b84a;
   --color-gold-500: #d4a843;
   --color-gold-600: #b88b31;
   --color-gold-700: #956e24;
   --color-gold-800: #6e5018;
+  --color-gold-900: #5a4114;
+  --color-gold-950: #33240b;
 
   /* Warm neutrals */
   --color-warm-50:  #fafaf8;
@@ -174,6 +184,16 @@ body::before {
 @utility safe-area-inset-x {
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Waagrecht rollende Leisten (Notiz-Reiter, Schrittpunkte im Kochmodus)
+   ohne sichtbaren Rollbalken. Die Klasse wurde bereits benutzt, war aber
+   nirgends definiert und damit wirkungslos. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Apple HIG / WCAG 2.5.5 Mindestgroesse fuer Tippziele */

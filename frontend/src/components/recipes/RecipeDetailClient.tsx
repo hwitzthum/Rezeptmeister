@@ -442,7 +442,7 @@ export default function RecipeDetailClient({
               Zubereitung
             </h2>
             {recipe.instructions ? (
-              <div className="prose prose-sm max-w-none text-[var(--text-primary)] leading-relaxed">
+              <div className="max-w-none text-[var(--text-primary)] leading-relaxed">
                 {recipe.instructions.split(/\n+/).map((para, i) => (
                   <p key={i} className="mb-3 whitespace-pre-wrap">
                     {para}

@@ -56,16 +56,16 @@ const difficultyLabel: Record<string, { label: string; color: string }> = {
   einfach: {
     label: "Einfach",
     color:
-      "text-emerald-600 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/30",
+      "text-emerald-600 bg-emerald-50/90 dark:text-emerald-300 dark:bg-emerald-950/30",
   },
   mittel: {
     label: "Mittel",
-    color: "text-gold-700 bg-gold-50 dark:text-gold-300 dark:bg-gold-950/30",
+    color: "text-gold-700 bg-gold-50/90 dark:text-gold-300 dark:bg-gold-950/30",
   },
   anspruchsvoll: {
     label: "Anspruchsvoll",
     color:
-      "text-terra-600 bg-terra-50 dark:text-terra-300 dark:bg-terra-950/30",
+      "text-terra-600 bg-terra-50/90 dark:text-terra-300 dark:bg-terra-950/30",
   },
 };
 
@@ -278,7 +278,7 @@ export function RecipeCard({
         {/* Difficulty badge bottom-right (on image) */}
         {diff && (
           <span
-            className={`absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-xs font-medium ${diff.color} bg-opacity-90`}
+            className={`absolute bottom-3 right-3 px-2 py-0.5 rounded-md text-xs font-medium ${diff.color}`}
           >
             {diff.label}
           </span>
