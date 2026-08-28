@@ -15,14 +15,25 @@ INSERT INTO users (id, email, name, password_hash, role, status) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Test-Benutzer (Passwort: test1234)
+--
+-- Der frühere Hash gehörte nicht zu `test1234`, sondern zu `secret` — der
+-- Kommentar daneben und die Zeile im README behaupteten beide etwas anderes,
+-- als in der Datenbank stand. Wer sich an die Anleitung hielt, kam nicht
+-- hinein. Der neue Hash ist gegen `bcrypt.compare` geprüft, nicht bloss
+-- ausgetauscht.
+--
+-- `DO UPDATE` statt `DO NOTHING`, und nur für das Passwort: Datenbanken, die
+-- den alten Hash schon haben, bekämen die dokumentierten Zugangsdaten sonst
+-- nie zu sehen. Das Seed ist ausdrücklich Entwicklungsdatenbestand und laut
+-- Kopf dieser Datei beliebig oft ausführbar.
 INSERT INTO users (id, email, name, password_hash, role, status) VALUES
     ('00000000-0000-0000-0000-000000000002',
      'test@rezeptmeister.ch',
      'Test Benutzer',
-     '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', -- test1234
+     '$2b$12$.ZG3JL9Gjk.OW.aHlcbD3O3SOKDwem8VqZGnCfew7caBiO7URtj7.', -- test1234
      'user',
      'approved')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 
 -- Musterrezept 1: Zürcher Geschnetzeltes
 INSERT INTO recipes (id, user_id, title, description, instructions, servings, prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty, source_type, cuisine, category, tags) VALUES
