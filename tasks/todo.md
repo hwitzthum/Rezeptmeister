@@ -506,6 +506,9 @@
 - [x] **20.6.7** Seitenkopf enger gesetzt, damit der Titel neben dem Home-Knopf nicht abgeschnitten wird
 - [x] **20.6.8** Tests: `sw-update.test.ts` (10 Unit), `phase-20-update.spec.ts` (5 E2E)
 
+- [x] **20.6.9** Weg zurück auf den Home-Bildschirm: `lib/pwa/install-hint.ts` (Plattform- und Standalone-Erkennung, rein und getestet), `install-store.ts` (`useSyncExternalStore`), `InstallHint` auf dem Dashboard (nur im Browser, 30 Tage wegtippbar), `InstallGuide` dauerhaft unter *Mehr* mit Status «Bereits abgelegt». Anlass: zwei iPhones verloren das Symbol, ohne dass die App eine Erklärung oder einen Rückweg anbot
+- [x] **20.6.10** Tests dazu: `install-hint.test.ts` (16 Unit), `mobile-install.spec.ts` (7 E2E auf iPhone, Pixel und iPad)
+
 
 ---
 

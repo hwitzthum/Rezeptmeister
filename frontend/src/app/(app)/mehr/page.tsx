@@ -5,6 +5,7 @@ import { auth, signOut } from "@/auth";
 import { USER_ROLE } from "@/lib/auth";
 import { PageHeader } from "@/components/ui";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import InstallGuide from "@/components/layout/InstallGuide";
 import { bottomNavItems, navGroups } from "@/components/layout/nav-items";
 import {
   IOS_SHORTCUT_TITLE,
@@ -121,6 +122,9 @@ export default async function MehrPage() {
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)] px-1 mb-1.5">
             Unterwegs
           </h2>
+          <div className="mb-2">
+            <InstallGuide />
+          </div>
           <details data-testid="mehr-ios-shortcut" className="group rounded-2xl border border-[var(--border-base)] bg-[var(--bg-surface)] overflow-hidden">
             <summary className="min-tap flex items-center gap-3 px-4 py-3 text-sm font-medium text-[var(--text-secondary)] cursor-pointer list-none transition-colors duration-150 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]">
               <Smartphone
