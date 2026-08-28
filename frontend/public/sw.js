@@ -1,7 +1,11 @@
 /// Rezeptmeister Service Worker
 /// Hand-written — no build step required.
 
-const CACHE_NAME = "rezeptmeister-v3";
+// Bei jeder Aenderung an vorgehaltenen Seiten hochzaehlen: der
+// activate-Handler loescht alle Caches mit abweichendem Namen, erst dadurch
+// wird die vorgehaltene Kopie von /einkaufsliste neu geholt. Ohne das bliebe
+// offline auf ewig der Stand von vor Phase 20 stehen.
+const CACHE_NAME = "rezeptmeister-v4";
 const OFFLINE_URL = "/offline";
 
 // Assets to pre-cache on install.
