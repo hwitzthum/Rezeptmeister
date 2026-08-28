@@ -23,6 +23,14 @@ import {
 import { uploadToStorage } from "@/lib/supabase-storage";
 import { isSafeExternalUrl, pinnedGet, type PinnedResponse } from "@/lib/ssrf-guard";
 
+/**
+ * Ist die Seite gegen serverseitige Abrufe geschützt (Cloudflare & Co.), holt das
+ * Backend den Inhalt über Geminis url_context-Tool und extrahiert ihn danach
+ * strukturiert — zwei KI-Aufrufe nacheinander. Ohne angehobene Funktionslaufzeit
+ * würde die Plattform den Aufruf vor dem 120-s-Proxy-Timeout abschneiden.
+ */
+export const maxDuration = 300;
+
 const bodySchema = z.object({
   url: z.string().url().max(2048),
 });
@@ -225,11 +233,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const backendRes = await fetchBackendWithRetry("/import/url", {
-    method: "POST",
-    headers: buildAiHeaders(geminiKey),
-    body: JSON.stringify({ ...parsed.data, user_id: session.user.id }),
-  });
+  const backendRes = await fetchBackendWithRetry(
+    "/import/url",
+    {
+      method: "POST",
+      headers: buildAiHeaders(geminiKey),
+      body: JSON.stringify({ ...parsed.data, user_id: session.user.id }),
+    },
+    // Der Umweg über Gemini (Seitenabruf + strukturierte Extraktion) braucht
+    // regelmässig mehr als die 30 s Standard-Timeout.
+    120_000,
+  );
   if (!backendRes) {
     return NextResponse.json(
       { error: "Verbindung zum KI-Backend fehlgeschlagen." },
@@ -243,8 +257,29 @@ export async function POST(request: Request) {
       422: "Ungültige Eingabedaten.",
       429: "Zu viele Anfragen.",
     };
+    // Das Backend markiert für die Nutzerin bestimmte Abbrüche (Bezahlschranke,
+    // Bot-Schutz, kein Rezept auf der Seite) mit einem `detail`-Objekt, das eine
+    // kuratierte deutsche Meldung trägt. Nur diese Form wird durchgereicht —
+    // FastAPIs eigene Validierungsfehler liefern `detail` als Array, rohe
+    // Ausnahmen als String; beides bleibt hinter der generischen Meldung, damit
+    // keine internen Details ins UI gelangen.
+    let curated: string | null = null;
+    try {
+      const payload = (await backendRes.json()) as { detail?: unknown };
+      const detailObj = payload.detail;
+      if (
+        detailObj &&
+        typeof detailObj === "object" &&
+        !Array.isArray(detailObj) &&
+        typeof (detailObj as { message?: unknown }).message === "string"
+      ) {
+        curated = (detailObj as { message: string }).message;
+      }
+    } catch {
+      /* kein JSON-Body — generische Meldung verwenden */
+    }
     const detail =
-      safeMessages[backendRes.status] ?? "URL-Import fehlgeschlagen.";
+      curated ?? safeMessages[backendRes.status] ?? "URL-Import fehlgeschlagen.";
     return NextResponse.json({ error: detail }, { status: backendRes.status });
   }
 
