@@ -194,7 +194,7 @@ export default function BilderPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Filter-Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           {(["alle", "zugeordnet", "unzugeordnet"] as FilterMode[]).map((f) => (
             <button
               key={f}

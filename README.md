@@ -100,12 +100,26 @@ npm run dev  # http://localhost:3001
 
 | Mode | How it works |
 |------|-------------|
-| Full-text | PostgreSQL `tsvector` — German config, weighted A/B/C fields |
+| Full-text | PostgreSQL `tsvector` (German config, weighted A/B/C fields) **plus prefix matching, typo tolerance and ingredient hits** — see below |
 | Semantic | Gemini Embedding 2 (3072-dim) via pgvector cosine distance |
 | Hybrid | Reciprocal Rank Fusion combining full-text + vector ranks |
 | Cross-modal | Upload an image → find visually similar recipes |
 | Ingredient match | Enter what's in your fridge → ranked recipe suggestions |
 | Advanced filters | Category, cuisine, diet, difficulty, prep time, tags |
+
+**Full-text search matches on four paths at once**, so you rarely have to type a whole word:
+
+| You type | You get | Why |
+|----------|---------|-----|
+| `zop` | *Butterzopf* | Prefix query — `to_tsquery('german', 'zop:*')` |
+| `rischotto` | *Risotto Milanese* | Trigram `word_similarity` above the calibrated threshold |
+| `Roesti` / `Rösti` | *Berner Rösti* | Both sides normalised through the `rm_normalize()` SQL function |
+| `safran` | *Risotto Milanese* | Match inside the recipe's ingredient names |
+
+Ranking is a weighted sum of `ts_rank`, title similarity and an ingredient-hit bonus. The sort
+control switches to **Relevanz** by itself the moment a query starts and back to **Neueste** when
+it is cleared — an explicit choice always wins. Requires the `pg_trgm` extension
+(migration `0004_smart_search.sql`).
 
 ### Image Management
 
@@ -122,13 +136,35 @@ All AI features require a user-provided Gemini API key configured in `/einstellu
 | Feature | Description |
 |---------|-------------|
 | OCR Import | Extract a recipe from a photo (Gemini Pro multimodal); supports multi-photo batches |
-| Recipe Suggestions | 5 AI proposals based on ingredients, season, and time budget |
+| Recipe Suggestions | 5 proposals grounded in **your own collection** — see below |
 | Smart Scaling | KI hints when scaling to extreme portions |
 | Image Generation | Auto-create recipe photos from title + ingredients |
 | URL Import | Parse any recipe website (schema.org/Recipe or AI fallback); auto-converts US ↔ CH units |
 | Web Search | Find and import recipes from across the web |
 | Nutrition | AI-estimated kcal, protein, fat, carbs, fiber — with manual override |
 | Embeddings | Async text + image embeddings (gemini-embedding-2-preview, 3072 dims) |
+
+**How recipe suggestions avoid generic output.** The prompt is built from three things the model
+cannot know on its own:
+
+1. **A taste profile** (`frontend/src/lib/ai/taste-profile.ts`) — your recipe titles, favourites,
+   best-rated dishes, most frequent cuisines and the ingredients you keep on hand. Nothing already
+   in your collection may be proposed. Built on the Next.js side, so FastAPI stays stateless.
+2. **The real Swiss season** (`frontend/src/lib/ai/saison.ts`) — a fixed month-by-month calendar of
+   produce and culinary occasions (Europe/Zurich). A deterministic fact belongs in code, not in a
+   prompt the model has to guess at.
+3. **Hard rules** — five different main ingredients and cooking methods, at most one dish per
+   cuisine, an explicit ban list of clichés, and one concrete sentence each for *why it fits* and
+   *what makes it special*.
+
+Every response is then **checked before it is shown** (`backend/app/services/suggestion_service.py`):
+missing fields, dishes already in your collection, internal duplicates or a pile-up of one cuisine
+trigger exactly one retry that names the specific faults. If the retry is no better, unusable
+entries are filtered out rather than shipped. Tapping *Regenerieren* sends the titles currently on
+screen as exclusions, so you get something new.
+
+Each card shows the two sentences of description, **Warum das passt**, **Das Besondere**, and
+ingredient chips split into what you already have (green) and what you still need to buy (dashed).
 
 ### Notes & Ratings
 
@@ -225,7 +261,7 @@ Every area is reachable **by tapping alone** — no typed URLs.
 
 | Width | Navigation |
 | ----- | ---------- |
-| `< md` (phone) | Fixed bottom tab bar: **Rezepte · Suche · [+] · Einkauf · Mehr**. The `[+]` opens the create sheet; **Mehr** (`/mehr`) lists every remaining area, the theme switch and sign-out. |
+| `< md` (phone) | Fixed bottom tab bar: **Rezepte · Suche · [+] · Einkauf · Mehr**. The `[+]` opens the create sheet; **Mehr** (`/mehr`) lists every remaining area, the theme switch and sign-out. A round chef-hat button at the top left of every main page header leads back to the dashboard (`HomeLink`) — the tab bar is full, and pages that already carry a back arrow are deliberately left out. |
 | `≥ md` (tablet, desktop) | Sidebar with the full grouped navigation. The iPad in portrait (768–834 px) gets the tablet layout, not the phone one. |
 
 Navigation entries live in a single source of truth: `frontend/src/components/layout/nav-items.tsx`.
@@ -282,6 +318,16 @@ Every page is measured against these rules on iPhone (390 px), Pixel (412 px) an
 The shared utilities (`min-tap`, `safe-area-inset-*`, `scrollbar-none`) live in
 `frontend/src/app/globals.css`; the touch-only variants use `pointer-coarse:`.
 `frontend/tests/mobile-navigation.spec.ts` enforces all four rules on every route.
+
+Action rows use shared primitives from `frontend/src/components/ui/` rather than ad-hoc flex
+containers, so nothing wraps into a ragged trailing button on a narrow screen:
+
+| Primitive | Use |
+| --------- | --- |
+| `ActionGrid` / `ActionTile` | Equal-width tiles with an icon over a label — the dashboard quick actions |
+| `ActionBar` | An action row whose children share the width evenly on phones and flow naturally from `sm` up |
+| `LinkButton` | A link styled as a button. Use it instead of nesting `<Button>` inside `<Link>`, which produces a `<button>` inside an `<a>` — invalid HTML and ambiguous for screen readers and the keyboard |
+| `buttonClasses()` | The class computation behind `Button`, exported so `LinkButton` stays pixel-identical |
 
 ---
 
@@ -606,7 +652,13 @@ Pure functions, React hooks, utilities.
 cd frontend && npm run test
 ```
 
-Examples: unit converter, cryptography helpers, timer parser, aisle categorizer, debounce hook.
+Examples: unit converter, cryptography helpers, timer parser, aisle categorizer, debounce hook,
+search-query builder (`search-query.test.ts`), Swiss seasonal calendar (`saison.test.ts`).
+
+`src/lib/recipes/__tests__/search.integration.test.ts` is the exception to "pure functions": it runs
+the real search query against the real PostgreSQL instance, because `to_tsquery`, `word_similarity`
+and the `rm_normalize()` function are exactly what needs proving. It skips itself when no database
+is reachable.
 
 ### Layer 2 — Integration Tests (Pytest)
 
@@ -616,17 +668,17 @@ API endpoints against a real PostgreSQL instance (never SQLite).
 cd backend && uv run pytest
 ```
 
-Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embedding_service.py`, `tests/test_ocr_service.py`.
+Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connection check). Key files: `tests/test_embedding_service.py`, `tests/test_ocr_service.py`, `tests/test_suggest_routes.py` (suggestion prompt, quality gate and retry path).
 
 ### Layer 3 — E2E Tests (Playwright)
 
-Full user journeys across all 18 phases, plus a device suite for the mobile experience.
+Full user journeys across all 20 phases, plus a device suite for the mobile experience.
 
 ```bash
 cd frontend
 npx playwright install                        # First run: downloads Chromium + WebKit
 npx playwright test                           # Everything, all four projects
-npx playwright test --project=chromium        # Only the 19 phase specs (desktop)
+npx playwright test --project=chromium        # Only the 20 phase specs (desktop)
 npx playwright test --project=mobile-safari   # Only the mobile suite on iPhone 14
 npx playwright test tests/phase-8.spec.ts     # Single phase
 npx playwright test --ui                      # Interactive mode
@@ -639,7 +691,7 @@ npx playwright show-report                    # HTML report
 
 | Project | Device | Runs |
 | ------- | ------ | ---- |
-| `chromium` | Desktop Chrome | `tests/phase-*.spec.ts` — the 19 phase specs, unchanged |
+| `chromium` | Desktop Chrome | `tests/phase-*.spec.ts` — the 20 phase specs |
 | `mobile-safari` | iPhone 14 (WebKit) | `tests/mobile-*.spec.ts` |
 | `mobile-chrome` | Pixel 7 (Chromium) | `tests/mobile-*.spec.ts` |
 | `tablet` | iPad gen 7 (WebKit) | `tests/mobile-*.spec.ts` |
@@ -655,6 +707,7 @@ registration, caching and the offline fallback are covered by `phase-17` in the 
 | File | Covers |
 | ---- | ------ |
 | `tests/phase-{1..18}.spec.ts` | One implementation phase each — all 18 implemented and passing |
+| `tests/phase-20.spec.ts` | Dashboard home button on phones, prefix/ingredient search, equal-width action tiles, suggestion cards with reasoning and ingredient chips |
 | `tests/mobile-navigation.spec.ts` | Every area reachable by tapping (tab bar → *Mehr*, sidebar on tablet); per-page overflow, tap-target and font-size audit |
 | `tests/mobile-erfassen.spec.ts` | `[+]` sheet → all three capture routes; two photos → **one** OCR call with two `imageIds` |
 | `tests/mobile-import.spec.ts` | Share target (`?url=`, `?text=`), manifest wiring, address surviving the login redirect |
@@ -793,6 +846,31 @@ In local development, the backend falls back to local filesystem (`uploads/`) wh
 | `DEBUG` | `false` |
 
 > **Note:** The `DATABASE_URL` format differs between frontend (`postgresql://`) and backend (`postgresql+asyncpg://`). Both use the Supabase **connection pooler** (port 6543), which requires `statement_cache_size=0` for asyncpg (already configured in `database.py`).
+
+### Database Migrations in Production
+
+> **Do not run `drizzle-kit migrate` against the Supabase database.** Production has no
+> `drizzle.__drizzle_migrations` table — the schema was created from `db/init.sql`, and the
+> instance is shared with another project. `drizzle-kit migrate` would start at `0000` and try to
+> create tables that already exist. The `drizzle/` folder is the migration path for **local**
+> development only.
+
+Apply new DDL to production by running the statements of the relevant migration file directly —
+in the Supabase Dashboard → SQL Editor, or with `psql` against the direct (non-pooler) connection
+string. Every migration in this repo is written to be idempotent (`IF NOT EXISTS`,
+`CREATE OR REPLACE`), so re-running one is safe.
+
+**`0004_smart_search.sql` is required for search to work at all.** Without `pg_trgm`, the
+`rm_normalize()` function and the two trigram indexes, every query with a search term fails on the
+`word_similarity()` call. Paste `frontend/drizzle/0004_smart_search.sql` into the SQL editor, then
+verify:
+
+```sql
+SELECT extname FROM pg_extension WHERE extname = 'pg_trgm';       -- 1 Zeile
+SELECT proname  FROM pg_proc     WHERE proname = 'rm_normalize';  -- 1 Zeile
+SELECT indexname FROM pg_indexes
+ WHERE indexname IN ('idx_recipes_title_norm_trgm', 'idx_ingredients_name_norm_trgm');
+```
 
 ### Deploying Changes
 

@@ -23,6 +23,12 @@ export interface NavGroup {
 
 /* ─── Icons ─── */
 
+export const ChefHatIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5A5.25 5.25 0 002.25 10.25v.75c0 .69.56 1.25 1.25 1.25H4.5M12 6.253C13.168 5.477 14.754 5 16.5 5a5.25 5.25 0 015.25 5.25v.75c0 .69-.56 1.25-1.25 1.25H19.5" />
+  </svg>
+);
+
 export const HomeIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />

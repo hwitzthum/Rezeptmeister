@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, ConfirmDialog, DifficultyBadge } from "@/components/ui";
+import { Button, ConfirmDialog, DifficultyBadge, LinkButton } from "@/components/ui";
 import { formatAmount } from "@/lib/units";
 import { normaliseImageSrc } from "@/lib/images";
 import toast from "react-hot-toast";
@@ -193,15 +193,14 @@ export default function RecipeDetailClient({
               <HeartIcon filled={isFavorite} className="w-4 h-4" />
             </button>
 
-            <Link
+            <LinkButton
               href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}
               data-testid="cooking-mode-button"
-              className="inline-flex"
+              variant="gold"
+              size="sm"
             >
-              <Button variant="gold" size="sm">
-                Kochmodus
-              </Button>
-            </Link>
+              Kochmodus
+            </LinkButton>
 
             {/* Secondary — desktop only */}
             <div className="hidden lg:flex items-center gap-2">
@@ -221,14 +220,13 @@ export default function RecipeDetailClient({
                 Drucken
               </Button>
 
-              <Link
+              <LinkButton
                 href={`/rezepte/${recipe.id}/bearbeiten`}
-                className="inline-flex"
+                variant="outline"
+                size="sm"
               >
-                <Button variant="outline" size="sm">
-                  Bearbeiten
-                </Button>
-              </Link>
+                Bearbeiten
+              </LinkButton>
 
               <Button
                 variant="danger"

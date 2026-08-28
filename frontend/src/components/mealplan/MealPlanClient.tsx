@@ -25,6 +25,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui";
 import MealSlot from "./MealSlot";
 import RecipePickerDialog from "./RecipePickerDialog";
+import HomeLink from "@/components/layout/HomeLink";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,11 +344,12 @@ export default function MealPlanClient({
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <h1
-            className="text-lg font-semibold text-[var(--text-primary)]"
-          >
-            Wochenplan
-          </h1>
+          <div className="flex items-center gap-1">
+            <HomeLink />
+            <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+              Wochenplan
+            </h1>
+          </div>
         </div>
       </header>
 

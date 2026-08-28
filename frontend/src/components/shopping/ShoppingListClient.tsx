@@ -8,7 +8,7 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import { Button } from "@/components/ui";
+import { ActionBar, Button } from "@/components/ui";
 import { SWISS_UNITS } from "@/lib/units";
 import { getAisleCategory } from "@/lib/shopping/aisle-categories";
 import {
@@ -33,6 +33,7 @@ import {
   type FlushResult,
 } from "@/lib/offline/shopping-sync";
 import toast from "react-hot-toast";
+import HomeLink from "@/components/layout/HomeLink";
 
 // -- Types -----------------------------------------------------------------
 
@@ -346,6 +347,7 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
       <header className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <HomeLink />
             <h1 className="text-xl font-bold text-[var(--text-primary)]">
               Einkaufsliste
             </h1>
@@ -420,7 +422,7 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
 
         {/* Action bar */}
         {items.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <ActionBar mobileColumns={3}>
             <Button variant="outline" size="sm" onClick={handleCheckAll}>
               Alle abhaken
             </Button>
@@ -435,7 +437,7 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
             >
               Erledigte löschen
             </Button>
-          </div>
+          </ActionBar>
         )}
 
         {/* Empty state */}

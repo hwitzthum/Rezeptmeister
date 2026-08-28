@@ -5,6 +5,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- Trigramm-Aehnlichkeit fuer die tippfehlertolerante Suche (Phase 20)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Enum-Typen
 CREATE TYPE user_role AS ENUM ('admin', 'user');
 CREATE TYPE user_status AS ENUM ('pending', 'approved', 'rejected');
@@ -219,6 +222,17 @@ ALTER TABLE recipes ADD COLUMN IF NOT EXISTS fts_vector TSVECTOR
     ) STORED;
 
 CREATE INDEX idx_recipes_fts ON recipes USING GIN (fts_vector);
+
+-- Suche: Umlaut-Normalisierung + Trigramm-Indizes (Phase 20)
+-- IMMUTABLE, damit die GIN-Indizes auf dem Funktionsergebnis liegen koennen.
+CREATE OR REPLACE FUNCTION rm_normalize(txt text) RETURNS text
+LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS $$
+  SELECT replace(replace(replace(replace(lower(txt), 'ä', 'ae'), 'ö', 'oe'), 'ü', 'ue'), 'ß', 'ss')
+$$;
+
+CREATE INDEX idx_recipes_title_norm_trgm ON recipes USING GIN (rm_normalize(title) gin_trgm_ops);
+CREATE INDEX idx_ingredients_name_norm_trgm ON ingredients USING GIN (rm_normalize(name) gin_trgm_ops);
+CREATE INDEX idx_ingredients_recipe_id ON ingredients (recipe_id);
 
 -- -------------------------------------------------------
 -- updated_at Trigger

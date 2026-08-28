@@ -452,12 +452,58 @@
 
 ---
 
+## Phase 20 – UX-Verbesserungen: Home mobil, smarte Suche, Aktions-Design, KI-Qualität
+
+**Quelle:** Vier im Betrieb aufgefallene Schwächen, im Interview mit dem Nutzer präzisiert.
+**Branch:** `feature/ux-verbesserungen`.
+
+### 20.1 Rückweg aufs Dashboard (mobil)
+- [x] **20.1.1** `components/layout/HomeLink.tsx`: runder Marken-Knopf, 44 px Tippziel, `md:hidden`, auf `/` unsichtbar
+- [x] **20.1.2** `ChefHatIcon` aus `Sidebar.tsx` nach `nav-items.tsx` gezogen — eine Quelle für Sidebar und HomeLink
+- [x] **20.1.3** `PageHeader` mit Prop `showHome` (Vorgabe `true`) — deckt Rezepte, Bilder, Vorschläge, Werkzeuge, Einstellungen, Mehr, Importieren, Scannen ab
+- [x] **20.1.4** Eigene Seitenköpfe nachgezogen: Einkaufsliste, Wochenplan, Sammlungen, Suche
+- [x] **20.1.5** Detailseiten mit Zurück-Pfeil bewusst ausgenommen (Rezeptdetail, Kochmodus, Bearbeiten)
+
+### 20.2 Smarte Suche (Präfix, Tippfehler, Zutaten)
+- [x] **20.2.1** Migration `0004_smart_search.sql`: `pg_trgm`, `rm_normalize()` (IMMUTABLE), GIN-Trigramm-Indizes auf normalisiertem Titel und Zutatennamen; `db/init.sql` gleichgezogen
+- [x] **20.2.2** `lib/recipes/search-query.ts`: `buildPrefixTsQuery`, `normalizeForSearch`, `escapeLike`, an echten Daten kalibrierte Schwellen
+- [x] **20.2.3** `lib/recipes/list.ts`: Suche über vier Wege (Präfix-Volltext, Teilzeichenkette, `word_similarity`, Zutatentreffer), gewichtete Relevanzsortierung
+- [x] **20.2.4** Sortierung schaltet bei beginnender Suche selbst auf Relevanz (Suche und Rezeptliste), Debounce 400 → 250 ms
+- [x] **20.2.5** Unit-Tests `search-query.test.ts` + Integrationstest gegen echte PostgreSQL (`search.integration.test.ts`)
+
+### 20.3 Aktions-Design app-weit vereinheitlicht
+- [x] **20.3.1** `buttonClasses()` aus `Button.tsx` ausgelagert
+- [x] **20.3.2** `LinkButton` — behebt `<button>` in `<a>` (Dashboard, Rezeptliste, Rezeptdetail)
+- [x] **20.3.3** `ActionGrid` / `ActionTile` — gleichbreite Kacheln
+- [x] **20.3.4** `ActionBar` — Aktionsreihen brechen auf dem Handy nicht mehr ungleichmässig um
+- [x] **20.3.5** Angewendet: Dashboard-Schnellaktionen, Rezeptliste, Einkaufsliste, Sammlungsdetail, Rezeptdetail, Bildergalerie-Filter
+
+### 20.4 KI-Vorschläge: Geschmacksprofil, Saison, Substanz
+- [x] **20.4.1** `lib/ai/taste-profile.ts`: Sammlung, Favoriten, Bewertungen, Küchen, Vorratskammer, Tags — token-begrenzt, auf der Next.js-Seite gebaut
+- [x] **20.4.2** `lib/ai/saison.ts`: Schweizer Saisonkalender je Monat (Europe/Zurich), deterministisch statt geraten
+- [x] **20.4.3** `services/suggestion_service.py`: fordernder Prompt mit Sammlung, Saison, Ausschlussliste, Klischee-Verbot, Vielfaltsregeln
+- [x] **20.4.4** Antwortschema erweitert: `why_it_fits`, `highlight`, `key_ingredients`, `missing_ingredients`, `cuisine`, `category`
+- [x] **20.4.5** Qualitätsschranke: Prüfung → genau ein Nachschlag mit benannten Beanstandungen → notfalls filtern statt Ausschuss
+- [x] **20.4.6** Deterministische Nachbearbeitung (`normalize_suggestions`) für Schwierigkeit und Zeit
+- [x] **20.4.7** `max_output_tokens` für das grössere Schema; Proxy-Zeitgrenze 30 s → 90 s wegen des möglichen zweiten Durchgangs
+- [x] **20.4.8** Anzeige: Vorschlagskarte mit Begründung, Besonderheit, Zutaten-Chips (habe/fehlt); Tagesvorschlag zeigt Begründung
+- [x] **20.4.9** `exclude_titles`: erneutes Vorschlagen liefert Neues; Feldname `time_minutes` → `time_estimate_minutes` im Tagesvorschlag berichtigt
+- [x] **20.4.10** `tests/test_suggest_routes.py`: 25 Tests zu Prompt, Schranke, Nachschlag, Route
+
+### 20.5 Tests
+- [x] **20.5.1** Unit: `search-query.test.ts`, `saison.test.ts` (Frontend, vitest)
+- [x] **20.5.2** Integration: `search.integration.test.ts` gegen echte PostgreSQL, überspringt sich ohne DB
+- [x] **20.5.3** E2E: `tests/phase-20.spec.ts` (16 Tests) + Ergänzung in `tests/mobile-navigation.spec.ts`
+- [x] **20.5.4** Regressionslauf: 229 Chromium-E2E, 48 Mobile/Tablet, 83 Pytest, 155 Vitest, `npm run build`
+
+---
+
 ## Querschnittsthemen (begleitend durch alle Phasen)
 
 - [x] Alle UI-Texte durchgehend Deutsch (Schweizer Schreibweisen: "ss" statt "ß")
 - [x] Schweizer Masseinheiten überall konsequent einsetzen
 - [x] KI-Funktionen immer mit "Bitte API-Schlüssel in Einstellungen hinterlegen"-Hinweis sichern
-- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 19 Testdateien (phase-1 bis phase-18, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
+- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 20 Testdateien (phase-1 bis phase-20, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
 - [x] Frontend-Design-Skill für alle neuen Seiten/Komponenten aufrufen
 - [x] BYOK: API-Schlüssel nie ins Frontend leaken
 
