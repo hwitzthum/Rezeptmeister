@@ -31,7 +31,7 @@ export default function FavoritesWidget({ recipes }: Props) {
         </h2>
         <Link
           href="/rezepte?favoriten=true"
-          className="text-sm text-terra-500 hover:text-terra-600 font-medium"
+          className="text-sm text-terra-500 hover:text-terra-600 font-medium pointer-coarse:min-tap inline-flex items-center"
         >
           Alle anzeigen
         </Link>

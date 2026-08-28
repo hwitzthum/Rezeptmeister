@@ -66,7 +66,7 @@ function FehlerContent() {
 
         <Link
           href="/auth/anmelden"
-          className="inline-flex items-center gap-2 rounded-lg bg-terra-500 px-5 py-2.5 text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600"
+          className="inline-flex items-center gap-2 rounded-lg bg-terra-500 px-5 py-2.5 pointer-coarse:min-tap text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600"
         >
           Zur Anmeldung
         </Link>

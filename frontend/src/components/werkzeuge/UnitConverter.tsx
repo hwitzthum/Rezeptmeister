@@ -125,7 +125,7 @@ export default function UnitConverter() {
               data-testid={`converter-category-${cat}`}
               onClick={() => handleCategoryChange(cat)}
               className={[
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium",
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium pointer-coarse:min-tap",
                 "transition-all duration-200",
                 isActive
                   ? "bg-terra-500 text-white shadow-warm-sm"

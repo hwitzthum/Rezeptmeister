@@ -90,14 +90,14 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 py-2 px-3 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] group"
+      className="flex flex-wrap sm:flex-nowrap items-center gap-2 py-2 px-3 rounded-xl border border-[var(--border-base)] bg-[var(--bg-surface)] group"
     >
       {/* Drag-Handle */}
       <button
         type="button"
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing touch-none shrink-0 p-1 rounded hover:bg-[var(--bg-subtle)] text-warm-400"
+        className="cursor-grab active:cursor-grabbing touch-none shrink-0 p-1 rounded hover:bg-[var(--bg-subtle)] text-warm-400 pointer-coarse:min-tap flex items-center justify-center"
         aria-label="Zeile verschieben"
       >
         <GripIcon />
@@ -112,7 +112,7 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
         placeholder="Menge"
         aria-label="Menge"
         className={[
-          "w-20 shrink-0 px-2.5 py-1.5 rounded-lg text-sm text-center",
+          "w-20 shrink-0 px-2.5 py-1.5 rounded-lg text-sm text-center pointer-coarse:min-tap",
           "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
           "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
           "focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400",
@@ -125,7 +125,7 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
         onChange={(e) => onUpdate({ ...item, unit: e.target.value })}
         aria-label="Einheit"
         className={[
-          "w-24 shrink-0 px-2 py-1.5 rounded-lg text-sm",
+          "w-24 shrink-0 px-2 py-1.5 rounded-lg text-sm pointer-coarse:min-tap",
           "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
           "text-[var(--text-primary)]",
           "focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400",
@@ -139,6 +139,11 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
         ))}
       </select>
 
+      {/* Zeilenumbruch nur auf schmalen Viewports: Menge und Einheit stehen
+          oben, Zutat/Opt./Entfernen darunter. Ab sm greift flex-nowrap und der
+          Platzhalter verschwindet, das Desktop-Layout bleibt unveraendert. */}
+      <div className="basis-full sm:hidden" aria-hidden="true" />
+
       {/* Name */}
       <input
         type="text"
@@ -148,7 +153,7 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
         aria-label="Zutatname"
         required
         className={[
-          "flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-sm",
+          "flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-sm pointer-coarse:min-tap",
           "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
           "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
           "focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400",
@@ -156,12 +161,12 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
       />
 
       {/* Optional-Checkbox */}
-      <label className="flex items-center gap-1 shrink-0 text-xs text-[var(--text-muted)] cursor-pointer">
+      <label className="flex items-center gap-1 shrink-0 text-xs text-[var(--text-muted)] cursor-pointer pointer-coarse:min-tap justify-center">
         <input
           type="checkbox"
           checked={item.isOptional}
           onChange={(e) => onUpdate({ ...item, isOptional: e.target.checked })}
-          className="rounded border-[var(--border-base)] text-terra-500 focus:ring-terra-400"
+          className="rounded border-[var(--border-base)] text-terra-500 focus:ring-terra-400 pointer-coarse:w-5 pointer-coarse:h-5"
         />
         Opt.
       </label>
@@ -175,7 +180,10 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
           "shrink-0 w-7 h-7 flex items-center justify-center rounded-lg",
           "text-warm-400 hover:text-red-500 hover:bg-red-50",
           "transition-colors duration-150",
-          "opacity-0 group-hover:opacity-100 focus:opacity-100",
+          // Auf Touch gibt es kein Hover — ohne diese Zeile bleibt der Knopf
+          // dort dauerhaft unsichtbar und die Zutat unloeschbar.
+          "opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100",
+          "pointer-coarse:min-tap",
         ].join(" ")}
       >
         <svg
@@ -249,7 +257,7 @@ export default function Step2Zutaten({ data, onChange }: Props) {
 
       {/* Spaltenheader */}
       {data.ingredients.length > 0 && (
-        <div className="flex items-center gap-2 px-3 text-xs text-[var(--text-muted)] font-medium">
+        <div className="hidden sm:flex items-center gap-2 px-3 text-xs text-[var(--text-muted)] font-medium">
           <span className="w-5 shrink-0" />
           <span className="w-20 shrink-0 text-center">Menge</span>
           <span className="w-24 shrink-0">Einheit</span>
@@ -327,7 +335,7 @@ export default function Step2Zutaten({ data, onChange }: Props) {
         <button
           type="button"
           onClick={() => setShowGroupName(true)}
-          className="text-xs text-terra-500 hover:text-terra-700 underline"
+          className="text-xs text-terra-500 hover:text-terra-700 underline pointer-coarse:min-tap inline-flex items-center"
         >
           Zutaten in Gruppen aufteilen?
         </button>

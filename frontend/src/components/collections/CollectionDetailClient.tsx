@@ -383,7 +383,7 @@ export default function CollectionDetailClient({
       {/* Back link */}
       <Link
         href="/sammlungen"
-        className="inline-flex items-center gap-1 text-sm text-[var(--text-muted)] hover:text-terra-500 transition-colors mb-4"
+        className="inline-flex items-center gap-1 text-sm text-[var(--text-muted)] hover:text-terra-500 transition-colors mb-4 pointer-coarse:min-tap"
       >
         <svg
           className="w-4 h-4"
@@ -402,7 +402,7 @@ export default function CollectionDetailClient({
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div className="min-w-0">
           <h1
             data-testid="collection-detail-name"
@@ -420,7 +420,7 @@ export default function CollectionDetailClient({
             {recipesList.length === 1 ? "Rezept" : "Rezepte"}
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 sm:shrink-0">
           <Button
             data-testid="collection-pdf-export"
             variant="outline"
@@ -489,6 +489,7 @@ export default function CollectionDetailClient({
 
       {/* Edit Dialog */}
       <Modal
+        variant="sheet"
         open={showEditDialog}
         onClose={() => setShowEditDialog(false)}
         title="Sammlung bearbeiten"

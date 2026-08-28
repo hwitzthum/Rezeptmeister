@@ -129,7 +129,7 @@ export default function OfflinePage() {
           <div className="mt-8 text-center">
             <Link
               href="/"
-              className="text-terra-500 hover:text-terra-600 text-sm font-medium"
+              className="text-terra-500 hover:text-terra-600 text-sm font-medium pointer-coarse:min-tap inline-flex items-center"
             >
               ← Zurück zur Startseite
             </Link>

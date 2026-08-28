@@ -243,15 +243,16 @@ export function RecipeCard({
           </span>
         )}
 
-        {/* Favorite button top-right */}
+        {/* Favorite button top-right.
+            Die Schaltflaeche selbst ist 44x44 px gross (Tippziel), der sichtbare
+            Kreis bleibt bei 32 px — sonst wuerde er die Kachel erschlagen. Die
+            Position ist entsprechend um 6 px nach aussen gerueckt, damit der
+            Kreis optisch dort sitzt wie vorher. */}
         <button
           className={[
-            "absolute top-3 right-3",
-            "w-8 h-8 rounded-xl flex items-center justify-center",
-            "bg-white/90 backdrop-blur-sm shadow-warm-xs dark:bg-warm-900/90",
-            "transition-all duration-150",
-            "hover:bg-white hover:scale-110 dark:hover:bg-warm-800",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500",
+            "absolute top-1.5 right-1.5 group/fav",
+            "w-11 h-11 flex items-center justify-center",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:rounded-xl",
           ].join(" ")}
           onClick={handleFavoriteClick}
           aria-label={
@@ -259,10 +260,19 @@ export function RecipeCard({
           }
           aria-pressed={favorite}
         >
-          <HeartIcon
-            filled={favorite}
-            className={`w-4 h-4 ${favorite ? "text-terra-500" : "text-warm-400"}`}
-          />
+          <span
+            className={[
+              "w-8 h-8 rounded-xl flex items-center justify-center",
+              "bg-white/90 backdrop-blur-sm shadow-warm-xs dark:bg-warm-900/90",
+              "transition-all duration-150",
+              "group-hover/fav:bg-white group-hover/fav:scale-110 dark:group-hover/fav:bg-warm-800",
+            ].join(" ")}
+          >
+            <HeartIcon
+              filled={favorite}
+              className={`w-4 h-4 ${favorite ? "text-terra-500" : "text-warm-400"}`}
+            />
+          </span>
         </button>
 
         {/* Difficulty badge bottom-right (on image) */}

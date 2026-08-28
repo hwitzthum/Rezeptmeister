@@ -164,7 +164,7 @@ export default function ApiKeyForm() {
         <button
           type="submit"
           disabled={saving || !apiKey}
-          className="rounded-lg bg-terra-500 px-4 py-2.5 text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600 active:bg-terra-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-terra-500 px-4 py-2.5 pointer-coarse:min-tap text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600 active:bg-terra-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Wird gespeichert…" : hasKey ? "Schlüssel ersetzen" : "Schlüssel speichern"}
         </button>

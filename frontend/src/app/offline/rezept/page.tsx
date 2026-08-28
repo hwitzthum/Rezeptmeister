@@ -55,7 +55,7 @@ function OfflineRecipeContent() {
           </p>
           <Link
             href="/offline"
-            className="text-terra-500 hover:text-terra-600 font-medium"
+            className="text-terra-500 hover:text-terra-600 font-medium pointer-coarse:min-tap inline-flex items-center"
           >
             ← Gespeicherte Rezepte anzeigen
           </Link>

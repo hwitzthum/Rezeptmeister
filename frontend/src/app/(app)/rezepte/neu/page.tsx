@@ -14,7 +14,7 @@ export default function NeuesRezeptPage() {
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link
             href="/rezepte"
-            className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors"
+            className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors pointer-coarse:min-tap"
           >
             <svg
               className="w-4 h-4"

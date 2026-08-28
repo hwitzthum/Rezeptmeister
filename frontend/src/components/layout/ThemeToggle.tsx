@@ -63,7 +63,7 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
             aria-checked={active}
             aria-label={label}
             onClick={() => setTheme(value)}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 pointer-coarse:min-tap text-sm font-medium transition-all ${
               active
                 ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"

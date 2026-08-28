@@ -184,7 +184,7 @@ function NoteCard({
           <select
             value={editType}
             onChange={(e) => setEditType(e.target.value as NoteType)}
-            className="px-2.5 py-1.5 rounded-lg text-sm bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
+            className="px-2.5 py-1.5 rounded-lg text-sm pointer-coarse:min-tap bg-[var(--bg-subtle)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
           >
             {(Object.entries(TYPE_LABELS) as [NoteType, string][]).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
@@ -402,7 +402,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={[
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 pointer-coarse:min-tap",
                 activeTab === tab.key
                   ? "bg-terra-600 text-white shadow-sm"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
@@ -481,7 +481,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
               setNewType(e.target.value as NoteType);
               if (e.target.value !== "bewertung") setNewRating(0);
             }}
-            className="flex-1 px-2.5 py-1.5 rounded-lg text-sm bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
+            className="flex-1 px-2.5 py-1.5 rounded-lg text-sm pointer-coarse:min-tap bg-[var(--bg-surface)] border border-[var(--border-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400"
             aria-label="Notiztyp"
           >
             {(Object.entries(TYPE_LABELS) as [NoteType, string][]).map(([k, v]) => (
@@ -519,7 +519,7 @@ export default function NotesPanel({ recipeId }: { recipeId: string }) {
           type="submit"
           disabled={submitting || !newContent.trim()}
           className={[
-            "w-full py-2 rounded-xl text-sm font-medium transition-all",
+            "w-full py-2 rounded-xl text-sm font-medium transition-all pointer-coarse:min-tap",
             "bg-terra-600 text-white hover:bg-terra-700",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "shadow-sm hover:shadow-md",

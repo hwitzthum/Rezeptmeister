@@ -49,7 +49,7 @@ export default function OfflineToggleButton({ recipe, userId }: Props) {
       aria-label={cached ? "Offline-Speicherung entfernen" : "Offline speichern"}
       title={cached ? "Offline gespeichert" : "Offline speichern"}
       className={[
-        "w-9 h-9 rounded-xl flex items-center justify-center",
+        "w-9 h-9 pointer-coarse:min-tap rounded-xl flex items-center justify-center",
         "border transition-all duration-150",
         loading && "opacity-50 cursor-wait",
         cached

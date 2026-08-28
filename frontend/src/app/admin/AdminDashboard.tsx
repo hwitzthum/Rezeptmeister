@@ -28,9 +28,12 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 };
 
 const STATUS_STYLES: Record<UserStatus, string> = {
-  pending: "bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/20",
-  approved: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800",
-  rejected: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800",
+  pending:
+    "bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/20",
+  approved:
+    "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800",
+  rejected:
+    "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800",
 };
 
 function formatDate(iso: string) {
@@ -117,7 +120,10 @@ export default function AdminDashboard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   // Confirm dialog state
   const [confirm, setConfirm] = useState<{
@@ -234,7 +240,10 @@ export default function AdminDashboard({
       message: `Möchten Sie die Rolle von «${user.name ?? user.email}» auf «${newRole === "admin" ? "Administrator" : "Benutzer"}» ändern?`,
       confirmLabel: "Ja, ändern",
       danger: false,
-      onConfirm: () => { updateUser(user.id, { role: newRole }); setConfirm(null); },
+      onConfirm: () => {
+        updateUser(user.id, { role: newRole });
+        setConfirm(null);
+      },
     });
   }
 
@@ -348,15 +357,114 @@ export default function AdminDashboard({
     }
   }
 
-  const pendingCount = data?.users?.filter((u) => u.status === "pending").length ?? 0;
+  const pendingCount =
+    data?.users?.filter((u) => u.status === "pending").length ?? 0;
+
+  /** Aktionen je Benutzer — geteilt von Tabelle (ab md) und Kartenliste (darunter). */
+  function UserActions({ user }: { user: UserRow }) {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        {/* Approve */}
+        {user.status !== "approved" && (
+          <button
+            onClick={() => updateUser(user.id, { status: "approved" })}
+            title="Freigeben"
+            className="rounded-md p-1.5 pointer-coarse:min-tap inline-flex items-center justify-center text-green-600 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </button>
+        )}
+        {/* Reject */}
+        {user.status !== "rejected" && (
+          <button
+            onClick={() => updateUser(user.id, { status: "rejected" })}
+            title="Ablehnen"
+            className="rounded-md p-1.5 pointer-coarse:min-tap inline-flex items-center justify-center text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+        {/* Toggle role (not self) */}
+        {user.id !== currentUserId && (
+          <button
+            onClick={() => askRoleChange(user)}
+            title={
+              user.role === "admin"
+                ? "Zum Benutzer degradieren"
+                : "Zum Admin befördern"
+            }
+            className="rounded-md p-1.5 pointer-coarse:min-tap inline-flex items-center justify-center text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          </button>
+        )}
+        {/* Delete (not self) */}
+        {user.id !== currentUserId && (
+          <button
+            onClick={() => askDelete(user)}
+            title="Löschen"
+            className="rounded-md p-1.5 pointer-coarse:min-tap inline-flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* KI-Verwaltung */}
       <div className="mb-10">
-        <h2
-          className="text-xl font-bold text-[var(--text-primary)] mb-4"
-        >
+        <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">
           KI-Verwaltung
         </h2>
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-warm p-6">
@@ -367,14 +475,14 @@ export default function AdminDashboard({
               </h3>
               <p className="text-xs text-warm-500 dark:text-warm-400 mt-1">
                 Berechnet die Embeddings aller Rezepte neu (pro Benutzer mit
-                eigenem API-Schlüssel). Nützlich nach einem Modell-Upgrade
-                oder wenn die Suche nicht korrekt funktioniert.
+                eigenem API-Schlüssel). Nützlich nach einem Modell-Upgrade oder
+                wenn die Suche nicht korrekt funktioniert.
               </p>
             </div>
             <button
               onClick={handleReEmbed}
               disabled={reEmbedLoading}
-              className="inline-flex items-center gap-2 rounded-lg bg-terra-500 px-4 py-2 text-sm font-semibold text-white shadow-warm-sm hover:bg-terra-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-terra-500 px-4 py-2 pointer-coarse:min-tap text-sm font-semibold text-white shadow-warm-sm hover:bg-terra-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {reEmbedLoading ? (
                 <>
@@ -430,7 +538,8 @@ export default function AdminDashboard({
                     : `Benutzer: ${reEmbedProgress.completedJobs}/${reEmbedProgress.totalUsers}`}
                 </span>
                 <span>
-                  {reEmbedProgress.completedRecipes}/{reEmbedProgress.totalRecipes} Rezepte
+                  {reEmbedProgress.completedRecipes}/
+                  {reEmbedProgress.totalRecipes} Rezepte
                   {reEmbedProgress.totalErrors > 0 && (
                     <span className="text-red-500 ml-1">
                       ({reEmbedProgress.totalErrors} Fehler)
@@ -468,9 +577,7 @@ export default function AdminDashboard({
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1
-            className="text-3xl font-bold text-[var(--text-primary)]"
-          >
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">
             Benutzerverwaltung
           </h1>
           <p className="mt-1 text-warm-500 dark:text-warm-400 text-sm">
@@ -479,8 +586,16 @@ export default function AdminDashboard({
         </div>
         {pendingCount > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 px-3 py-1 text-sm font-medium text-gold-700">
-            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            <svg
+              className="h-3.5 w-3.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              />
             </svg>
             {pendingCount} ausstehend
           </span>
@@ -497,14 +612,19 @@ export default function AdminDashboard({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
           <input
             type="search"
             placeholder="Name oder E-Mail suchen…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-base)] bg-[var(--bg-surface)] pl-10 pr-4 py-2 text-sm text-[var(--text-primary)] focus:border-terra-500 focus:outline-none focus:ring-2 focus:ring-terra-500"
+            className="w-full rounded-lg border border-[var(--border-base)] bg-[var(--bg-surface)] pl-10 pr-4 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] focus:border-terra-500 focus:outline-none focus:ring-2 focus:ring-terra-500"
           />
         </div>
 
@@ -514,7 +634,7 @@ export default function AdminDashboard({
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-2 text-xs font-medium transition-colors ${
+              className={`px-3 py-2 pointer-coarse:min-tap text-xs font-medium transition-colors ${
                 statusFilter === s
                   ? "bg-terra-500 text-white"
                   : "text-warm-600 dark:text-warm-400 hover:bg-[var(--bg-subtle)]"
@@ -531,107 +651,123 @@ export default function AdminDashboard({
         {error ? (
           <div className="p-8 text-center text-red-500 text-sm">{error}</div>
         ) : loading && !data ? (
-          <div className="p-8 text-center text-warm-400 text-sm">Wird geladen…</div>
-        ) : data?.users.length === 0 ? (
-          <div className="p-8 text-center text-warm-400 text-sm">Keine Benutzer gefunden.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Benutzer</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Rolle</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Registriert</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {data?.users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={`hover:bg-[var(--bg-subtle)] transition-colors ${
-                      actionLoading === user.id ? "opacity-50 pointer-events-none" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-[var(--text-primary)]">
-                        {user.name ?? <span className="italic text-warm-400 dark:text-warm-500">Kein Name</span>}
-                      </div>
-                      <div className="text-warm-500 dark:text-warm-400 text-xs mt-0.5">{user.email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-warm-600 dark:text-warm-400">
-                        {user.role === "admin" ? "Administrator" : "Benutzer"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[user.status]}`}
-                      >
-                        {STATUS_LABELS[user.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-warm-500 dark:text-warm-400 text-xs">
-                      {formatDate(user.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Approve */}
-                        {user.status !== "approved" && (
-                          <button
-                            onClick={() => updateUser(user.id, { status: "approved" })}
-                            title="Freigeben"
-                            className="rounded-md p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </button>
-                        )}
-                        {/* Reject */}
-                        {user.status !== "rejected" && (
-                          <button
-                            onClick={() => updateUser(user.id, { status: "rejected" })}
-                            title="Ablehnen"
-                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                        {/* Toggle role (not self) */}
-                        {user.id !== currentUserId && (
-                          <button
-                            onClick={() => askRoleChange(user)}
-                            title={user.role === "admin" ? "Zum Benutzer degradieren" : "Zum Admin befördern"}
-                            className="rounded-md p-1.5 text-warm-500 hover:bg-warm-100 dark:hover:bg-warm-800 transition-colors"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          </button>
-                        )}
-                        {/* Delete (not self) */}
-                        {user.id !== currentUserId && (
-                          <button
-                            onClick={() => askDelete(user)}
-                            title="Löschen"
-                            className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-8 text-center text-warm-400 text-sm">
+            Wird geladen…
           </div>
+        ) : data?.users.length === 0 ? (
+          <div className="p-8 text-center text-warm-400 text-sm">
+            Keine Benutzer gefunden.
+          </div>
+        ) : (
+          <>
+            {/* Unter md: Kartenliste. Eine waagrecht rollbare Tabelle zwingt auf
+              dem Handy zum Seitwaertsscrollen, um an die Aktionen zu kommen. */}
+            <ul
+              role="list"
+              className="md:hidden divide-y divide-[var(--border-subtle)]"
+            >
+              {data?.users.map((user) => (
+                <li
+                  key={user.id}
+                  className={`p-4 ${actionLoading === user.id ? "opacity-50 pointer-events-none" : ""}`}
+                >
+                  <div className="font-medium text-[var(--text-primary)]">
+                    {user.name ?? (
+                      <span className="italic text-warm-400 dark:text-warm-500">
+                        Kein Name
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-warm-500 dark:text-warm-400 text-xs mt-0.5 break-all">
+                    {user.email}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${STATUS_STYLES[user.status]}`}
+                    >
+                      {STATUS_LABELS[user.status]}
+                    </span>
+                    <span className="text-warm-600 dark:text-warm-400">
+                      {user.role === "admin" ? "Administrator" : "Benutzer"}
+                    </span>
+                    <span className="text-warm-500 dark:text-warm-400">
+                      {formatDate(user.createdAt)}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <UserActions user={user} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">
+                      Benutzer
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">
+                      Rolle
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">
+                      Registriert
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-warm-500 dark:text-warm-400 uppercase tracking-wider">
+                      Aktionen
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  {data?.users.map((user) => (
+                    <tr
+                      key={user.id}
+                      className={`hover:bg-[var(--bg-subtle)] transition-colors ${
+                        actionLoading === user.id
+                          ? "opacity-50 pointer-events-none"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-[var(--text-primary)]">
+                          {user.name ?? (
+                            <span className="italic text-warm-400 dark:text-warm-500">
+                              Kein Name
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-warm-500 dark:text-warm-400 text-xs mt-0.5">
+                          {user.email}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-warm-600 dark:text-warm-400">
+                          {user.role === "admin" ? "Administrator" : "Benutzer"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[user.status]}`}
+                        >
+                          {STATUS_LABELS[user.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-warm-500 dark:text-warm-400 text-xs">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <UserActions user={user} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Pagination */}
@@ -644,14 +780,14 @@ export default function AdminDashboard({
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-[var(--border-base)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-subtle)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="rounded-md border border-[var(--border-base)] px-3 py-1.5 pointer-coarse:min-tap text-xs font-medium hover:bg-[var(--bg-subtle)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Zurück
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(data.pages, p + 1))}
                 disabled={page >= data.pages}
-                className="rounded-md border border-[var(--border-base)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-subtle)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="rounded-md border border-[var(--border-base)] px-3 py-1.5 pointer-coarse:min-tap text-xs font-medium hover:bg-[var(--bg-subtle)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Weiter
               </button>
@@ -670,12 +806,32 @@ export default function AdminDashboard({
           }`}
         >
           {toast.type === "success" ? (
-            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           ) : (
-            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           )}
           {toast.message}

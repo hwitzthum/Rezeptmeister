@@ -118,7 +118,7 @@ export default function RezeptListeClient({
         title="Meine Rezepte"
         count={total}
         action={
-          <Link href="/rezepte/neu">
+          <Link href="/rezepte/neu" className="inline-flex">
             <Button variant="primary" size="sm" icon={<PlusIcon />}>
               Neues Rezept
             </Button>
@@ -139,7 +139,7 @@ export default function RezeptListeClient({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className={[
-                  "w-full pl-9 pr-3 py-2 rounded-xl text-sm",
+                  "w-full pl-9 pr-3 py-2 rounded-xl text-sm pointer-coarse:min-tap",
                   "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
                   "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                   "focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400",
@@ -183,7 +183,7 @@ export default function RezeptListeClient({
             <button
               onClick={() => setNurFavoriten((v) => !v)}
               className={[
-                "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors duration-150",
+                "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-colors duration-150 pointer-coarse:min-tap",
                 nurFavoriten
                   ? "bg-terra-50 dark:bg-terra-950/30 border-terra-300 text-terra-700"
                   : "border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]",
@@ -198,7 +198,7 @@ export default function RezeptListeClient({
               value={sortierung}
               onChange={(e) => setSortierung(e.target.value)}
               className={[
-                "px-3 py-2 rounded-xl text-sm",
+                "px-3 py-2 rounded-xl text-sm pointer-coarse:min-tap",
                 "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
                 "text-[var(--text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-terra-400",
@@ -303,7 +303,7 @@ function FilterSelect({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={[
-        "px-3 py-2 rounded-xl text-sm",
+        "px-3 py-2 rounded-xl text-sm pointer-coarse:min-tap",
         "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
         value
           ? "text-terra-700 border-terra-300 bg-terra-50 dark:bg-terra-950/30"

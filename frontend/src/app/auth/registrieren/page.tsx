@@ -185,7 +185,7 @@ export default function RegistrierenPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600 dark:hover:text-warm-300 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 pointer-coarse:min-tap flex items-center justify-center text-warm-400 hover:text-warm-600 dark:hover:text-warm-300 transition-colors"
                   aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
                 >
                   {showPassword ? (
@@ -229,7 +229,7 @@ export default function RegistrierenPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full rounded-lg bg-terra-500 px-4 py-2.5 text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600 active:bg-terra-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 w-full rounded-lg bg-terra-500 px-4 py-2.5 pointer-coarse:min-tap text-sm font-semibold text-white shadow-warm-sm transition-all hover:bg-terra-600 active:bg-terra-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -249,7 +249,7 @@ export default function RegistrierenPage() {
             Bereits ein Konto?{" "}
             <Link
               href="/auth/anmelden"
-              className="font-medium text-terra-500 hover:text-terra-600 hover:underline"
+              className="font-medium text-terra-500 hover:text-terra-600 hover:underline pointer-coarse:min-tap inline-flex items-center"
             >
               Anmelden
             </Link>

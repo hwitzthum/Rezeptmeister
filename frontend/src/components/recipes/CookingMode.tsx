@@ -62,7 +62,10 @@ function formatCountdown(seconds: number): string {
 
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 
-export default function CookingMode({ recipe, targetServings }: CookingModeProps) {
+export default function CookingMode({
+  recipe,
+  targetServings,
+}: CookingModeProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +78,19 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
   const [timers, setTimers] = useState<Map<string, ActiveTimer>>(new Map());
   const [timerFlash, setTimerFlash] = useState<string | null>(null);
 
-  const intervalRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  const intervalRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(
+    new Map(),
+  );
+  const activeDotRef = useRef<HTMLButtonElement>(null);
+
+  // Die Punkteleiste fasst auf dem Handy nur wenige 44-px-Ziele; ohne dieses
+  // Mitrollen waere der aktuelle Schritt ab Schritt 5 nie zu sehen.
+  useEffect(() => {
+    activeDotRef.current?.scrollIntoView({
+      block: "nearest",
+      inline: "center",
+    });
+  }, [currentStep]);
 
   // ── Wake Lock ────────────────────────────────────────────────────────────
 
@@ -127,7 +142,11 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
     const totalSeconds = minutes * 60;
     setTimers((prev) => {
       const next = new Map(prev);
-      next.set(key, { remaining: totalSeconds, total: totalSeconds, isRunning: true });
+      next.set(key, {
+        remaining: totalSeconds,
+        total: totalSeconds,
+        isRunning: true,
+      });
       return next;
     });
 
@@ -233,15 +252,27 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
             "font-semibold text-sm transition-all duration-200",
             activeTimer?.isRunning
               ? "bg-terra-500 text-white animate-pulse"
-              : activeTimer && !activeTimer.isRunning && activeTimer.remaining === 0
+              : activeTimer &&
+                  !activeTimer.isRunning &&
+                  activeTimer.remaining === 0
                 ? timerFlash === key
                   ? "bg-gold-500 text-white ring-2 ring-gold-300 scale-110"
                   : "bg-green-500 text-white"
                 : "bg-terra-100 dark:bg-terra-900/40 text-terra-700 dark:text-terra-300 hover:bg-terra-200 dark:hover:bg-terra-800/40 border border-terra-300 dark:border-terra-700",
           ].join(" ")}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+            />
           </svg>
           {activeTimer?.isRunning
             ? formatCountdown(activeTimer.remaining)
@@ -295,11 +326,9 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
       data-testid="cooking-mode"
     >
       {/* ── Obere Leiste ──────────────────────────────────────────────── */}
-      <header className="shrink-0 px-4 sm:px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+      <header className="shrink-0 px-4 sm:px-6 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <h1
-            className="text-base sm:text-lg font-semibold text-[var(--text-primary)] truncate flex-1 mr-4"
-          >
+          <h1 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] truncate flex-1 mr-4">
             {recipe.title}
           </h1>
 
@@ -313,18 +342,28 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
 
             <button
               onClick={() => setShowIngredients(true)}
-              className="w-9 h-9 rounded-xl border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+              className="w-9 h-9 pointer-coarse:min-tap rounded-xl border border-[var(--border-base)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
               aria-label="Zutaten anzeigen"
               data-testid="show-ingredients-button"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
             </button>
 
             <button
               onClick={exit}
-              className="px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-terra-600 border border-[var(--border-base)] rounded-xl hover:bg-[var(--bg-subtle)] transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-terra-600 border border-[var(--border-base)] rounded-xl hover:bg-[var(--bg-subtle)] transition-colors pointer-coarse:min-tap"
               data-testid="exit-cooking-mode"
             >
               Beenden
@@ -337,8 +376,18 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
       {runningTimers.length > 0 && (
         <div className="shrink-0 px-4 py-2 bg-terra-50 dark:bg-terra-950/30 border-b border-terra-200 dark:border-terra-800">
           <div className="flex items-center gap-3 max-w-3xl mx-auto overflow-x-auto">
-            <svg className="w-4 h-4 text-terra-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+            <svg
+              className="w-4 h-4 text-terra-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+              />
             </svg>
             {runningTimers.map(([key, timer]) => (
               <span
@@ -359,9 +408,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
       >
         <div className="max-w-2xl w-full">
           <div className="mb-4">
-            <span
-              className="text-4xl sm:text-5xl font-bold text-terra-200 font-display"
-            >
+            <span className="text-4xl sm:text-5xl font-bold text-terra-200 font-display">
               {currentStep + 1}
             </span>
           </div>
@@ -376,40 +423,52 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
       </main>
 
       {/* ── Untere Navigation ─────────────────────────────────────────── */}
-      <footer className="shrink-0 px-4 sm:px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+      <footer className="shrink-0 px-4 sm:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
             onClick={goPrev}
             disabled={currentStep === 0}
-            className="px-5 py-2.5 text-sm font-medium rounded-xl border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 text-sm font-medium rounded-xl border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed pointer-coarse:min-tap shrink-0"
             data-testid="prev-step"
           >
             Zurück
           </button>
 
-          {/* Fortschritts-Punkte */}
-          <div className="flex items-center gap-1.5" data-testid="step-dots">
+          {/* Fortschritts-Punkte.
+              Der Punkt bleibt 8–12 px klein, das Tippziel darum herum ist auf
+              Touch-Geraeten volle 44 x 44 px. Bei vielen Schritten scrollt die
+              Leiste in sich, statt die Seite breiter zu machen. */}
+          <div
+            className="flex items-center gap-1.5 pointer-coarse:gap-0 overflow-x-auto min-w-0 mx-2"
+            data-testid="step-dots"
+          >
             {steps.map((_, i) => (
               <button
                 key={i}
+                ref={i === currentStep ? activeDotRef : undefined}
                 onClick={() => setCurrentStep(i)}
                 aria-label={`Schritt ${i + 1}`}
-                className={[
-                  "rounded-full transition-all duration-200",
-                  i === currentStep
-                    ? "w-3 h-3 bg-terra-500"
-                    : i < currentStep
-                      ? "w-2 h-2 bg-terra-300"
-                      : "w-2 h-2 bg-warm-200 dark:bg-warm-700",
-                ].join(" ")}
-              />
+                aria-current={i === currentStep ? "step" : undefined}
+                className="shrink-0 flex items-center justify-center pointer-coarse:min-tap"
+              >
+                <span
+                  className={[
+                    "block rounded-full transition-all duration-200",
+                    i === currentStep
+                      ? "w-3 h-3 bg-terra-500"
+                      : i < currentStep
+                        ? "w-2 h-2 bg-terra-300"
+                        : "w-2 h-2 bg-warm-200 dark:bg-warm-700",
+                  ].join(" ")}
+                />
+              </button>
             ))}
           </div>
 
           <button
             onClick={currentStep === totalSteps - 1 ? exit : goNext}
             className={[
-              "px-5 py-2.5 text-sm font-medium rounded-xl transition-colors",
+              "px-5 py-2.5 text-sm font-medium rounded-xl transition-colors pointer-coarse:min-tap shrink-0",
               currentStep === totalSteps - 1
                 ? "bg-green-600 text-white hover:bg-green-700"
                 : "bg-terra-500 text-white hover:bg-terra-600",
@@ -437,19 +496,27 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2
-                  className="text-lg font-semibold text-[var(--text-primary)]"
-                >
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                   Zutaten
                 </h2>
                 <button
                   onClick={() => setShowIngredients(false)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                  className="w-8 h-8 pointer-coarse:min-tap rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                   aria-label="Zutaten schliessen"
                   data-testid="close-ingredients"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -462,10 +529,7 @@ export default function CookingMode({ recipe, targetServings }: CookingModeProps
                 {recipe.ingredients.map((ing) => {
                   const amount = scaledAmount(ing.amount);
                   return (
-                    <li
-                      key={ing.id}
-                      className="flex items-baseline gap-3"
-                    >
+                    <li key={ing.id} className="flex items-baseline gap-3">
                       <span className="text-2xl font-semibold text-terra-600 w-20 shrink-0 text-right tabular-nums">
                         {amount}
                         {ing.unit && (

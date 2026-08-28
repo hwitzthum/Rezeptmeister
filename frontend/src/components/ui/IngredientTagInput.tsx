@@ -208,7 +208,7 @@ export function IngredientTagInput({
             if (suggestions.length > 0) setShowDropdown(true);
           }}
           placeholder={selectedIngredients.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder:text-warm-400"
+          className="flex-1 min-w-[120px] pointer-coarse:min-h-11 bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder:text-warm-400"
           data-testid="ingredient-input"
           role="combobox"
           aria-autocomplete="list"

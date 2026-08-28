@@ -21,7 +21,7 @@ export default async function EinstellungenPage() {
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 font-display text-xl font-bold text-terra-500"
+            className="flex items-center gap-2 font-display text-xl font-bold text-terra-500 pointer-coarse:min-tap"
           >
             Rezeptmeister
           </Link>

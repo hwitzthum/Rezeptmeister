@@ -200,7 +200,7 @@ export default function BilderPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={[
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors pointer-coarse:min-tap",
                 filter === f
                   ? "bg-terra-500 text-white"
                   : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-warm-100 dark:hover:bg-warm-800",
@@ -297,6 +297,7 @@ export default function BilderPage() {
 
       {/* Bild-Detail-Modal */}
       <Modal
+        variant="sheet"
         open={selectedImage !== null}
         onClose={() => setSelectedImage(null)}
         title={selectedImage?.fileName ?? "Bild"}
@@ -382,6 +383,7 @@ export default function BilderPage() {
 
       {/* OCR-Vorschau-Modal */}
       <Modal
+        variant="sheet"
         open={showOcrModal}
         onClose={() => {
           if (ocrState !== "running") {
@@ -420,6 +422,7 @@ export default function BilderPage() {
 
       {/* Upload-Modal */}
       <Modal
+        variant="sheet"
         open={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         title="Bild hochladen"

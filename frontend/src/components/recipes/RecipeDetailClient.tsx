@@ -153,7 +153,7 @@ export default function RecipeDetailClient({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link
             href="/rezepte"
-            className="text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors"
+            className="min-w-0 shrink text-sm text-[var(--text-secondary)] hover:text-terra-600 flex items-center gap-1 transition-colors pointer-coarse:min-tap"
           >
             <svg
               className="w-4 h-4"
@@ -168,11 +168,11 @@ export default function RecipeDetailClient({
                 d="M15.75 19.5L8.25 12l7.5-7.5"
               />
             </svg>
-            Meine Rezepte
+            <span className="truncate">Meine Rezepte</span>
           </Link>
 
           {/* Aktionsleiste */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Primary — always visible */}
             <button
               onClick={toggleFavorite}
@@ -183,7 +183,7 @@ export default function RecipeDetailClient({
               }
               aria-pressed={isFavorite}
               className={[
-                "w-9 h-9 rounded-xl flex items-center justify-center",
+                "w-9 h-9 pointer-coarse:min-tap rounded-xl flex items-center justify-center",
                 "border transition-all duration-150",
                 isFavorite
                   ? "border-terra-300 bg-terra-50 dark:bg-terra-950/30 dark:border-terra-700 text-terra-500"
@@ -193,14 +193,10 @@ export default function RecipeDetailClient({
               <HeartIcon filled={isFavorite} className="w-4 h-4" />
             </button>
 
-            <AddToShoppingListButton
-              recipeId={recipe.id}
-              recipeTitle={recipe.title}
-            />
-
             <Link
               href={`/rezepte/${recipe.id}/kochmodus?portionen=${targetServings}`}
               data-testid="cooking-mode-button"
+              className="inline-flex"
             >
               <Button variant="gold" size="sm">
                 Kochmodus
@@ -208,7 +204,11 @@ export default function RecipeDetailClient({
             </Link>
 
             {/* Secondary — desktop only */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
+              <AddToShoppingListButton
+                recipeId={recipe.id}
+                recipeTitle={recipe.title}
+              />
               <AddToCollectionButton recipeId={recipe.id} />
               <OfflineToggleButton recipe={recipe} userId={userId} />
 
@@ -221,7 +221,10 @@ export default function RecipeDetailClient({
                 Drucken
               </Button>
 
-              <Link href={`/rezepte/${recipe.id}/bearbeiten`}>
+              <Link
+                href={`/rezepte/${recipe.id}/bearbeiten`}
+                className="inline-flex"
+              >
                 <Button variant="outline" size="sm">
                   Bearbeiten
                 </Button>
@@ -237,10 +240,10 @@ export default function RecipeDetailClient({
             </div>
 
             {/* Mobile overflow menu */}
-            <div className="sm:hidden relative">
+            <div className="lg:hidden relative">
               <button
                 onClick={() => setShowOverflow((v) => !v)}
-                className="w-9 h-9 rounded-xl flex items-center justify-center border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                className="w-9 h-9 pointer-coarse:min-tap rounded-xl flex items-center justify-center border border-[var(--border-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                 aria-label="Weitere Aktionen"
               >
                 <svg
@@ -266,22 +269,40 @@ export default function RecipeDetailClient({
                   <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--bg-surface)] border border-[var(--border-base)] rounded-xl shadow-[var(--shadow-warm-lg)] z-50 py-1 animate-scale-in">
                     <div
                       onClick={() => setShowOverflow(false)}
-                      className="[&>button]:w-full [&>button]:justify-start [&>button]:rounded-none [&>button]:border-0 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-normal hover:bg-[var(--bg-subtle)]"
+                      className="[&_button]:w-full [&_button]:justify-start [&_button]:rounded-none [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-normal [&_button]:shadow-none [&_button]:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                    >
+                      <AddToShoppingListButton
+                        recipeId={recipe.id}
+                        recipeTitle={recipe.title}
+                      />
+                    </div>
+                    <div
+                      onClick={() => setShowOverflow(false)}
+                      className="[&_button]:w-full [&_button]:justify-start [&_button]:rounded-none [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-normal [&_button]:shadow-none [&_button]:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     >
                       <AddToCollectionButton recipeId={recipe.id} />
+                    </div>
+                    <div
+                      onClick={() => setShowOverflow(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--bg-subtle)]"
+                    >
+                      <OfflineToggleButton recipe={recipe} userId={userId} />
+                      <span className="text-sm text-[var(--text-primary)]">
+                        Offline verfügbar
+                      </span>
                     </div>
                     <button
                       onClick={() => {
                         setShowOverflow(false);
                         setShowPrintModal(true);
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                      className="w-full px-4 py-2.5 pointer-coarse:min-h-11 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     >
                       Drucken
                     </button>
                     <Link
                       href={`/rezepte/${recipe.id}/bearbeiten`}
-                      className="block px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
+                      className="block px-4 py-2.5 pointer-coarse:min-h-11 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]"
                     >
                       Bearbeiten
                     </Link>
@@ -290,7 +311,7 @@ export default function RecipeDetailClient({
                         setShowOverflow(false);
                         setShowDeleteDialog(true);
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[var(--bg-subtle)]"
+                      className="w-full px-4 py-2.5 pointer-coarse:min-h-11 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[var(--bg-subtle)]"
                     >
                       Löschen
                     </button>

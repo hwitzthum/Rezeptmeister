@@ -367,7 +367,7 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
               placeholder="Zutat..."
               value={ingredientName}
               onChange={(e) => setIngredientName(e.target.value)}
-              className="flex-1 min-w-0 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
+              className="flex-1 min-w-0 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
             />
             <input
               data-testid="shopping-list-amount-input"
@@ -377,13 +377,13 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
               placeholder="Menge"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
+              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
             />
             <select
               data-testid="shopping-list-unit-select"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
+              className="w-24 rounded-xl border border-[var(--border-base)] bg-[var(--bg-base)] px-3 py-2 pointer-coarse:min-tap text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-300 focus:border-terra-300"
             >
               <option value="">Einheit</option>
               {SWISS_UNITS.map((u) => (
@@ -544,7 +544,7 @@ export default function ShoppingListClient({ initialItems, userId }: Props) {
                       type="button"
                       data-testid={`shopping-list-delete-${item.id}`}
                       onClick={() => handleDelete(item.id)}
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      className="flex-shrink-0 w-8 h-8 pointer-coarse:min-tap flex items-center justify-center rounded-lg text-warm-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                       aria-label={`${item.ingredientName} löschen`}
                     >
                       <svg
