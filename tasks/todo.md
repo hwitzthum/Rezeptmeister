@@ -1,6 +1,6 @@
 # Rezeptmeister – Implementierungsplan
 
-**Status:** Phasen 1–18 abgeschlossen ✅ · Phase 19 (Mobile/PWA) in Arbeit auf `feature/mobile-pwa`  
+**Status:** Phasen 1–18 abgeschlossen ✅ · Phase 19 (Mobile/PWA) abgeschlossen ✅ (2026-08-28)  
 **Ziel:** KI-gestützte Rezeptverwaltung für den Schweizer Markt  
 **Stack:** Next.js + FastAPI + PostgreSQL/pgvector + Gemini Embedding 2  
 
@@ -447,8 +447,8 @@
 - [x] **D.3** `uv run pytest` gegen eine echte Postgres-Instanz
 - [x] **D.4** Branch pushen → Vercel-Preview-URL (HTTPS ist Pflicht für Kamera und Service Worker)
 - [x] **D.5** Manuelle iPhone-Checkliste (Installieren, Icon, Tab-Leiste über dem Home-Indicator, zweiseitiges Rezept abfotografieren, URL importieren, Einkaufsliste im Flugmodus, alle Bereiche über „Mehr")
-- [ ] **D.6** Ehrliche Gesamtbewertung + Freigabe einholen, erst dann Merge nach `main`
-- [ ] **D.7** ⚠️ **Render-Branch zurückstellen:** `rezeptmeister-api` steht für die Abnahme auf `feature/mobile-pwa` statt `main`. Unmittelbar nach dem Merge zurückstellen.
+- [x] **D.6** Ehrliche Gesamtbewertung + Freigabe einholen, erst dann Merge nach `main`
+- [x] **D.7** ⚠️ **Render-Branch zurückstellen:** `rezeptmeister-api` steht für die Abnahme auf `feature/mobile-pwa` statt `main`. Unmittelbar nach dem Merge zurückstellen.
 
 ---
 
@@ -498,7 +498,7 @@ Wellen 0–3 umgesetzt; die ausführlichen Review-Einträge je Stream stehen in 
 - **D.5 (laufend):** Drei Befunde am echten Gerät. (1) `/einstellungen` und `/admin` lagen ausserhalb der Route-Gruppe `(app)` und hatten deshalb keine Navigation — auf dem Handy eine Sackgasse; jetzt behoben, plus neuer Test „Von jeder Seite führt ein Weg zurück" (gegen den alten Stand gegengeprüft). (2) Mehrseitiges OCR scheiterte auf der Preview mit „Ungültige Eingabedaten" — kein Codefehler: Render deployte aus `main`, wo das Backend nur `image_id` kennt. Nach Umstellung des Render-Branches **bestätigt: zwei Kochbuchseiten → ein Rezept mit den Zutaten beider Seiten**; damit ist die seit Welle 1 offene A3-DoD erbracht. (4) Im URL-Import verlor das Adressfeld nach dem ersten Buchstaben den Fokus — Wurzel in `Modal.tsx`: Erstfokus und Tastatur-Falle lagen in einem Effekt mit `onClose` in den Abhängigkeiten, der bei jedem Rendern neu lief. Betraf jedes Modal mit Texteingabe. Behoben, mit Regressionstest. (3) Tab-Leiste sitzt scheinbar unter dem Home-Indicator — nachgemessen: das Safe-Area-Polster wirkt (32 pt Abstand am Gerät gegen 15 pt in der Emulation ohne Safe Area), der Indicator liegt nur über dem Hintergrund der Leiste. Kein Fehler.
 - **Flaky Bestands-Tests stabilisiert (auf Anweisung):** keiner war zufällig. (a) Echter Produktfehler — eine gleichzeitig laufende Listen-Aktualisierung überschrieb einen frisch gesetzten Haken; behoben mit Schreibzähler in `shopping-sync.ts`, deterministischer Regressionstest. (b) Dateiübergreifender KI-Schlüssel ohne Ausschluss; neuer besitzbewusster Mutex `tests/helpers/shared-lock.ts`. (c) Gemini-503 unter Last; begrenzte Wiederholung nur für 5xx in `tests/helpers/live-ai.ts`. Nachweis: 6× 60/60 in der vorher reissenden Kombination, gesamte Suite 319/0/0.
 - **D.5 abgeschlossen:** alle Punkte am iPhone bestätigt.
-- **D.6 steht aus** — Merge nach `main` erst nach ausdrücklicher Freigabe.
+- **D.6/D.7 erledigt:** Freigabe erteilt, Merge `40cc12b`, Render zurück auf `main`, beide Deploys auf demselben Commit live. Phase 19 abgeschlossen.
 
 ---
 
