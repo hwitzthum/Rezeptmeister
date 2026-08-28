@@ -44,7 +44,7 @@ in maximal zwei Tipps erreichbar macht, mehrseitiges Abfotografieren beherrscht,
 | **2** | **B3** | Seiten-Sweep: Admin, Konto, Sonstiges | ✅ parallel               | ✅     | 5/5         |
 | **3** | **C1** | Playwright-Mobile-Suite               | teilweise                 | ✅     | 5/5         |
 | **3** | **C2** | Dokumentation (README, todo.md)       | ✅ parallel zu C1         | ✅     | 3/3         |
-| **4** | **D**  | Gesamt-Verifikation & Abnahme         | nein                      | 🟡     | 3/6         |
+| **4** | **D**  | Gesamt-Verifikation & Abnahme         | nein                      | 🟡     | 4/7         |
 
 ---
 
@@ -313,12 +313,17 @@ selbst gebaut.
 - [x] **D.2** Kompletter Playwright-Lauf über **alle vier** Projekte — inkl. der 19 Bestands-Specs
       als Regressionsnachweis.
 - [x] **D.3** `uv run pytest` gegen eine **echte** Postgres-Instanz.
-- [ ] **D.4** Branch pushen → Vercel-Preview-URL. **HTTPS ist Pflicht**: Kamera und Service Worker
+- [x] **D.4** Branch pushen → Vercel-Preview-URL. **HTTPS ist Pflicht**: Kamera und Service Worker
       laufen nicht über `http://` im LAN.
 - [ ] **D.5** Manuelle iPhone-Checkliste: Installieren über „Zum Home-Bildschirm" · Icon prüfen ·
       Tab-Leiste sitzt über dem Home-Indicator · zweiseitiges Rezept abfotografieren · URL importieren ·
       Einkaufsliste im Flugmodus abhaken · alle Bereiche über „Mehr" erreichbar.
 - [ ] **D.6** Ehrliche Gesamtbewertung + **Freigabe einholen**, erst dann Merge nach `main`.
+- [ ] **D.7** _(neu, nach D.5 entstanden)_ **Render-Branch zurückstellen.** Für die Abnahme wurde
+      `rezeptmeister-api` (`srv-d7a2glnpm1nc73brf0tg`) von `main` auf `feature/mobile-pwa`
+      umgestellt, damit das Mehrseiten-OCR überhaupt testbar ist und beim Merge kein Fenster mit
+      kaputtem OCR entsteht. **Unmittelbar nach dem Merge zurück auf `main`** — sonst deployt der
+      Produktions-Backend dauerhaft aus einem Feature-Branch.
 
 ---
 

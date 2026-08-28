@@ -445,9 +445,10 @@
 - [x] **D.1** `npm run build` + `npm run lint`
 - [x] **D.2** Kompletter Playwright-Lauf über alle vier Projekte inkl. der 19 Bestands-Specs
 - [x] **D.3** `uv run pytest` gegen eine echte Postgres-Instanz
-- [ ] **D.4** Branch pushen → Vercel-Preview-URL (HTTPS ist Pflicht für Kamera und Service Worker)
+- [x] **D.4** Branch pushen → Vercel-Preview-URL (HTTPS ist Pflicht für Kamera und Service Worker)
 - [ ] **D.5** Manuelle iPhone-Checkliste (Installieren, Icon, Tab-Leiste über dem Home-Indicator, zweiseitiges Rezept abfotografieren, URL importieren, Einkaufsliste im Flugmodus, alle Bereiche über „Mehr")
 - [ ] **D.6** Ehrliche Gesamtbewertung + Freigabe einholen, erst dann Merge nach `main`
+- [ ] **D.7** ⚠️ **Render-Branch zurückstellen:** `rezeptmeister-api` steht für die Abnahme auf `feature/mobile-pwa` statt `main`. Unmittelbar nach dem Merge zurückstellen.
 
 ---
 
