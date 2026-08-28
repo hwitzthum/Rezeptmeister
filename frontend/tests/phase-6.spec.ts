@@ -287,11 +287,17 @@ test.describe("Phase 6 – Live-Gemini (mit API-Schlüssel)", () => {
     }, imageId);
 
     // Das Bild ist zu klein für echte OCR → Gemini gibt "Kein Rezept erkannt" zurück
-    // Wichtig: Endpunkt antwortet 200 mit einem OcrResult (kein 500)
+    // Wichtig: Endpunkt antwortet 200 mit einem OcrResult (kein 500).
+    // Die Antwort ist OcrResults ({ recipes: OcrResult[] }) — dieselbe Form,
+    // die OcrMultiPreview konsumiert und die SPEC_1 §4.1 festschreibt.
     expect(ocrResp.status).toBe(200);
-    expect(ocrResp.body).toHaveProperty("title");
-    expect(ocrResp.body).toHaveProperty("ingredients");
-    expect(ocrResp.body).toHaveProperty("instructions");
-    expect(ocrResp.body.source_type).toBe("image_ocr");
+    expect(ocrResp.body).toHaveProperty("recipes");
+    const ocrRecipes = ocrResp.body.recipes as Record<string, unknown>[];
+    expect(Array.isArray(ocrRecipes)).toBe(true);
+    expect(ocrRecipes.length).toBeGreaterThanOrEqual(1);
+    expect(ocrRecipes[0]).toHaveProperty("title");
+    expect(ocrRecipes[0]).toHaveProperty("ingredients");
+    expect(ocrRecipes[0]).toHaveProperty("instructions");
+    expect(ocrRecipes[0].source_type).toBe("image_ocr");
   });
 });

@@ -224,7 +224,16 @@ async def hybrid_search(
 
         # :vec wird über eine qvec-CTE einmal materialisiert – verhindert asyncpg-Fehler
         # bei doppelt verwendeten Named-Parameters in vector_ranked und ORDER BY.
-        # Optional filters use IS NULL short-circuit so omitted params match all rows.
+        #
+        # Die optionalen Filter matchen alle Zeilen, wenn der Parameter NULL ist.
+        # Der explizite CAST(... AS text) ist dabei zwingend: steht ein Parameter
+        # zuerst in einem blossen `:p IS NULL`, kann PostgreSQL seinen Typ nicht
+        # ableiten und lehnt schon das PREPARE ab
+        # ("could not determine data type of parameter $n") — die Abfrage schlug
+        # dadurch bei *jeder* Hybridsuche fehl, nicht nur mit gesetztem Filter.
+        # difficulty ist ein Enum (recipe_difficulty); der Vergleich läuft über
+        # ::text, damit ein unbekannter Wert leer filtert statt einen
+        # InvalidTextRepresentation-Fehler auszulösen.
         search_sql = text("""
             WITH qvec AS (
                 SELECT (:vec)::halfvec(3072) AS v
@@ -238,9 +247,10 @@ async def hybrid_search(
                 FROM recipes
                 WHERE user_id = CAST(:uid AS uuid)
                   AND embedding IS NOT NULL
-                  AND (:kategorie IS NULL OR category = :kategorie)
-                  AND (:kueche    IS NULL OR cuisine   = :kueche)
-                  AND (:schwierigkeit IS NULL OR difficulty = :schwierigkeit)
+                  AND (CAST(:kategorie AS text) IS NULL OR category = CAST(:kategorie AS text))
+                  AND (CAST(:kueche AS text) IS NULL OR cuisine = CAST(:kueche AS text))
+                  AND (CAST(:schwierigkeit AS text) IS NULL
+                       OR difficulty::text = CAST(:schwierigkeit AS text))
                 LIMIT 60
             ),
             fts_ranked AS (
@@ -252,9 +262,10 @@ async def hybrid_search(
                 FROM recipes
                 WHERE user_id = CAST(:uid AS uuid)
                   AND fts_vector @@ websearch_to_tsquery('german', :query)
-                  AND (:kategorie IS NULL OR category = :kategorie)
-                  AND (:kueche    IS NULL OR cuisine   = :kueche)
-                  AND (:schwierigkeit IS NULL OR difficulty = :schwierigkeit)
+                  AND (CAST(:kategorie AS text) IS NULL OR category = CAST(:kategorie AS text))
+                  AND (CAST(:kueche AS text) IS NULL OR cuisine = CAST(:kueche AS text))
+                  AND (CAST(:schwierigkeit AS text) IS NULL
+                       OR difficulty::text = CAST(:schwierigkeit AS text))
                 LIMIT 60
             ),
             combined AS (
