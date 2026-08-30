@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, ConfirmDialog, DifficultyBadge, LinkButton } from "@/components/ui";
-import { formatAmount } from "@/lib/units";
+import {
+  Button,
+  ConfirmDialog,
+  DifficultyBadge,
+  LinkButton,
+} from "@/components/ui";
+import { parseSteps } from "@/lib/cooking/parse-steps";
+import { linkIngredients } from "@/lib/cooking/link-ingredients";
+import { scaleAmount } from "@/lib/cooking/scale";
 import { normaliseImageSrc } from "@/lib/images";
 import toast from "react-hot-toast";
 import RecipeImageManager from "@/components/images/RecipeImageManager";
@@ -13,7 +20,9 @@ import type { UploadedImage } from "@/components/images/ImageUploadZone";
 import GenerateImageButton from "@/components/ai/GenerateImageButton";
 import NutritionPanel from "@/components/ai/NutritionPanel";
 import ScalingHintsPanel from "@/components/ai/ScalingHintsPanel";
+import SubstitutionDialog, { type SubstitutionTarget } from "@/components/ai/SubstitutionDialog";
 import NotesPanel from "@/components/recipes/NotesPanel";
+import CookLogPanel from "@/components/recipes/CookLogPanel";
 import AddToShoppingListButton from "@/components/shopping/AddToShoppingListButton";
 import AddToCollectionButton from "@/components/collections/AddToCollectionButton";
 import PrintOptionsModal from "@/components/recipes/PrintOptionsModal";
@@ -70,9 +79,12 @@ export interface RecipeDetail {
 export default function RecipeDetailClient({
   recipe,
   userId,
+  hasApiKey = false,
 }: {
   recipe: RecipeDetail;
   userId: string;
+  /** Gemini-Schlüssel hinterlegt → Ersatz-Assistent anbieten. */
+  hasApiKey?: boolean;
 }) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(recipe.isFavorite);
@@ -86,6 +98,7 @@ export default function RecipeDetailClient({
   const [deleting, setDeleting] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showOverflow, setShowOverflow] = useState(false);
+  const [substitutionTarget, setSubstitutionTarget] = useState<SubstitutionTarget | null>(null);
   // Track generated image URL so we can show it without a full page reload
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
     null,
@@ -136,7 +149,11 @@ export default function RecipeDetailClient({
       // Server-Metadaten (Tab-Titel) und Listen nachziehen
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Titel konnte nicht gespeichert werden.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Titel konnte nicht gespeichert werden.",
+      );
     } finally {
       setSavingTitle(false);
     }
@@ -182,12 +199,19 @@ export default function RecipeDetailClient({
   // ── Zutat skalieren ───────────────────────────────────────────────────────
 
   function scaledAmount(amountStr: string | null): string {
-    if (!amountStr) return "";
-    const n = parseFloat(amountStr);
-    if (isNaN(n)) return amountStr;
-    const scaled = (n * targetServings) / recipe.servings;
-    return formatAmount(scaled);
+    return scaleAmount(amountStr, recipe.servings, targetServings);
   }
+
+  // Schritte wie im Kochmodus, je Schritt die dort verwendeten Zutaten
+  const steps = useMemo(() => parseSteps(recipe.instructions), [recipe.instructions]);
+  const stepLinks = useMemo(
+    () => linkIngredients(steps, recipe.ingredients).steps,
+    [steps, recipe.ingredients],
+  );
+  const ingredientById = useMemo(
+    () => new Map(recipe.ingredients.map((ing) => [ing.id, ing])),
+    [recipe.ingredients],
+  );
 
   function formatTime(minutes: number) {
     if (minutes < 60) return `${minutes} Min.`;
@@ -435,13 +459,18 @@ export default function RecipeDetailClient({
           {editingTitle ? (
             <form
               className="flex items-center gap-2"
-              onSubmit={(e) => { e.preventDefault(); void saveTitle(); }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveTitle();
+              }}
             >
               <input
                 type="text"
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") cancelTitleEdit(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") cancelTitleEdit();
+                }}
                 maxLength={500}
                 autoFocus
                 aria-label="Titel"
@@ -540,14 +569,35 @@ export default function RecipeDetailClient({
             <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">
               Zubereitung
             </h2>
-            {recipe.instructions ? (
-              <div className="max-w-none text-[var(--text-primary)] leading-relaxed">
-                {recipe.instructions.split(/\n+/).map((para, i) => (
-                  <p key={i} className="mb-3 whitespace-pre-wrap">
-                    {para}
-                  </p>
-                ))}
-              </div>
+            {steps.length > 0 ? (
+              <ol className="max-w-none text-[var(--text-primary)] leading-relaxed space-y-4" data-testid="instruction-steps">
+                {steps.map((step, i) => {
+                  const ids = stepLinks[i]?.ingredientIds ?? [];
+                  return (
+                    <li key={i} className="flex gap-3" data-testid="instruction-step">
+                      <span className="font-display text-lg font-semibold text-terra-300 dark:text-terra-700 tabular-nums shrink-0 w-6 text-right">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="whitespace-pre-wrap">{step}</p>
+                        {ids.length > 0 && (
+                          <p className="mt-1 text-xs text-[var(--text-muted)]" data-testid="step-ingredient-line">
+                            Zutaten:{" "}
+                            {ids
+                              .map((id) => {
+                                const ing = ingredientById.get(id);
+                                if (!ing) return null;
+                                return [scaledAmount(ing.amount), ing.unit, ing.name].filter(Boolean).join(" ");
+                              })
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             ) : (
               <p className="text-[var(--text-muted)] italic">
                 Keine Zubereitung angegeben.
@@ -661,6 +711,24 @@ export default function RecipeDetailClient({
                             </span>
                           )}
                         </span>
+                        {hasApiKey && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSubstitutionTarget({
+                                name: ing.name,
+                                amount: scaledAmount(ing.amount) || null,
+                                unit: ing.unit,
+                              })
+                            }
+                            className="shrink-0 text-xs text-[var(--text-muted)] hover:text-terra-600 dark:hover:text-terra-400 pointer-coarse:min-tap px-1 transition-colors"
+                            aria-label={`Ersatz für ${ing.name} vorschlagen`}
+                            title="Ersatz vorschlagen"
+                            data-testid="substitute-button"
+                          >
+                            Ersatz
+                          </button>
+                        )}
                       </li>
                     );
                   })}
@@ -715,6 +783,11 @@ export default function RecipeDetailClient({
           />
         </section>
 
+        {/* Kochhistorie */}
+        <section className="mt-10 pt-6 border-t border-[var(--border-subtle)]">
+          <CookLogPanel recipeId={recipe.id} servings={targetServings} />
+        </section>
+
         {/* Notizen & Bewertungen */}
         <section className="mt-10 pt-6 border-t border-[var(--border-subtle)]">
           <NotesPanel recipeId={recipe.id} />
@@ -728,6 +801,15 @@ export default function RecipeDetailClient({
         recipe={recipe}
         targetServings={targetServings}
         originalServings={recipe.servings}
+      />
+
+      {/* Ersatz-Assistent */}
+      <SubstitutionDialog
+        open={substitutionTarget !== null}
+        onClose={() => setSubstitutionTarget(null)}
+        target={substitutionTarget}
+        recipeTitle={title}
+        otherIngredients={recipe.ingredients.map((i) => i.name)}
       />
 
       {/* Löschen-Dialog */}

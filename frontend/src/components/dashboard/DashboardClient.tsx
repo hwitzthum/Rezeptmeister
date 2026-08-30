@@ -7,6 +7,10 @@ import FavoritesWidget from "./FavoritesWidget";
 import ShoppingListWidget from "./ShoppingListWidget";
 import MealPlanWidget from "./MealPlanWidget";
 import DailySuggestionWidget from "./DailySuggestionWidget";
+import CookHistoryWidget, {
+  type CookHistoryEntry,
+  type LongAgoEntry,
+} from "./CookHistoryWidget";
 
 export interface DashboardRecipe {
   id: string;
@@ -36,6 +40,8 @@ interface DashboardClientProps {
   openShoppingCount: number;
   todayMeals: MealPlanEntry[];
   hasApiKey: boolean;
+  recentCooked: CookHistoryEntry[];
+  longAgoCooked: LongAgoEntry[];
 }
 
 export default function DashboardClient({
@@ -47,6 +53,8 @@ export default function DashboardClient({
   openShoppingCount,
   todayMeals,
   hasApiKey,
+  recentCooked,
+  longAgoCooked,
 }: DashboardClientProps) {
   return (
     <div
@@ -99,6 +107,7 @@ export default function DashboardClient({
         <DailySuggestionWidget hasApiKey={hasApiKey} userId={userId} />
         <ShoppingListWidget openCount={openShoppingCount} />
         <MealPlanWidget entries={todayMeals} />
+        <CookHistoryWidget recent={recentCooked} longAgo={longAgoCooked} />
       </div>
     </div>
   );

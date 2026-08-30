@@ -3,6 +3,11 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui";
+import {
+  toRecipePayload,
+  normalizeDifficulty,
+  formatValidationDetails,
+} from "@/lib/recipes/from-extraction";
 
 // Spiegelt das OcrResult-Schema des FastAPI-Backends wider
 export interface OcrIngredient {
@@ -33,63 +38,81 @@ interface Props {
   onClose: () => void;
 }
 
-export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: Props) {
+export default function OcrPreviewPanel({
+  result,
+  imageId,
+  onSaved,
+  onClose,
+}: Props) {
   const [title, setTitle] = useState(result.title);
   const [description, setDescription] = useState(result.description ?? "");
   const [servings, setServings] = useState(result.servings ?? 4);
   const [prepTime, setPrepTime] = useState(result.prep_time_minutes ?? 0);
   const [cookTime, setCookTime] = useState(result.cook_time_minutes ?? 0);
-  const [difficulty, setDifficulty] = useState(result.difficulty ?? "");
+  // Normalisiert («Einfach», «leicht» → «einfach»), sonst zeigt das Select
+  // nichts an, während der ungültige Wert trotzdem gesendet würde.
+  const [difficulty, setDifficulty] = useState(
+    normalizeDifficulty(result.difficulty) ?? "",
+  );
   const [instructions, setInstructions] = useState(result.instructions);
   const [saving, setSaving] = useState(false);
 
   const inputCls =
     "w-full border border-[var(--border-base)] rounded-lg px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400";
-  const labelCls = "block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1";
+  const labelCls =
+    "block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1";
 
   async function handleSave() {
     if (!title.trim()) {
       toast.error("Titel ist erforderlich.");
       return;
     }
+    if (!instructions.trim()) {
+      toast.error("Zubereitung ist erforderlich.");
+      return;
+    }
     setSaving(true);
     try {
+      const sourceType =
+        result.source_type === "url_import" ? "url_import" : "image_ocr";
+      const payload = toRecipePayload(result, sourceType, {
+        title,
+        description,
+        instructions,
+        servings,
+        prepTimeMinutes: prepTime,
+        cookTimeMinutes: cookTime,
+        difficulty,
+      });
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          instructions: instructions.trim(),
-          servings: servings || 4,
-          prepTimeMinutes: prepTime || undefined,
-          cookTimeMinutes: cookTime || undefined,
-          difficulty: difficulty || undefined,
-          tags: result.tags,
-          sourceType: "image_ocr",
+          ...payload,
           // imageId is linked atomically server-side within the same DB transaction
           imageId: imageId || undefined,
-          ingredients: result.ingredients.map((ing, idx) => ({
-            name: ing.name,
-            amount: ing.amount ?? undefined,
-            unit: ing.unit ?? undefined,
-            notes: ing.notes ?? undefined,
-            sortOrder: idx,
-            isOptional: false,
-          })),
         }),
       });
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? "Fehler beim Speichern.");
+        const err = (await res.json()) as {
+          error?: string;
+          details?: Parameters<typeof formatValidationDetails>[0];
+        };
+        throw new Error(
+          err.details
+            ? formatValidationDetails(err.details)
+            : (err.error ?? "Fehler beim Speichern."),
+        );
       }
 
       const recipe = (await res.json()) as { id: string };
       toast.success("Rezept aus OCR gespeichert!");
       onSaved(recipe.id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern.");
+      toast.error(
+        err instanceof Error ? err.message : "Fehler beim Speichern.",
+      );
     } finally {
       setSaving(false);
     }
@@ -99,7 +122,8 @@ export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: P
     <div className="space-y-5">
       {/* Hinweis-Banner */}
       <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-        KI-extrahierte Daten. Bitte vor dem Speichern prüfen und bei Bedarf anpassen.
+        KI-extrahierte Daten. Bitte vor dem Speichern prüfen und bei Bedarf
+        anpassen.
       </div>
 
       {/* Titel */}
@@ -178,14 +202,24 @@ export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: P
         </label>
         <div className="max-h-40 overflow-y-auto border border-[var(--border-subtle)] rounded-lg divide-y divide-[var(--border-subtle)]">
           {result.ingredients.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)] px-3 py-2">Keine Zutaten erkannt.</p>
+            <p className="text-sm text-[var(--text-muted)] px-3 py-2">
+              Keine Zutaten erkannt.
+            </p>
           ) : (
             result.ingredients.map((ing, i) => (
-              <div key={i} className="px-3 py-1.5 text-sm text-[var(--text-primary)]">
+              <div
+                key={i}
+                className="px-3 py-1.5 text-sm text-[var(--text-primary)]"
+              >
                 {ing.amount != null ? `${ing.amount} ` : ""}
                 {ing.unit ? `${ing.unit} ` : ""}
                 <span className="font-medium">{ing.name}</span>
-                {ing.notes ? <span className="text-[var(--text-muted)]"> ({ing.notes})</span> : null}
+                {ing.notes ? (
+                  <span className="text-[var(--text-muted)]">
+                    {" "}
+                    ({ing.notes})
+                  </span>
+                ) : null}
               </div>
             ))
           )}
@@ -228,7 +262,14 @@ export default function OcrPreviewPanel({ result, imageId, onSaved, onClose }: P
         <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
           Abbrechen
         </Button>
-        <Button variant="primary" size="sm" onClick={() => { void handleSave(); }} disabled={saving}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            void handleSave();
+          }}
+          disabled={saving}
+        >
           {saving ? "Wird gespeichert …" : "Rezept speichern"}
         </Button>
       </div>

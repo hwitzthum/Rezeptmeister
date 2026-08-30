@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { recipes, ingredients, recipeNotes } from "@/lib/db/schema";
+import { recipes, ingredients, recipeNotes, recipeCookLogs } from "@/lib/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
@@ -17,6 +17,8 @@ export interface TasteProfile {
   favoritenTitel: string[];
   /** Mit Durchschnitt ab 4 bewertet. */
   bestbewerteteTitel: string[];
+  /** Laut Kochhistorie am haeufigsten tatsaechlich gekocht — staerker als «gespeichert». */
+  haeufigGekochteTitel: string[];
   /** Haeufigste Kuechen, absteigend: [{ wert: "Schweizer", anzahl: 12 }] */
   haeufigsteKuechen: { wert: string; anzahl: number }[];
   haeufigsteKategorien: { wert: string; anzahl: number }[];
@@ -35,12 +37,13 @@ export interface TasteProfile {
 const MAX_TITEL = 60;
 const MAX_FAVORITEN = 15;
 const MAX_BEWERTET = 10;
+const MAX_GEKOCHT = 15;
 const MAX_DIMENSIONEN = 5;
 const MAX_ZUTATEN = 20;
 const MAX_TAGS = 12;
 
 export async function buildTasteProfile(userId: string): Promise<TasteProfile> {
-  const [titelRows, favoritenRows, bewertetRows, kuechenRows, kategorieRows, zutatenRows, tagRows, [anzahlRow]] =
+  const [titelRows, favoritenRows, bewertetRows, gekochtRows, kuechenRows, kategorieRows, zutatenRows, tagRows, [anzahlRow]] =
     await Promise.all([
       // Favoriten zuerst, dann die zuletzt bearbeiteten — das ist der Teil der
       // Sammlung, der den aktuellen Geschmack am ehesten abbildet.
@@ -75,6 +78,15 @@ export async function buildTasteProfile(userId: string): Promise<TasteProfile> {
         .having(sql`AVG(${recipeNotes.rating}) >= 4`)
         .orderBy(sql`AVG(${recipeNotes.rating}) DESC`)
         .limit(MAX_BEWERTET),
+
+      db
+        .select({ title: recipes.title })
+        .from(recipeCookLogs)
+        .innerJoin(recipes, eq(recipes.id, recipeCookLogs.recipeId))
+        .where(eq(recipeCookLogs.userId, userId))
+        .groupBy(recipes.id, recipes.title)
+        .orderBy(sql`count(*) DESC`, sql`max(${recipeCookLogs.cookedOn}) DESC`)
+        .limit(MAX_GEKOCHT),
 
       db
         .select({ wert: recipes.cuisine, anzahl: sql<number>`count(*)::int` })
@@ -119,6 +131,7 @@ export async function buildTasteProfile(userId: string): Promise<TasteProfile> {
     vorhandeneTitel: titelRows.map((r) => r.title),
     favoritenTitel: favoritenRows.map((r) => r.title),
     bestbewerteteTitel: bewertetRows.map((r) => r.title),
+    haeufigGekochteTitel: gekochtRows.map((r) => r.title),
     haeufigsteKuechen: kuechenRows
       .filter((r) => r.wert)
       .map((r) => ({ wert: r.wert!, anzahl: r.anzahl })),

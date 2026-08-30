@@ -8,9 +8,9 @@ import { useOfflineUserId } from "@/lib/hooks/useOfflineUserId";
 
 export default function OfflinePage() {
   const isOnline = useOnlineStatus();
-  const userId = useOfflineUserId();
+  const { userId, resolved } = useOfflineUserId();
   const [recipes, setRecipes] = useState<OfflineRecipe[] | null>(null);
-  const loaded = !userId || recipes !== null;
+  const loaded = resolved && (!userId || recipes !== null);
 
   useEffect(() => {
     if (!userId) return;

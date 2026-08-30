@@ -157,9 +157,7 @@ export const recipes = pgTable(
     cookTimeMinutes: integer("cook_time_minutes"),
     totalTimeMinutes: integer("total_time_minutes"),
     difficulty: recipeDifficultyEnum("difficulty"),
-    sourceType: recipeSourceTypeEnum("source_type")
-      .notNull()
-      .default("manual"),
+    sourceType: recipeSourceTypeEnum("source_type").notNull().default("manual"),
     sourceUrl: text("source_url"),
     sourceImageId: uuid("source_image_id").references(() => images.id, {
       onDelete: "set null",
@@ -225,7 +223,36 @@ export const recipeNotes = pgTable(
   },
   (t) => [
     index("idx_recipe_notes_recipe_user").on(t.recipeId, t.userId),
-    check("rating_range", sql`${t.rating} IS NULL OR (${t.rating} >= 1 AND ${t.rating} <= 5)`),
+    check(
+      "rating_range",
+      sql`${t.rating} IS NULL OR (${t.rating} >= 1 AND ${t.rating} <= 5)`,
+    ),
+  ],
+);
+
+// ── recipe_cook_logs ──────────────────────────────────────────────
+// Kochhistorie: ein Eintrag je «gekocht am». Tagesgenau (Zurich-Datum),
+// weil «wann zuletzt» und «wie oft» zählen, nicht die Uhrzeit.
+export const recipeCookLogs = pgTable(
+  "recipe_cook_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipes.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    cookedOn: date("cooked_on").notNull(),
+    servings: integer("servings"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_recipe_cook_logs_recipe").on(t.userId, t.recipeId, t.cookedOn),
+    index("idx_recipe_cook_logs_user_date").on(t.userId, t.cookedOn),
   ],
 );
 
@@ -246,17 +273,14 @@ export const shoppingListItems = pgTable(
     isChecked: boolean("is_checked").notNull().default(false),
     aisleCategory: varchar("aisle_category", { length: 100 }),
     sortOrder: integer("sort_order").notNull().default(0),
-    mealPlanEntryId: uuid("meal_plan_entry_id").references(
-      () => mealPlans.id,
-      { onDelete: "set null" },
-    ),
+    mealPlanEntryId: uuid("meal_plan_entry_id").references(() => mealPlans.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [
-    index("idx_shopping_list_user_checked").on(t.userId, t.isChecked),
-  ],
+  (t) => [index("idx_shopping_list_user_checked").on(t.userId, t.isChecked)],
 );
 
 // ── meal_plans ────────────────────────────────────────────────────
@@ -320,6 +344,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   recipes: many(recipes),
   images: many(images),
   recipeNotes: many(recipeNotes),
+  recipeCookLogs: many(recipeCookLogs),
   shoppingListItems: many(shoppingListItems),
   mealPlans: many(mealPlans),
   collections: many(collections),
@@ -330,7 +355,16 @@ export const recipesRelations = relations(recipes, ({ one, many }) => ({
   ingredients: many(ingredients),
   images: many(images),
   recipeNotes: many(recipeNotes),
+  recipeCookLogs: many(recipeCookLogs),
   collectionRecipes: many(collectionRecipes),
+}));
+
+export const recipeCookLogsRelations = relations(recipeCookLogs, ({ one }) => ({
+  recipe: one(recipes, {
+    fields: [recipeCookLogs.recipeId],
+    references: [recipes.id],
+  }),
+  user: one(users, { fields: [recipeCookLogs.userId], references: [users.id] }),
 }));
 
 export const ingredientsRelations = relations(ingredients, ({ one }) => ({
@@ -353,18 +387,30 @@ export const recipeNotesRelations = relations(recipeNotes, ({ one }) => ({
   user: one(users, { fields: [recipeNotes.userId], references: [users.id] }),
 }));
 
-export const shoppingListItemsRelations = relations(shoppingListItems, ({ one }) => ({
-  user: one(users, { fields: [shoppingListItems.userId], references: [users.id] }),
-  recipe: one(recipes, { fields: [shoppingListItems.recipeId], references: [recipes.id] }),
-  mealPlanEntry: one(mealPlans, {
-    fields: [shoppingListItems.mealPlanEntryId],
-    references: [mealPlans.id],
+export const shoppingListItemsRelations = relations(
+  shoppingListItems,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [shoppingListItems.userId],
+      references: [users.id],
+    }),
+    recipe: one(recipes, {
+      fields: [shoppingListItems.recipeId],
+      references: [recipes.id],
+    }),
+    mealPlanEntry: one(mealPlans, {
+      fields: [shoppingListItems.mealPlanEntryId],
+      references: [mealPlans.id],
+    }),
   }),
-}));
+);
 
 export const mealPlansRelations = relations(mealPlans, ({ one }) => ({
   user: one(users, { fields: [mealPlans.userId], references: [users.id] }),
-  recipe: one(recipes, { fields: [mealPlans.recipeId], references: [recipes.id] }),
+  recipe: one(recipes, {
+    fields: [mealPlans.recipeId],
+    references: [recipes.id],
+  }),
 }));
 
 export const collectionsRelations = relations(collections, ({ one, many }) => ({
@@ -400,6 +446,8 @@ export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type RecipeNote = typeof recipeNotes.$inferSelect;
 export type NewRecipeNote = typeof recipeNotes.$inferInsert;
+export type RecipeCookLog = typeof recipeCookLogs.$inferSelect;
+export type NewRecipeCookLog = typeof recipeCookLogs.$inferInsert;
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 export type NewShoppingListItem = typeof shoppingListItems.$inferInsert;
 export type MealPlan = typeof mealPlans.$inferSelect;

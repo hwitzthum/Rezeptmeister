@@ -3,15 +3,21 @@
 import {
   useState,
   useEffect,
+  useMemo,
   useRef,
   useCallback,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import { parseSteps } from "@/lib/cooking/parse-steps";
-import { parseTimers, type TimerMatch } from "@/lib/cooking/parse-timers";
+import { parseTimers } from "@/lib/cooking/parse-timers";
+import { linkIngredients } from "@/lib/cooking/link-ingredients";
+import { buildStepSegments, type StepSegment } from "@/lib/cooking/step-segments";
+import { scaleAmount } from "@/lib/cooking/scale";
 import { useSwipe } from "@/lib/cooking/useSwipe";
-import { formatAmount } from "@/lib/units";
+import { ConfirmDialog } from "@/components/ui";
+import SubstitutionDialog, { type SubstitutionTarget } from "@/components/ai/SubstitutionDialog";
+import toast from "react-hot-toast";
 import type { RecipeDetail } from "./RecipeDetailClient";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -19,6 +25,8 @@ import type { RecipeDetail } from "./RecipeDetailClient";
 interface CookingModeProps {
   recipe: RecipeDetail;
   targetServings?: number;
+  /** Gemini-Schlüssel hinterlegt → Ersatz-Assistent anbieten. */
+  hasApiKey?: boolean;
 }
 
 interface ActiveTimer {
@@ -65,18 +73,38 @@ function formatCountdown(seconds: number): string {
 export default function CookingMode({
   recipe,
   targetServings,
+  hasApiKey = false,
 }: CookingModeProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const servings = targetServings ?? recipe.servings;
-  const steps = parseSteps(recipe.instructions);
+  const steps = useMemo(() => parseSteps(recipe.instructions), [recipe.instructions]);
   const totalSteps = steps.length;
+
+  // Zutaten ↔ Schritte: deterministisch verknüpft, einmal pro Rezept berechnet
+  const links = useMemo(
+    () => linkIngredients(steps, recipe.ingredients),
+    [steps, recipe.ingredients],
+  );
+  const segmentsPerStep = useMemo(
+    () => steps.map((text, i) => buildStepSegments(text, parseTimers(text), links.steps[i].spans)),
+    [steps, links],
+  );
+  const ingredientById = useMemo(
+    () => new Map(recipe.ingredients.map((ing) => [ing.id, ing])),
+    [recipe.ingredients],
+  );
+  const unmatchedIds = useMemo(() => new Set(links.unmatchedIngredientIds), [links]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [showIngredients, setShowIngredients] = useState(false);
   const [timers, setTimers] = useState<Map<string, ActiveTimer>>(new Map());
   const [timerFlash, setTimerFlash] = useState<string | null>(null);
+  // «Fertig» auf dem letzten Schritt fragt nach, ob der Kochlog geschrieben werden soll
+  const [showCookedDialog, setShowCookedDialog] = useState(false);
+  const [loggingCooked, setLoggingCooked] = useState(false);
+  const [substitutionTarget, setSubstitutionTarget] = useState<SubstitutionTarget | null>(null);
 
   const intervalRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(
     new Map(),
@@ -189,6 +217,29 @@ export default function CookingMode({
     router.push(`/rezepte/${recipe.id}`);
   }, [router, recipe.id]);
 
+  const finish = useCallback(() => {
+    setShowCookedDialog(true);
+  }, []);
+
+  const confirmCooked = useCallback(async () => {
+    setLoggingCooked(true);
+    try {
+      const res = await fetch(`/api/recipes/${recipe.id}/gekocht`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servings }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Als gekocht eingetragen.");
+    } catch {
+      toast.error("Kochhistorie konnte nicht gespeichert werden.");
+    } finally {
+      setLoggingCooked(false);
+      setShowCookedDialog(false);
+      exit();
+    }
+  }, [recipe.id, servings, exit]);
+
   // Swipe-Gesten
   useSwipe(containerRef, {
     onSwipeLeft: goNext,
@@ -217,36 +268,66 @@ export default function CookingMode({
   // ── Skalierte Zutaten ────────────────────────────────────────────────────
 
   function scaledAmount(amountStr: string | null): string {
-    if (!amountStr) return "";
-    const n = parseFloat(amountStr);
-    if (isNaN(n)) return amountStr;
-    return formatAmount((n * servings) / recipe.servings);
+    return scaleAmount(amountStr, recipe.servings, servings);
+  }
+
+  function substituteButton(ing: { name: string; amount: string | null; unit: string | null }, size: "sm" | "md" = "sm"): ReactNode {
+    if (!hasApiKey) return null;
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          setSubstitutionTarget({ name: ing.name, amount: scaledAmount(ing.amount) || null, unit: ing.unit })
+        }
+        className={[
+          "shrink-0 text-[var(--text-muted)] hover:text-terra-600 dark:hover:text-terra-400 pointer-coarse:min-tap px-1 transition-colors",
+          size === "md" ? "text-sm" : "text-xs",
+        ].join(" ")}
+        aria-label={`Ersatz für ${ing.name} vorschlagen`}
+        title="Ersatz vorschlagen"
+        data-testid="substitute-button"
+      >
+        Ersatz
+      </button>
+    );
+  }
+
+  /** «2 Stk.» — leer, wenn die Zutat keine Menge hat. */
+  function amountLabel(ingredientId: string): string {
+    const ing = ingredientById.get(ingredientId);
+    if (!ing) return "";
+    return [scaledAmount(ing.amount), ing.unit].filter(Boolean).join(" ");
   }
 
   // ── Timer-Rendering im Schritt-Text ──────────────────────────────────────
 
-  function renderStepWithTimers(text: string, stepIndex: number): ReactNode {
-    const timerMatches = parseTimers(text);
-    if (timerMatches.length === 0) return text;
+  function renderSegments(segments: StepSegment[], stepIndex: number): ReactNode {
+    return segments.map((seg, i) => {
+      if (seg.kind === "text") return seg.text;
 
-    const parts: ReactNode[] = [];
-    let lastEnd = 0;
-
-    timerMatches.forEach((tm: TimerMatch, i: number) => {
-      const key = `${stepIndex}-${i}`;
-      const activeTimer = timers.get(key);
-
-      // Text vor dem Timer
-      if (tm.startIndex > lastEnd) {
-        parts.push(text.slice(lastEnd, tm.startIndex));
+      if (seg.kind === "ingredient") {
+        const label = amountLabel(seg.ingredientId);
+        return (
+          <mark
+            key={`ing-${i}`}
+            data-testid={`ingredient-mark-${stepIndex}-${seg.ingredientId}`}
+            className="bg-transparent text-terra-700 dark:text-terra-300 font-semibold underline decoration-terra-300 dark:decoration-terra-700 decoration-2 underline-offset-4"
+          >
+            {seg.text}
+            {label && (
+              <span className="font-normal text-[var(--text-secondary)] no-underline"> ({label})</span>
+            )}
+          </mark>
+        );
       }
 
-      // Timer-Button
-      parts.push(
+      const key = `${stepIndex}-${seg.timerIndex}`;
+      const activeTimer = timers.get(key);
+      return (
         <button
           key={key}
-          onClick={() => startTimer(key, tm.minutes)}
-          data-testid={`timer-button-${stepIndex}-${i}`}
+          onClick={() => startTimer(key, seg.timer.minutes)}
+          data-testid={`timer-button-${stepIndex}-${seg.timerIndex}`}
           className={[
             "inline-flex items-center gap-1.5 px-3 py-1 rounded-full",
             "font-semibold text-sm transition-all duration-200",
@@ -278,19 +359,10 @@ export default function CookingMode({
             ? formatCountdown(activeTimer.remaining)
             : activeTimer && activeTimer.remaining === 0
               ? "Fertig!"
-              : tm.label}
-        </button>,
+              : seg.timer.label}
+        </button>
       );
-
-      lastEnd = tm.endIndex;
     });
-
-    // Restlicher Text
-    if (lastEnd < text.length) {
-      parts.push(text.slice(lastEnd));
-    }
-
-    return parts;
   }
 
   // ── Aktive Timer (laufen im Hintergrund) ─────────────────────────────────
@@ -417,8 +489,40 @@ export default function CookingMode({
             data-testid="step-text"
             style={{ minHeight: "4rem" }}
           >
-            {renderStepWithTimers(steps[currentStep], currentStep)}
+            {renderSegments(segmentsPerStep[currentStep], currentStep)}
           </p>
+
+          {links.steps[currentStep]?.ingredientIds.length > 0 && (
+            <section
+              className="mt-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-4 py-3"
+              data-testid="step-ingredients"
+              aria-label="Zutaten für diesen Schritt"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                Zutaten für diesen Schritt
+              </p>
+              <ul className="space-y-1">
+                {links.steps[currentStep].ingredientIds.map((id) => {
+                  const ing = ingredientById.get(id);
+                  if (!ing) return null;
+                  return (
+                    <li key={id} className="flex items-baseline gap-2 text-base">
+                      <span className="font-semibold text-terra-600 dark:text-terra-400 tabular-nums min-w-[4.5rem] text-right">
+                        {amountLabel(id)}
+                      </span>
+                      <span className="text-[var(--text-primary)] flex-1">
+                        {ing.name}
+                        {ing.isOptional && (
+                          <span className="ml-1 text-sm text-[var(--text-muted)]">(optional)</span>
+                        )}
+                      </span>
+                      {substituteButton(ing)}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
       </main>
 
@@ -466,7 +570,7 @@ export default function CookingMode({
           </div>
 
           <button
-            onClick={currentStep === totalSteps - 1 ? exit : goNext}
+            onClick={currentStep === totalSteps - 1 ? finish : goNext}
             className={[
               "px-5 py-2.5 text-sm font-medium rounded-xl transition-colors pointer-coarse:min-tap shrink-0",
               currentStep === totalSteps - 1
@@ -479,6 +583,34 @@ export default function CookingMode({
           </button>
         </div>
       </footer>
+
+      {/* ── Ersatz-Assistent ───────────────────────────────────────────── */}
+      <SubstitutionDialog
+        open={substitutionTarget !== null}
+        onClose={() => setSubstitutionTarget(null)}
+        target={substitutionTarget}
+        recipeTitle={recipe.title}
+        otherIngredients={recipe.ingredients.map((i) => i.name)}
+      />
+
+      {/* ── Fertig: Kochhistorie ───────────────────────────────────────── */}
+      <ConfirmDialog
+        open={showCookedDialog}
+        title="Als gekocht eintragen?"
+        message={`«${recipe.title}» für ${servings} ${servings === 1 ? "Portion" : "Portionen"} in die Kochhistorie aufnehmen.`}
+        confirmLabel="Ja, eintragen"
+        cancelLabel="Nein"
+        variant="info"
+        loading={loggingCooked}
+        onConfirm={() => {
+          void confirmCooked();
+        }}
+        onClose={() => {
+          if (loggingCooked) return;
+          setShowCookedDialog(false);
+          exit();
+        }}
+      />
 
       {/* ── Zutaten-Overlay ───────────────────────────────────────────── */}
       {showIngredients && (
@@ -525,8 +657,13 @@ export default function CookingMode({
                 {servings} {servings === 1 ? "Portion" : "Portionen"}
               </div>
 
+              {unmatchedIds.size > 0 && unmatchedIds.size < recipe.ingredients.length && (
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                  In den Schritten
+                </p>
+              )}
               <ul className="space-y-3">
-                {recipe.ingredients.map((ing) => {
+                {recipe.ingredients.filter((ing) => !unmatchedIds.has(ing.id)).map((ing) => {
                   const amount = scaledAmount(ing.amount);
                   return (
                     <li key={ing.id} className="flex items-baseline gap-3">
@@ -538,7 +675,7 @@ export default function CookingMode({
                           </span>
                         )}
                       </span>
-                      <span className="text-lg text-[var(--text-primary)]">
+                      <span className="text-lg text-[var(--text-primary)] flex-1">
                         {ing.name}
                         {ing.isOptional && (
                           <span className="ml-1 text-sm text-[var(--text-muted)]">
@@ -546,10 +683,41 @@ export default function CookingMode({
                           </span>
                         )}
                       </span>
+                      {substituteButton(ing, "md")}
                     </li>
                   );
                 })}
               </ul>
+
+              {unmatchedIds.size > 0 && (
+                <div className="mt-5 pt-4 border-t border-[var(--border-subtle)]" data-testid="ingredients-unmatched">
+                  {unmatchedIds.size < recipe.ingredients.length && (
+                    <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                      Weitere Zutaten
+                    </p>
+                  )}
+                  <ul className="space-y-3">
+                    {recipe.ingredients.filter((ing) => unmatchedIds.has(ing.id)).map((ing) => {
+                      const amount = scaledAmount(ing.amount);
+                      return (
+                        <li key={ing.id} className="flex items-baseline gap-3">
+                          <span className="text-2xl font-semibold text-terra-600 w-20 shrink-0 text-right tabular-nums">
+                            {amount}
+                            {ing.unit && <span className="text-base font-normal ml-0.5">{ing.unit}</span>}
+                          </span>
+                          <span className="text-lg text-[var(--text-primary)] flex-1">
+                            {ing.name}
+                            {ing.isOptional && (
+                              <span className="ml-1 text-sm text-[var(--text-muted)]">(optional)</span>
+                            )}
+                          </span>
+                          {substituteButton(ing, "md")}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </>

@@ -83,6 +83,26 @@ class TestExtractRecipeFromImage:
 
         assert result.difficulty in ("einfach", "mittel", "anspruchsvoll", None)
 
+    def test_difficulty_schema_rejects_free_strings(self):
+        """«Einfach»/«leicht» scheiterten bisher erst an der Zod-Validierung beim
+        Speichern — das Schema selbst muss sie ablehnen, damit Gemini den
+        Wertebereich einhält."""
+        from pydantic import ValidationError
+        from app.services.ocr_service import OcrResult
+
+        basis = {"title": "Test", "instructions": "Kochen."}
+        assert OcrResult(**basis, difficulty="einfach").difficulty == "einfach"
+        assert OcrResult(**basis, difficulty=None).difficulty is None
+        for ungueltig in ("Einfach", "leicht", "schwer"):
+            with pytest.raises(ValidationError):
+                OcrResult(**basis, difficulty=ungueltig)
+
+    def test_jsonld_mapping_sets_difficulty_none(self):
+        from app.services.url_import_service import _map_jsonld_to_recipe
+
+        result = _map_jsonld_to_recipe({"name": "Rösti", "recipeIngredient": ["500 g Kartoffeln"]})
+        assert result.difficulty is None
+
 
 class TestExtractRecipesFromImages:
     """Mehrseitiges OCR: alle Seiten in EINEN Gemini-Aufruf, EIN Rezept zurück."""

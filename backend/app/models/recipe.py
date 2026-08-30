@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, Enum as SAEnum, ForeignKey, ARRAY, DECIMAL
+from datetime import date, datetime, timezone
+from sqlalchemy import String, Text, Integer, Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, ARRAY, DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from pgvector.sqlalchemy import Vector
@@ -67,3 +67,16 @@ class RecipeNote(Base):
     rating: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class RecipeCookLog(Base):
+    """Kochhistorie (Phase 21) — Spiegel von recipe_cook_logs in schema.ts."""
+
+    __tablename__ = "recipe_cook_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    recipe_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    cooked_on: Mapped[date] = mapped_column(Date, nullable=False)
+    servings: Mapped[int | None] = mapped_column(Integer)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

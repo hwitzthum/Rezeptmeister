@@ -202,16 +202,18 @@ screen as exclusions, so you get something new.
 Each card shows the two sentences of description, **Warum das passt**, **Das Besondere**, and
 ingredient chips split into what you already have (green) and what you still need to buy (dashed).
 
-### Notes & Ratings
+### Notes, Ratings & Cook History
 
 - Attach notes to any recipe (tip, variation, personal, general)
 - Star ratings (1–5) with average displayed on recipe cards
 - Filter recipe list by note type
 - Edit and delete notes inline
+- **Cook history:** «Heute gekocht» on the recipe page (any date via «Anderes Datum…»), and a prompt when you finish cooking mode. Recipe cards show «3× gekocht», the dashboard lists what you cooked last and what you have not cooked for more than 60 days, and the AI suggestions weigh what you *actually* cook higher than what you merely saved.
 
 ### Meal Planning & Shopping
 
 - **Meal planner:** Weekly calendar, 4 time slots per day (breakfast, lunch, dinner, snack), portion sizes, drag-and-drop reorder
+- **AI week planner («KI-Wochenplan»):** plans from *your own* recipes. Pick days (default Mon–Sun) and slots (default dinner only), «davon vegetarisch», max minutes on weekdays, alternate cuisines, use leftovers, optionally allow up to 3 new dishes, plus a free-text wish. Gemini chooses recipe indices from a compact candidate list (favourites, ratings, cook history, season); a deterministic quality gate checks every rule, asks once for a fix, then fills any remaining slot itself — you never get a half plan. Preview with one reason per slot, remove what you dislike, then «Übernehmen» writes all slots in one transaction (`POST /api/meal-plans/bulk`; occupied slots are skipped unless you tick «überschreiben»).
 - **Shopping list:** Auto-merge duplicate ingredients, aisle categorization
 - **Plan → Shopping:** Generate a full shopping list from the week's plan in one click
 - **Manual entries:** Add custom items to the shopping list
@@ -228,6 +230,8 @@ ingredient chips split into what you already have (green) and what you still nee
 - Full-screen step-by-step mode with Wake Lock API (screen stays on)
 - Swipe gestures to advance steps; minimum 18px font for readability
 - Integrated per-step timers
+- **Ingredients per step:** each step highlights the ingredients it mentions inline with the scaled amount («Zwiebeln (4 Stk.)») and lists them below the step; the overlay separates «Weitere Zutaten» that no step mentions. Fully deterministic (German stemming, compounds like Vollkornmehl/Knoblauchzehen, longest match wins) — no AI call, works offline. The recipe page renders the same numbered steps with a «Zutaten: …» line each.
+- **Substitution assistant («Ersatz»):** next to any ingredient on the recipe page or in cooking mode. Pick a reason (missing, vegan, lactose-free, gluten-free or free text) and get exactly three substitutes with amount, effect on texture/taste/time and a confidence badge; the original can go straight to the shopping list. Quota-exhausted and invalid-key errors are now reported as such instead of a generic 502.
 - Ingredients overlay accessible mid-session
 
 ### Export & Sharing
@@ -235,6 +239,7 @@ ingredient chips split into what you already have (green) and what you still nee
 - Print-optimized CSS with configurable options (include image, portions)
 - PDF export for single recipes and full collections (`@react-pdf/renderer`)
 - Shareable filtered-search URLs
+- **Backup & restore (Einstellungen → «Daten & Backup»):** `GET /api/export` downloads one JSON with all recipes, ingredients, notes, cook history, collections, meal plans and the shopping list (images only as path/URL references; never embeddings or keys). `POST /api/import` restores the same format: it *adds* and never overwrites — recipes with identical title and ingredient names are skipped, collections and meal plans are re-linked to the new IDs, occupied meal-plan slots are left alone, and search embeddings are rebuilt in the background. The file is validated locally before you confirm.
 
 ### Unit Converter
 
@@ -425,7 +430,7 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 
 **Key rule:** Next.js API routes decrypt the user's API key server-side and inject it into each FastAPI request. The key is never sent to the browser and never stored in FastAPI.
 
-### Database Schema (9 Tabellen)
+### Database Schema (10 Tabellen)
 
 | Table | Purpose |
 |-------|-------|
@@ -434,6 +439,7 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 | `ingredients` | Recipe ingredients with amounts and Swiss units |
 | `images` | Recipe photos, source type (`upload`/`ai_generated`/`web_import`), image embeddings |
 | `recipe_notes` | User notes and star ratings on recipes |
+| `recipe_cook_logs` | Cook history: one row per «gekocht am» (date, servings, note) |
 | `shopping_list_items` | Shopping items, checked status, aisle categories |
 | `meal_plans` | Weekly slots (breakfast/lunch/dinner/snack) |
 | `collections` | User-created recipe collections / cookbooks |
@@ -771,6 +777,7 @@ registration, caching and the offline fallback are covered by `phase-17` in the 
 | ---- | ------ |
 | `tests/phase-{1..18}.spec.ts` | One implementation phase each — all 18 implemented and passing |
 | `tests/phase-20.spec.ts` | Dashboard home button on phones, prefix/ingredient search, equal-width action tiles, suggestion cards with reasoning and ingredient chips |
+| `tests/phase-21.spec.ts` | URL-import save bugfix, cook history, ingredients per step, backup/restore, substitution assistant, AI week planner (bulk endpoint, stubbed dialog flow, live Gemini test) |
 | `tests/mobile-navigation.spec.ts` | Every area reachable by tapping (tab bar → *Mehr*, sidebar on tablet); per-page overflow, tap-target and font-size audit |
 | `tests/mobile-erfassen.spec.ts` | `[+]` sheet → all three capture routes; two photos → **one** OCR call with two `imageIds` |
 | `tests/mobile-import.spec.ts` | Share target (`?url=`, `?text=`), manifest wiring, address surviving the login redirect |
@@ -1163,6 +1170,8 @@ docker compose exec backend uv run alembic history
 - [ ] Grocery delivery integration
 - [ ] Social sharing and community ratings
 - [ ] Voice-controlled cooking mode
+- [ ] Persistent pantry with expiry dates (feeds «Was kann ich kochen?» and the shopping list)
+- [ ] Household sharing (shared shopping list and meal plan)
 
 ---
 
@@ -1176,4 +1185,4 @@ docker compose exec backend uv run alembic history
 - **Playwright** — Comprehensive E2E testing
 
 Built for Swiss home cooks.  
-*Last updated: 2026-04-07*
+*Last updated: 2026-08-30*

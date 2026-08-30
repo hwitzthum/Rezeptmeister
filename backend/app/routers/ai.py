@@ -6,6 +6,8 @@ POST /ai/generate-recipe  – Vollständiges Rezept aus Vorschlag generieren
 POST /ai/generate-image   – KI-Bild für ein Rezept generieren und speichern
 POST /ai/scale-recipe     – Rezept auf Portionsgrösse skalieren (mit Gemini-Hinweisen)
 POST /ai/nutrition        – Nährwertberechnung pro Portion
+POST /ai/substitute       – Ersatz für eine fehlende Zutat (Phase 21)
+POST /ai/plan-week        – KI-Wochenplan aus eigenen Rezepten (Phase 21)
 """
 
 import asyncio
@@ -25,7 +27,7 @@ from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.models.image import Image
 from app.routers.embed import _bg_embed_image
-from app.services._utils import get_gemini_client
+from app.services._utils import get_gemini_client, map_gemini_error
 from app.services.ai_service import generate_structured
 from app.services.image_prompt_service import build_image_prompt
 from app.services.suggestion_service import (
@@ -38,6 +40,21 @@ from app.services.suggestion_service import (
     normalize_suggestions,
 )
 from app.services.ocr_service import OcrResult
+from app.services.plan_week_service import (
+    PlanWeekRequest,
+    PlanWeekResponse,
+    PlanWeekResult,
+    build_plan_prompt,
+    build_retry_prompt as build_plan_retry_prompt,
+    find_plan_issues,
+    repair_plan,
+)
+from app.services.substitution_service import (
+    SubstituteRequest,
+    SubstituteResponse,
+    build_substitute_prompt,
+    normalize_substitutes,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["AI"])
@@ -551,3 +568,97 @@ async def calculate_nutrition(
 
     label = f"ca. {per_serving.kcal} kcal"
     return NutritionResponse(per_serving=per_serving, label=label)
+
+
+# ── Ersatz-Assistent (Phase 21) ──────────────────────────────────────────────
+
+
+@router.post("/substitute", response_model=SubstituteResponse)
+async def substitute_ingredient(
+    body: SubstituteRequest,
+    x_gemini_api_key: Optional[str] = Header(None),
+) -> SubstituteResponse:
+    """Drei Ersatzmöglichkeiten für eine fehlende Zutat, mit Menge und Auswirkung."""
+    if not x_gemini_api_key:
+        raise HTTPException(status_code=400, detail="Kein KI-Schlüssel angegeben.")
+
+    prompt = build_substitute_prompt(body)
+    try:
+        raw: SubstituteResponse = await generate_structured(
+            prompt,
+            SubstituteResponse,
+            x_gemini_api_key,
+            settings.gemini_flash_model,
+            temperature=0.4,
+        )
+    except Exception as e:
+        logger.error(f"Substitute-Fehler: {type(e).__name__}: {e}")
+        raise map_gemini_error(e)
+
+    result = normalize_substitutes(raw)
+    if not result.substitutes:
+        logger.error("Substitute: Modell lieferte keine brauchbare Ersatzliste")
+        raise HTTPException(status_code=502, detail="KI-Dienst momentan nicht verfügbar.")
+    return result
+
+
+# ── KI-Wochenplan (Phase 21) ─────────────────────────────────────────────────
+
+PLAN_MAX_OUTPUT_TOKENS = 8192
+PLAN_THINKING_LEVEL = "low"
+
+
+@router.post("/plan-week", response_model=PlanWeekResult)
+async def plan_week(
+    body: PlanWeekRequest,
+    x_gemini_api_key: Optional[str] = Header(None),
+) -> PlanWeekResult:
+    """Wochenplan aus den eigenen Rezepten: Modell wählt, Schranke prüft, Auffüller garantiert Vollständigkeit."""
+    if not x_gemini_api_key:
+        raise HTTPException(status_code=400, detail="Kein KI-Schlüssel angegeben.")
+    if not body.candidates and body.new_suggestions_max == 0:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "no_candidates", "message": "Keine eigenen Rezepte vorhanden."},
+        )
+
+    prompt = build_plan_prompt(body)
+    try:
+        result: PlanWeekResponse = await generate_structured(
+            prompt,
+            PlanWeekResponse,
+            x_gemini_api_key,
+            settings.gemini_flash_model,
+            temperature=0.6,
+            max_output_tokens=PLAN_MAX_OUTPUT_TOKENS,
+            thinking_level=PLAN_THINKING_LEVEL,
+        )
+        entries = list(result.entries)
+
+        issues = find_plan_issues(entries, body)
+        if issues:
+            logger.info(f"Wochenplan: {len(issues)} Beanstandung(en), ein Nachschlag")
+            retry: PlanWeekResponse = await generate_structured(
+                build_plan_retry_prompt(prompt, issues),
+                PlanWeekResponse,
+                x_gemini_api_key,
+                settings.gemini_flash_model,
+                temperature=0.6,
+                max_output_tokens=PLAN_MAX_OUTPUT_TOKENS,
+                thinking_level=PLAN_THINKING_LEVEL,
+            )
+            retry_entries = list(retry.entries)
+            if len(find_plan_issues(retry_entries, body)) < len(issues):
+                entries = retry_entries
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Wochenplan-Fehler: {type(e).__name__}: {e}")
+        raise map_gemini_error(e)
+
+    repaired, filled = repair_plan(entries, body)
+    return PlanWeekResult(
+        entries=repaired,
+        filled_by_fallback=filled,
+        issues_remaining=find_plan_issues(repaired, body),
+    )

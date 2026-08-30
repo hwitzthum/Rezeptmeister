@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import RecipeDetailClient, { type RecipeDetail } from "@/components/recipes/RecipeDetailClient";
 import { thumbnailUrl } from "@/lib/images";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 
 // Deduplicate auth() across generateMetadata + page within the same request
@@ -46,6 +48,13 @@ export default async function RecipeDetailPage({ params }: PageProps) {
 
   if (!recipe) notFound();
 
+  // KI-Funktionen (Ersatz-Assistent) nur mit hinterlegtem Gemini-Schlüssel anbieten
+  const userRow = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { apiKeyEncrypted: true, apiProvider: true },
+  });
+  const hasApiKey = !!userRow?.apiKeyEncrypted && userRow.apiProvider === "gemini";
+
   // Serialisieren für Client-Übergabe (Date → string, thumbnailUrl ableiten)
   const serialized = {
     ...recipe,
@@ -59,5 +68,5 @@ export default async function RecipeDetailPage({ params }: PageProps) {
     })),
   } as RecipeDetail;
 
-  return <RecipeDetailClient recipe={serialized} userId={session.user.id} />;
+  return <RecipeDetailClient recipe={serialized} userId={session.user.id} hasApiKey={hasApiKey} />;
 }

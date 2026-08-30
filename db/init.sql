@@ -116,6 +116,19 @@ CREATE TABLE recipe_notes (
 );
 
 -- -------------------------------------------------------
+-- recipe_cook_logs (Phase 21: Kochhistorie, tagesgenau)
+-- -------------------------------------------------------
+CREATE TABLE recipe_cook_logs (
+    id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    recipe_id  UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cooked_on  DATE NOT NULL,
+    servings   INTEGER,
+    note       TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- -------------------------------------------------------
 -- shopping_list_items
 -- -------------------------------------------------------
 CREATE TABLE shopping_list_items (
@@ -232,7 +245,8 @@ $$;
 
 CREATE INDEX idx_recipes_title_norm_trgm ON recipes USING GIN (rm_normalize(title) gin_trgm_ops);
 CREATE INDEX idx_ingredients_name_norm_trgm ON ingredients USING GIN (rm_normalize(name) gin_trgm_ops);
-CREATE INDEX idx_ingredients_recipe_id ON ingredients (recipe_id);
+CREATE INDEX idx_recipe_cook_logs_recipe ON recipe_cook_logs (user_id, recipe_id, cooked_on);
+CREATE INDEX idx_recipe_cook_logs_user_date ON recipe_cook_logs (user_id, cooked_on);
 
 -- -------------------------------------------------------
 -- updated_at Trigger

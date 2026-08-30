@@ -268,6 +268,7 @@ export default function RezeptListeClient({
                   isFavorite={recipe.isFavorite}
                   tags={recipe.tags ?? undefined}
                   averageRating={recipe.averageRating ?? undefined}
+                  cookCount={recipe.cookCount}
                   imageUrl={recipe.thumbnailUrl ?? undefined}
                   onClick={() => router.push(`/rezepte/${recipe.id}`)}
                   onFavoriteToggle={(id, newState) =>

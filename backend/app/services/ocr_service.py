@@ -6,7 +6,7 @@ automatisch in Schweizer Masseinheiten.
 """
 
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from google.genai import types
 from pydantic import BaseModel, Field
@@ -35,7 +35,10 @@ class OcrResult(BaseModel):
     servings: Optional[int] = Field(None, description="Anzahl Portionen")
     prep_time_minutes: Optional[int] = Field(None, description="Vorbereitungszeit in Minuten")
     cook_time_minutes: Optional[int] = Field(None, description="Koch-/Backzeit in Minuten")
-    difficulty: Optional[str] = Field(
+    # Literal statt str: Geminis Structured Output erzwingt damit den
+    # Wertebereich selbst. Freie Strings («Einfach», «leicht») scheiterten
+    # sonst erst beim Speichern an der Zod-Validierung von POST /api/recipes.
+    difficulty: Optional[Literal["einfach", "mittel", "anspruchsvoll"]] = Field(
         None,
         description="Schwierigkeitsgrad: einfach, mittel oder anspruchsvoll",
     )

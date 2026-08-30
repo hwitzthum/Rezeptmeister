@@ -93,37 +93,30 @@ async function settle(page: Page) {
 }
 
 async function createRecipe(page: Page, suffix: string): Promise<string> {
-  const resp = await page.evaluate(
-    async (title: string) => {
-      const res = await fetch("/api/recipes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          instructions: "Schritt 1: Zwiebeln andünsten.\nSchritt 2: Servieren.",
-          servings: 4,
-          totalTimeMinutes: 30,
-          difficulty: "einfach",
-          category: "Hauptgericht",
-          ingredients: [
-            { name: "Zwiebeln", amount: 2, unit: "Stk.", sortOrder: 0, isOptional: false },
-            { name: "Butter", amount: 1, unit: "EL", sortOrder: 1, isOptional: false },
-          ],
-        }),
-      });
-      if (!res.ok) return { error: await res.text() };
-      return res.json();
+  // Ueber `page.request` statt `page.evaluate(fetch)`: der Aufruf haengt so
+  // nicht am Dokument. Im Dev-Server loest ein Vollreload (HMR nach frisch
+  // kompilierter Route) sonst ein laufendes `fetch` ab — WebKit meldet dann
+  // «TypeError: Load failed», reproduzierbar direkt nach einem Besuch von `/offline`.
+  const res = await page.request.post("/api/recipes", {
+    data: {
+      title: `Mobil-${suffix}-${RUN_ID}`,
+      instructions: "Schritt 1: Zwiebeln andünsten.\nSchritt 2: Servieren.",
+      servings: 4,
+      totalTimeMinutes: 30,
+      difficulty: "einfach",
+      category: "Hauptgericht",
+      ingredients: [
+        { name: "Zwiebeln", amount: 2, unit: "Stk.", sortOrder: 0, isOptional: false },
+        { name: "Butter", amount: 1, unit: "EL", sortOrder: 1, isOptional: false },
+      ],
     },
-    `Mobil-${suffix}-${RUN_ID}`,
-  );
-  if ("error" in resp) throw new Error(`Rezept erstellen fehlgeschlagen: ${resp.error}`);
-  return (resp as { id: string }).id;
+  });
+  if (!res.ok()) throw new Error(`Rezept erstellen fehlgeschlagen: ${await res.text()}`);
+  return ((await res.json()) as { id: string }).id;
 }
 
 async function deleteRecipe(page: Page, id: string) {
-  await page
-    .evaluate((rid) => fetch(`/api/recipes/${rid}`, { method: "DELETE" }).then(() => null), id)
-    .catch(() => null);
+  await page.request.delete(`/api/recipes/${id}`).catch(() => null);
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ class TasteProfile(BaseModel):
     vorhandeneTitel: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=80)
     favoritenTitel: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=30)
     bestbewerteteTitel: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=20)
+    haeufigGekochteTitel: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=20)
     haeufigsteKuechen: list[WertAnzahl] = Field(default=[], max_length=10)
     haeufigsteKategorien: list[WertAnzahl] = Field(default=[], max_length=10)
     haeufigsteZutaten: list[Annotated[str, Field(max_length=100)]] = Field(default=[], max_length=30)
@@ -120,6 +121,12 @@ def build_suggest_prompt(body: SuggestRequest) -> str:
         )
     if p and p.bestbewerteteTitel:
         teile.append("Am besten bewertet: " + _bullet(p.bestbewerteteTitel))
+    if p and p.haeufigGekochteTitel:
+        teile.append(
+            "Laut Kochhistorie am häufigsten tatsächlich gekocht — das zählt "
+            "mehr als Gespeichertes, denn es zeigt, was wirklich auf den Tisch kommt: "
+            + _bullet(p.haeufigGekochteTitel)
+        )
     if p and p.haeufigsteKuechen:
         teile.append(
             "Häufigste Küchen: "

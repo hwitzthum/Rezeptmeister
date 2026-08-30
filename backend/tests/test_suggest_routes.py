@@ -37,6 +37,7 @@ def make_profile() -> TasteProfile:
         vorhandeneTitel=["Berner Rösti", "Basler Mehlsuppe", "Zopf"],
         favoritenTitel=["Berner Rösti"],
         bestbewerteteTitel=["Basler Mehlsuppe"],
+        haeufigGekochteTitel=["Zopf", "Berner Rösti"],
         haeufigsteKuechen=[WertAnzahl(wert="Schweizer", anzahl=12)],
         haeufigsteKategorien=[WertAnzahl(wert="Hauptgang", anzahl=9)],
         haeufigsteZutaten=["butter", "zwiebeln"],
@@ -100,6 +101,17 @@ def make_five(titles: list[str] | None = None) -> list[RecipeSuggestion]:
 
 
 class TestPrompt:
+    def test_prompt_nennt_die_kochhistorie(self):
+        prompt = build_suggest_prompt(make_request())
+        assert "Kochhistorie" in prompt
+        assert "Zopf" in prompt
+
+    def test_prompt_ohne_kochhistorie_bleibt_still(self):
+        profil = make_profile()
+        profil.haeufigGekochteTitel = []
+        prompt = build_suggest_prompt(make_request(taste_profile=profil))
+        assert "Kochhistorie" not in prompt
+
     def test_nennt_die_sammlung_als_ausschluss(self):
         prompt = build_suggest_prompt(make_request())
         assert "Berner Rösti" in prompt
