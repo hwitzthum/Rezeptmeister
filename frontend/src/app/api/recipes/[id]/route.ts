@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipes, ingredients, users } from "@/lib/db/schema";
@@ -11,6 +12,13 @@ import { recipeOwnerCondition } from "@/lib/db/helpers";
 import { decrypt } from "@/lib/crypto";
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Teilaktualisierung von der Detailseite aus (heute: nur der Titel).
+// Gleiche Grenzen wie recipeBodySchema.title, damit PUT und PATCH nicht
+// auseinanderlaufen.
+const recipePatchSchema = z.object({
+  title: z.string().trim().min(1, "Titel ist erforderlich.").max(500),
+});
 
 // ── GET /api/recipes/[id] ─────────────────────────────────────────────────────
 
@@ -253,4 +261,99 @@ export async function DELETE(
   }
 
   return new Response(null, { status: 204 });
+}
+
+// ── PATCH /api/recipes/[id] ───────────────────────────────────────────────────
+// Inline-Bearbeitung einzelner Felder ohne den vollen Rezeptkörper (PUT).
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
+
+  const ip = getClientIp(request);
+  const rl = await checkRateLimitDistributed(`recipes-update:${ip}`);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
+  }
+
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Ungültiger JSON-Body." }, { status: 400 });
+  }
+
+  const parsed = recipePatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validierungsfehler.", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const existing = await db.query.recipes.findFirst({
+    where: eq(recipes.id, id),
+    columns: { id: true, userId: true, description: true, instructions: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Rezept nicht gefunden." }, { status: 404 });
+  }
+
+  if (existing.userId !== session.user.id && session.user.role !== USER_ROLE.admin) {
+    return NextResponse.json({ error: "Nicht autorisiert." }, { status: 403 });
+  }
+
+  const { title } = parsed.data;
+
+  try {
+    const [updated] = await db
+      .update(recipes)
+      .set({ title, updatedAt: new Date() })
+      .where(eq(recipes.id, id))
+      .returning({ id: recipes.id, title: recipes.title, updatedAt: recipes.updatedAt });
+
+    // Der Titel steckt im Embedding-Text — Semantische Suche nachziehen.
+    const backendUrl = process.env.BACKEND_URL;
+    if (backendUrl) {
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+        columns: { apiKeyEncrypted: true, apiProvider: true },
+      });
+      let geminiKey: string | null = null;
+      if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
+        try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
+      }
+      const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
+      fetch(`${backendUrl}/embed/text`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          recipe_id: id,
+          text: [title, existing.description, existing.instructions]
+            .filter(Boolean)
+            .join(" "),
+        }),
+        signal: AbortSignal.timeout(60_000),
+      }).catch((err) => {
+        console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
+      });
+    }
+
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error("Fehler beim Aktualisieren des Titels:", err);
+    return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
+  }
 }

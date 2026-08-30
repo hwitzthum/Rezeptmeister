@@ -27,6 +27,7 @@ from app.models.image import Image
 from app.routers.embed import _bg_embed_image
 from app.services._utils import get_gemini_client
 from app.services.ai_service import generate_structured
+from app.services.image_prompt_service import build_image_prompt
 from app.services.suggestion_service import (
     SuggestRequest,
     SuggestResponse,
@@ -226,24 +227,17 @@ async def generate_image(
     if not x_gemini_api_key:
         raise HTTPException(status_code=400, detail="Kein KI-Schlüssel angegeben.")
 
-    # Prompt aufbauen
-    ingredients_hint = ""
-    if body.ingredients:
-        ingredients_hint = f"Zutaten: {', '.join(body.ingredients[:8])}. "
-    category_hint = f"Kategorie: {body.category}. " if body.category else ""
-    prompt = (
-        f"Ein ansprechendes, professionelles Lebensmittelfoto des Schweizer Gerichts '{body.title}'. "
-        f"{ingredients_hint}{category_hint}"
-        "Natürliches Licht, rustikaler Holztisch, frische Zutaten im Hintergrund. "
-        "Hochwertige Food-Fotografie, kein Text im Bild."
-    )
-
     # Gemini Image Generation aufrufen (mit Retry bei fehlendem Bild)
     client = get_gemini_client(x_gemini_api_key)
     image_bytes: Optional[bytes] = None
     max_attempts = 3
 
     for attempt in range(1, max_attempts + 1):
+        # Pro Aufruf und Versuch eine andere Bildsprache — sonst gleichen sich
+        # alle Bilder einer Sammlung (siehe image_prompt_service).
+        prompt = build_image_prompt(
+            body.title, body.ingredients, body.category, seed=uuid.uuid4().hex
+        )
         try:
             response = await client.aio.models.generate_content(
                 model=settings.gemini_image_gen_model,

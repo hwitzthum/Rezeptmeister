@@ -225,6 +225,62 @@ test.describe("3.3 – Rezeptdetailansicht", () => {
     await expect(page.getByText("Zubereitung")).toBeVisible();
   });
 
+  test("Titel inline im Hero bearbeiten", async ({ page }) => {
+    await page.goto(`/rezepte/${recipeId}`);
+    await page.waitForLoadState("networkidle");
+
+    await page.getByTestId("title-edit").click();
+    const input = page.getByTestId("title-input");
+    await expect(input).toBeVisible();
+    await input.fill(`Umbenannt-${RUN_ID}`);
+    await input.press("Enter");
+
+    await expect(
+      page.getByRole("heading", { name: `Umbenannt-${RUN_ID}` }),
+    ).toBeVisible({ timeout: 8_000 });
+
+    // Bleibt nach dem Neuladen — der Titel ist gespeichert, nicht nur angezeigt
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: `Umbenannt-${RUN_ID}` }),
+    ).toBeVisible({ timeout: 8_000 });
+  });
+
+  test("Titel-Bearbeitung abbrechen verwirft den Entwurf", async ({ page }) => {
+    await page.goto(`/rezepte/${recipeId}`);
+    await page.waitForLoadState("networkidle");
+
+    await page.getByTestId("title-edit").click();
+    const input = page.getByTestId("title-input");
+    await input.fill("Verworfen");
+    await input.press("Escape");
+
+    await expect(page.getByTestId("title-input")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: `Detail-${RUN_ID}` }),
+    ).toBeVisible();
+  });
+
+  test("API PATCH /api/recipes/[id] – leerer Titel → 400, unauthentifiziert → 401", async ({
+    page,
+    request,
+  }) => {
+    const bad = await page.evaluate(async (id: string) => {
+      const res = await fetch(`/api/recipes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "   " }),
+      });
+      return res.status;
+    }, recipeId);
+    expect(bad).toBe(400);
+
+    const anon = await request.patch(`/api/recipes/${recipeId}`, {
+      data: { title: "Fremd" },
+    });
+    expect(anon.status()).toBe(401);
+  });
+
   test("Portionsrechner skaliert korrekt", async ({ page }) => {
     await page.goto(`/rezepte/${recipeId}`);
     await page.waitForLoadState("networkidle");

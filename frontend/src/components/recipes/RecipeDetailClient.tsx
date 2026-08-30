@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil, Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, ConfirmDialog, DifficultyBadge, LinkButton } from "@/components/ui";
@@ -75,6 +76,11 @@ export default function RecipeDetailClient({
 }) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(recipe.isFavorite);
+  // Titel wird inline im Hero bearbeitet — ohne Umweg über das Formular.
+  const [title, setTitle] = useState(recipe.title);
+  const [titleDraft, setTitleDraft] = useState(recipe.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [savingTitle, setSavingTitle] = useState(false);
   const [targetServings, setTargetServings] = useState(recipe.servings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -89,6 +95,52 @@ export default function RecipeDetailClient({
     !!generatedImageUrl ||
     recipe.images.some((i) => i.isPrimary) ||
     recipe.images.length > 0;
+
+  // ── Titel inline bearbeiten ───────────────────────────────────────────────
+
+  function startTitleEdit() {
+    setTitleDraft(title);
+    setEditingTitle(true);
+  }
+
+  function cancelTitleEdit() {
+    setEditingTitle(false);
+    setTitleDraft(title);
+  }
+
+  async function saveTitle() {
+    const next = titleDraft.trim();
+    if (!next) {
+      toast.error("Titel ist erforderlich.");
+      return;
+    }
+    if (next === title) {
+      setEditingTitle(false);
+      return;
+    }
+    setSavingTitle(true);
+    try {
+      const res = await fetch(`/api/recipes/${recipe.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: next }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? "Titel konnte nicht gespeichert werden.");
+      }
+      const data = (await res.json()) as { title: string };
+      setTitle(data.title);
+      setEditingTitle(false);
+      toast.success("Titel gespeichert.");
+      // Server-Metadaten (Tab-Titel) und Listen nachziehen
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Titel konnte nicht gespeichert werden.");
+    } finally {
+      setSavingTitle(false);
+    }
+  }
 
   // ── Favorit ───────────────────────────────────────────────────────────────
 
@@ -206,7 +258,7 @@ export default function RecipeDetailClient({
             <div className="hidden lg:flex items-center gap-2">
               <AddToShoppingListButton
                 recipeId={recipe.id}
-                recipeTitle={recipe.title}
+                recipeTitle={title}
               />
               <AddToCollectionButton recipeId={recipe.id} />
               <OfflineToggleButton recipe={recipe} userId={userId} />
@@ -271,7 +323,7 @@ export default function RecipeDetailClient({
                     >
                       <AddToShoppingListButton
                         recipeId={recipe.id}
-                        recipeTitle={recipe.title}
+                        recipeTitle={title}
                       />
                     </div>
                     <div
@@ -331,7 +383,7 @@ export default function RecipeDetailClient({
           return displaySrc ? (
             <Image
               src={displaySrc}
-              alt={recipe.title}
+              alt={title}
               fill
               sizes="100vw"
               priority
@@ -370,7 +422,7 @@ export default function RecipeDetailClient({
         <div className="absolute bottom-3 left-3 z-10">
           <GenerateImageButton
             recipeId={recipe.id}
-            title={recipe.title}
+            title={title}
             ingredients={recipe.ingredients.map((i) => i.name)}
             category={recipe.category ?? ""}
             hasExistingImage={hasPrimaryImage}
@@ -378,11 +430,60 @@ export default function RecipeDetailClient({
           />
         </div>
 
-        {/* Titel im Hero */}
+        {/* Titel im Hero — per Stift direkt bearbeitbar */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5),0_1px_3px_rgba(0,0,0,0.4)]">
-            {recipe.title}
-          </h1>
+          {editingTitle ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(e) => { e.preventDefault(); void saveTitle(); }}
+            >
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") cancelTitleEdit(); }}
+                maxLength={500}
+                autoFocus
+                aria-label="Titel"
+                data-testid="title-input"
+                disabled={savingTitle}
+                className="flex-1 min-w-0 rounded-xl bg-white/95 dark:bg-warm-900/95 px-3 py-2 text-xl sm:text-2xl font-bold text-[var(--text-primary)] shadow-sm focus:outline-none focus:ring-2 focus:ring-terra-400"
+              />
+              <button
+                type="submit"
+                disabled={savingTitle}
+                aria-label="Titel speichern"
+                data-testid="title-save"
+                className="min-tap shrink-0 rounded-xl bg-terra-500 p-2.5 text-white shadow-sm hover:bg-terra-600 disabled:opacity-60"
+              >
+                <Check className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={cancelTitleEdit}
+                disabled={savingTitle}
+                aria-label="Bearbeiten abbrechen"
+                className="min-tap shrink-0 rounded-xl bg-white/90 dark:bg-warm-900/90 p-2.5 text-[var(--text-secondary)] shadow-sm hover:bg-white disabled:opacity-60"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-end gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5),0_1px_3px_rgba(0,0,0,0.4)]">
+                {title}
+              </h1>
+              <button
+                type="button"
+                onClick={startTitleEdit}
+                aria-label="Titel bearbeiten"
+                data-testid="title-edit"
+                className="min-tap shrink-0 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -633,7 +734,7 @@ export default function RecipeDetailClient({
       <ConfirmDialog
         open={showDeleteDialog}
         title="Rezept löschen"
-        message={`Möchten Sie "${recipe.title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
+        message={`Möchten Sie "${title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
         confirmLabel="Löschen"
         cancelLabel="Abbrechen"
         variant="danger"
