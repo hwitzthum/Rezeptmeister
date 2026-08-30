@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { recipes, recipeNotes } from "@/lib/db/schema";
+import { recipes, recipeNotes, recipeCookLogs } from "@/lib/db/schema";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { thumbnailUrl } from "@/lib/images";
@@ -44,6 +44,8 @@ export interface RecipeListItem {
   isFavorite: boolean;
   tags: string[] | null;
   averageRating: number | null;
+  /** Einträge in der Kochhistorie des Nutzers. */
+  cookCount: number;
   thumbnailUrl: string | null;
 }
 
@@ -240,6 +242,26 @@ export async function listRecipes(
     );
   }
 
+  // Kochhistorie: Zähler je Rezept in einer Aggregation (Phase 21)
+  let cookCountMap: Record<string, number> = {};
+  if (rawRows.length > 0) {
+    const recipeIds = rawRows.map((r) => r.id);
+    const cookRows = await db
+      .select({
+        recipeId: recipeCookLogs.recipeId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(recipeCookLogs)
+      .where(
+        and(
+          inArray(recipeCookLogs.recipeId, recipeIds),
+          eq(recipeCookLogs.userId, userId),
+        ),
+      )
+      .groupBy(recipeCookLogs.recipeId);
+    cookCountMap = Object.fromEntries(cookRows.map((r) => [r.recipeId, r.count]));
+  }
+
   const rows: RecipeListItem[] = rawRows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -253,6 +275,7 @@ export async function listRecipes(
     tags: r.tags,
     thumbnailUrl: r.thumbnailPath ? thumbnailUrl(r.thumbnailPath) : null,
     averageRating: ratingsMap[r.id] ?? null,
+    cookCount: cookCountMap[r.id] ?? 0,
   }));
 
   // Faceted counts (optional, only when includeFacets=true)

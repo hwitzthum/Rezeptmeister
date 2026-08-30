@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
+import { relativeDate } from "@/lib/format";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,16 +47,6 @@ const TYPE_BADGE: Record<NoteType, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function relativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return "Heute";
-  if (days === 1) return "Gestern";
-  if (days < 7) return `vor ${days} Tagen`;
-  if (days < 30) return `vor ${Math.floor(days / 7)} Wochen`;
-  if (days < 365) return `vor ${Math.floor(days / 30)} Monaten`;
-  return `vor ${Math.floor(days / 365)} Jahren`;
-}
 
 // ── Star Components ───────────────────────────────────────────────────────────
 

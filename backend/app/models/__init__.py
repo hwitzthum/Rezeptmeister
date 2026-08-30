@@ -1,4 +1,4 @@
-from app.models.recipe import Recipe, Ingredient, RecipeNote
+from app.models.recipe import Recipe, Ingredient, RecipeNote, RecipeCookLog
 from app.models.user import User
 from app.models.image import Image
 from app.models.shopping import ShoppingListItem
@@ -11,6 +11,7 @@ __all__ = [
     "Recipe",
     "Ingredient",
     "RecipeNote",
+    "RecipeCookLog",
     "Image",
     "ShoppingListItem",
     "MealPlan",

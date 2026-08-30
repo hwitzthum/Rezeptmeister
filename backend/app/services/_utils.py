@@ -114,3 +114,30 @@ def get_gemini_client(api_key: str) -> genai.Client:
     Klartext im Speicher gehalten.
     """
     return genai.Client(api_key=api_key)
+
+
+def map_gemini_error(exc: Exception, fallback: str = "KI-Dienst momentan nicht verfügbar.") -> "HTTPException":
+    """
+    Übersetzt Gemini-Fehler in HTTP-Antworten, die der Nutzerin etwas sagen.
+
+    Bisher wurde alles auf 502 «nicht verfügbar» abgebildet — ein erschöpftes
+    Kontingent und ein ungültiger Schlüssel sahen gleich aus. Das `detail`-
+    Objekt mit `message` reicht der Next.js-Proxy als kuratierte Meldung durch;
+    rohe Fehlertexte bleiben im Log.
+    """
+    from fastapi import HTTPException
+    from google.genai import errors as genai_errors
+
+    if isinstance(exc, genai_errors.ClientError):
+        code = getattr(exc, "code", None)
+        if code == 429:
+            return HTTPException(
+                status_code=429,
+                detail={"code": "quota", "message": "Kontingent des KI-Schlüssels erschöpft — bitte später erneut versuchen."},
+            )
+        if code in (400, 401, 403):
+            return HTTPException(
+                status_code=400,
+                detail={"code": "invalid_key", "message": "KI-Schlüssel ungültig oder ohne Berechtigung — bitte in den Einstellungen prüfen."},
+            )
+    return HTTPException(status_code=502, detail=fallback)

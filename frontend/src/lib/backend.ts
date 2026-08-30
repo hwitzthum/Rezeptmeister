@@ -103,7 +103,21 @@ export async function proxyAiRequest(
       422: "Ungültige Eingabedaten.",
       429: "Zu viele Anfragen.",
     };
-    const detail = safeMessages[backendRes.status] ?? fallbackError;
+    // Ausnahme: ein `detail`-Objekt mit `message` ist eine vom Backend
+    // kuratierte Meldung für die Nutzerin (z. B. Kontingent erschöpft,
+    // Schlüssel ungültig — siehe map_gemini_error). Nur diese Form wird
+    // durchgereicht; Strings und Arrays bleiben hinter der generischen Meldung.
+    let curated: string | null = null;
+    try {
+      const payload = (await backendRes.json()) as { detail?: unknown };
+      const d = payload.detail;
+      if (d && typeof d === "object" && !Array.isArray(d) && typeof (d as { message?: unknown }).message === "string") {
+        curated = (d as { message: string }).message;
+      }
+    } catch {
+      /* kein JSON-Body */
+    }
+    const detail = curated ?? safeMessages[backendRes.status] ?? fallbackError;
     return NextResponse.json({ error: detail }, { status: backendRes.status });
   }
 

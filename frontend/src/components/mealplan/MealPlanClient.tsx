@@ -25,6 +25,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui";
 import MealSlot from "./MealSlot";
 import RecipePickerDialog from "./RecipePickerDialog";
+import PlanWeekDialog from "./PlanWeekDialog";
 import HomeLink from "@/components/layout/HomeLink";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +51,8 @@ interface MealPlanClientProps {
   initialEntries: MealPlanEntry[];
   recipes: RecipeOption[];
   initialWeekStart: string;
+  /** Gemini-Schlüssel hinterlegt → KI-Wochenplan anbieten. */
+  hasApiKey?: boolean;
 }
 
 // ── Meal Type Constants ──────────────────────────────────────────────────────
@@ -74,6 +77,7 @@ export default function MealPlanClient({
   initialEntries,
   recipes,
   initialWeekStart,
+  hasApiKey = false,
 }: MealPlanClientProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(initialWeekStart);
   const [entries, setEntries] = useState<MealPlanEntry[]>(initialEntries);
@@ -83,6 +87,7 @@ export default function MealPlanClient({
     mealType: string;
   } | null>(null);
   const [generatingList, setGeneratingList] = useState(false);
+  const [showPlanDialog, setShowPlanDialog] = useState(false);
   const dndId = useId();
 
   const sensors = useSensors(
@@ -393,6 +398,18 @@ export default function MealPlanClient({
             </button>
 
             <Button
+              variant="primary"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={() => setShowPlanDialog(true)}
+              disabled={!hasApiKey}
+              title={hasApiKey ? undefined : "Bitte API-Schlüssel in Einstellungen hinterlegen"}
+              data-testid="meal-plan-ai-button"
+            >
+              KI-Wochenplan
+            </Button>
+
+            <Button
               variant="outline"
               size="sm"
               className="flex-1 sm:flex-none"
@@ -545,6 +562,17 @@ export default function MealPlanClient({
           </DndContext>
         )}
       </main>
+
+      {/* KI-Wochenplan */}
+      <PlanWeekDialog
+        open={showPlanDialog}
+        onClose={() => setShowPlanDialog(false)}
+        weekStart={currentWeekStart}
+        occupiedKeys={new Set(entries.map((e) => `${e.date}-${e.mealType}`))}
+        onApplied={() => {
+          void fetchWeek(currentWeekStart);
+        }}
+      />
 
       {/* Recipe Picker Dialog */}
       <RecipePickerDialog

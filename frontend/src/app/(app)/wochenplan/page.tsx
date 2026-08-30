@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { mealPlans, recipes } from "@/lib/db/schema";
+import { mealPlans, recipes, users } from "@/lib/db/schema";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import {
   startOfWeek,
@@ -58,6 +58,12 @@ export default async function WochenplanPage() {
     .where(eq(recipes.userId, session.user.id))
     .orderBy(asc(recipes.title));
 
+  const userRow = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { apiKeyEncrypted: true, apiProvider: true },
+  });
+  const hasApiKey = !!userRow?.apiKeyEncrypted && userRow.apiProvider === "gemini";
+
   // Serialize createdAt for JSON transfer
   const serialized = entries.map((e) => ({
     ...e,
@@ -69,6 +75,7 @@ export default async function WochenplanPage() {
       initialEntries={serialized}
       recipes={recipesList}
       initialWeekStart={mondayISO}
+      hasApiKey={hasApiKey}
     />
   );
 }

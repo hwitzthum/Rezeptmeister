@@ -510,6 +510,60 @@
 - [x] **20.6.10** Tests dazu: `install-hint.test.ts` (16 Unit), `mobile-install.spec.ts` (7 E2E auf iPhone, Pixel und iPad)
 
 
+## Phase 21 – Kochhistorie, strukturierte Schritte, Backup, KI-Wochenplan, Ersatz-Assistent
+
+**Quelle:** Feature-Vergleich mit Paprika/Mela/Crouton/Samsung Food; fünf vom Nutzer ausgewählte Verbesserungen, dazu ein Bugbericht der Nutzerin (URL-Import → «Validierungsfehler» beim Speichern).
+**Branch:** `feature/kochhistorie-schritte-backup-wochenplan`.
+
+### 21.0 Bugfix: «Validierungsfehler» beim Speichern nach URL-Import
+- [x] **21.0.1** Wurzel: Extraktionen (URL/OCR/KI) gingen unnormalisiert an `POST /api/recipes` — `difficulty` «Einfach»/«leicht» (Backend `Optional[str]`), Menge 0, leere Zutatennamen, >20 oder >50 Zeichen lange Tags, ungerundete Zeiten; das Select zeigte den ungültigen Wert nicht einmal an, der Client verwarf die `details` des Servers
+- [x] **21.0.2** `lib/recipes/from-extraction.ts`: `toRecipePayload()` normalisiert deterministisch auf `recipeBodySchema` (Schwierigkeits-Synonyme, Mengen, Namen, Tags, Limits, Rundung) und prüft sich selbst gegen das Schema; `formatValidationDetails()` nennt das betroffene Feld auf Deutsch
+- [x] **21.0.3** `OcrPreviewPanel.tsx` und `RecipeSuggestions.tsx` bauen den Body nur noch darüber; Schwierigkeit wird beim Öffnen normalisiert, damit das Select stimmt
+- [x] **21.0.4** Backend: `OcrResult.difficulty` als `Literal["einfach","mittel","anspruchsvoll"]` — Geminis Structured Output erzwingt den Wertebereich (OCR, URL-Import, Rezeptgenerierung)
+- [x] **21.0.5** Tests: `from-extraction.test.ts` (13 Unit), Pytest (Literal-Ablehnung, JSON-LD → `None`), E2E mit gestubbtem Import (difficulty «Einfach», Menge 0, 25 Tags → speichert)
+
+### 21.1 Kochhistorie
+- [x] **21.1.1** Tabelle `recipe_cook_logs` (tagesgenau, Zurich-Datum): `schema.ts`, `drizzle/0005_recipe_cook_logs.sql` + Journal, `db/init.sql`, SQLAlchemy-Spiegel, Alembic `0003_recipe_cook_logs`
+- [x] **21.1.2** API `GET/POST /api/recipes/[id]/gekocht`, `DELETE …/gekocht/[logId]` (Zukunftsdaten abgelehnt, nur eigene Einträge)
+- [x] **21.1.3** `lib/format.ts`: `relativeDate()` (aus `NotesPanel` ausgelagert, kalendertaggenau) und `zurichDateISO()` (aus dem Dashboard ausgelagert)
+- [x] **21.1.4** `CookLogPanel.tsx` in der Detailansicht: «Heute gekocht», «Anderes Datum…», Liste mit Entfernen; Kochmodus «Fertig» fragt «Als gekocht eintragen?» (Nein → nur beenden)
+- [x] **21.1.5** Rezeptkarte «3× gekocht» (`cookCount` in `lib/recipes/list.ts`), Dashboard-Widget «Zuletzt gekocht» + «Lange nicht mehr gekocht» (≥2× gekocht, >60 Tage)
+- [x] **21.1.6** Geschmacksprofil `haeufigGekochteTitel` (Next + Backend-Prompt «wird tatsächlich gekocht»)
+- [x] **21.1.7** Tests: `format.test.ts`, `cook-log.integration.test.ts` (echte Postgres: Zähler, Profil, Cascade), Pytest Prompt, 3 E2E
+
+### 21.2 Strukturierte Schritte mit Zutaten-Verknüpfung
+- [x] **21.2.1** `lib/cooking/link-ingredients.ts`: längenerhaltende Normalisierung, beidseitiges Stemming (Plurale, Irregulare, Umlaut-Plurale), Komposita (Vollkornmehl, Knoblauchzehen), Qualifier/Einheiten-Filter, «und»-Splits, längster Treffer gewinnt, überlappungsfrei
+- [x] **21.2.2** `lib/cooking/step-segments.ts` (Timer gewinnen, Timer-Indizes stabil), `lib/cooking/scale.ts` (ersetzt zwei duplizierte `scaledAmount`)
+- [x] **21.2.3** Kochmodus: Inline-`<mark>` mit skalierter Menge, Panel «Zutaten für diesen Schritt», Overlay «In den Schritten» / «Weitere Zutaten»; alles memoisiert
+- [x] **21.2.4** Detailseite: Zubereitung als nummerierte Schritte (gleicher Parser wie Kochmodus) mit Zeile «Zutaten: …»
+- [x] **21.2.5** Tests: `link-ingredients.test.ts` (22), `step-segments.test.ts` (4), 2 E2E, Phase-13-Regression grün
+
+### 21.3 Daten-Export und Backup
+- [x] **21.3.1** `lib/backup/schema.ts` (zod, baut auf `recipeBodySchema` auf — eine Quelle für Export und Import), `serialize.ts` (rein), `duplicates.ts`
+- [x] **21.3.2** `lib/recipes/create.ts`: Cascade-Insert aus `POST /api/recipes` ausgelagert (`createRecipe`), Embedding-Anstoss als `scheduleTextEmbeddings` (sequenziell mit Abstand für den Import)
+- [x] **21.3.3** `GET /api/export` (AUTH_LIMIT, `Content-Disposition`), `POST /api/import` (20 MB, Duplikat-Skip Titel+Zutaten, ID-Mapping für Sammlungen/Plan/Einkauf, eine Transaktion, Embeddings via `after()`)
+- [x] **21.3.4** `BackupPanel.tsx` unter Einstellungen «Daten & Backup»: Download, Datei lokal validieren, Bestätigung mit Zusammenfassung, Ergebnis mit Zählern
+- [x] **21.3.5** Tests: `serialize.test.ts` (10), 2 E2E (Download → Re-Import überspringt → geändertes Backup importiert samt Kochlog/Notiz; fremde Datei 400)
+
+### 21.4 KI-Wochenplan-Generator
+- [x] **21.4.1** `lib/ai/plan-candidates.ts`: bis 120 Kandidaten mit Bewertung + Kochhistorie (Subqueries), ohne Dessert/Getränke/Backen, `isVegetarian` aus Tags, kompakte Drahtform mit Index statt UUID, `mapPlanEntries()` zurück
+- [x] **21.4.2** Backend `services/plan_week_service.py` + `POST /ai/plan-week`: fordernder Prompt, `find_plan_issues` (Slots, Indizes, Doppelbelegung/Reste, Vegi-Defizit, Werktagszeit, Küchen-Nachbarschaft, neue Vorschläge), ein Nachschlag, `repair_plan`/`fill_remaining` deterministisch — nie ein Teilplan
+- [x] **21.4.3** `POST /api/ai/plan-week` (AI_LIMIT, belegte Slots abziehen, Saison, 90 s) und `POST /api/meal-plans/bulk` (Transaktion, `recipeOwnerConditionMany`, skip/overwrite)
+- [x] **21.4.4** `PlanWeekDialog.tsx` (Sheet): Tage/Mahlzeiten-Chips (Standard Mo–So, nur Abendessen), Vegi, Max-Minuten, Küchen abwechseln, Reste, Überschreiben, neue Vorschläge, Wunsch → Vorschau mit Begründung, Badges, Entfernen → Übernehmen; Button «KI-Wochenplan» nur mit Schlüssel aktiv
+- [x] **21.4.5** Tests: Pytest `test_plan_week.py` (27), `plan-candidates.test.ts` (5), E2E Bulk-Endpunkt, gestubbter Dialogfluss, Live-Test gegen Gemini (`GEMINI_TEST_KEY`, Sperre)
+
+### 21.5 Ersatz-Assistent
+- [x] **21.5.1** Backend `services/substitution_service.py` + `POST /ai/substitute`: genau drei Ersatz mit Menge (CH-Einheiten), Wirkung, Vertrauen; `normalize_substitutes`
+- [x] **21.5.2** `_utils.map_gemini_error()`: Quota → 429 «Kontingent erschöpft», ungültiger Schlüssel → 400 — als kuratiertes `detail`-Objekt; `proxyAiRequest` reicht nur diese Form durch
+- [x] **21.5.3** `POST /api/ai/substitute`, `SubstitutionDialog.tsx` (Grund-Chips, eigener Grund, Karten, «auf die Einkaufsliste»); «Ersatz»-Knopf je Zutat in Detailansicht, Kochmodus-Panel und -Overlay (nur mit Schlüssel; Seiten liefern `hasApiKey`)
+- [x] **21.5.4** Tests: Pytest `test_substitute_routes.py` (11), 2 E2E gestubbt (Fluss + 429-Meldung), 1 Live-Test
+
+### 21.6 Tests, Doku, Abschluss
+- [x] **21.6.1** `npm run build`, `npm run lint`, `tsc`, Vitest 243/243, Pytest 140/140 gegen echte Postgres
+- [x] **21.6.2** Playwright `phase-21.spec.ts` (16 Tests inkl. 2 Live) + Regression phase-3/8/9/10/11/12/13/15/18/20 und mobile-navigation
+- [x] **21.6.3** README: Cook History, AI week planner, Ingredients per step, Substitution assistant, Backup & restore, Schema-Tabelle (10), Test-Tabelle, Roadmap
+- [x] **21.6.4** Ehrliche Bewertung + Freigabe vor Commit/Merge
+
 ---
 
 ## Querschnittsthemen (begleitend durch alle Phasen)
@@ -517,7 +571,7 @@
 - [x] Alle UI-Texte durchgehend Deutsch (Schweizer Schreibweisen: "ss" statt "ß")
 - [x] Schweizer Masseinheiten überall konsequent einsetzen
 - [x] KI-Funktionen immer mit "Bitte API-Schlüssel in Einstellungen hinterlegen"-Hinweis sichern
-- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 20 Testdateien (phase-1 bis phase-20, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
+- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 21 Testdateien (phase-1 bis phase-21, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
 - [x] Frontend-Design-Skill für alle neuen Seiten/Komponenten aufrufen
 - [x] BYOK: API-Schlüssel nie ins Frontend leaken
 
@@ -559,6 +613,16 @@ Wellen 0–3 umgesetzt; die ausführlichen Review-Einträge je Stream stehen in 
 - **Flaky Bestands-Tests stabilisiert (auf Anweisung):** keiner war zufällig. (a) Echter Produktfehler — eine gleichzeitig laufende Listen-Aktualisierung überschrieb einen frisch gesetzten Haken; behoben mit Schreibzähler in `shopping-sync.ts`, deterministischer Regressionstest. (b) Dateiübergreifender KI-Schlüssel ohne Ausschluss; neuer besitzbewusster Mutex `tests/helpers/shared-lock.ts`. (c) Gemini-503 unter Last; begrenzte Wiederholung nur für 5xx in `tests/helpers/live-ai.ts`. Nachweis: 6× 60/60 in der vorher reissenden Kombination, gesamte Suite 319/0/0.
 - **D.5 abgeschlossen:** alle Punkte am iPhone bestätigt.
 - **D.6/D.7 erledigt:** Freigabe erteilt, Merge `40cc12b`, Render zurück auf `main`, beide Deploys auf demselben Commit live. Phase 19 abgeschlossen.
+
+### Phase 21 – Kochhistorie, Schritte, Backup, KI-Wochenplan, Ersatz (2026-08-30)
+
+- **Bugfix zuerst:** Der gemeldete «Validierungsfehler» nach URL-Import hatte keine einzelne Ursache, sondern eine fehlende Schicht: alles, was Gemini/JSON-LD lieferte, ging ungefiltert an das strikte Rezept-Schema. Behoben mit einer Normalisierungsfunktion, die sich selbst gegen das Schema prüft, plus Literal im Backend-Schema und sichtbaren Feldmeldungen. Vorher war der Fehler nicht diagnostizierbar, weil der Client die Server-`details` verwarf.
+- **Deterministisch vor KI:** Schritt↔Zutaten-Verknüpfung, Backup-Duplikate, Wochenplan-Reparatur und Ersatz-Nachbearbeitung sind alle in reinem Code — die KI wählt, der Code prüft und garantiert. Der Wochenplan liefert deshalb nie einen Teilplan, auch wenn das Modell zweimal daneben liegt.
+- **Refactors nur, wo der Auftrag sie brauchte:** `createRecipe`/`scheduleTextEmbeddings` (für den Import), `scaleAmount` (drei Kopien), `relativeDate`/`zurichDateISO` (zwei Kopien). Verhalten der bestehenden Routen unverändert.
+- **Gemini-Fehler:** Kontingent vs. ungültiger Schlüssel sind jetzt unterscheidbar — nur über das neue kuratierte `detail`-Objekt, bestehende Endpunkte unverändert.
+- **Bewusst nicht gemacht:** Bilder werden nicht ins Backup gepackt (Entscheid: JSON + Verweise). Der Phase-20-Review-Eintrag fehlt weiterhin.
+- **Vorbestehende Fehler, auf Anweisung behoben (Grundsatz: gesehene Fehler werden gelöst, nicht nur gemeldet):** (1) Hydration-Fehler auf `/offline` — `useOfflineUserId` las `localStorage` im ersten Render, der Server hatte nichts → «Keine Rezepte» gegen «Laden…»; jetzt `useSyncExternalStore` mit Server-Snapshot `null` und `resolved`-Flag, die Seite behauptet vor der Hydration nichts. (2) `mobile-navigation` «Rezept-Detail … Mobil-Kriterien» scheiterte in WebKit deterministisch nach einem Besuch von `/offline` (`page.evaluate: Load failed` — ein Vollreload des Dev-Servers nach frisch kompilierter Route bricht das laufende `fetch` im Dokument ab); Helfer auf `page.request` umgestellt, unabhängig vom Dokument. (3) `db/init.sql` enthielt `CREATE INDEX idx_ingredients_recipe_id` zweimal — mit `ON_ERROR_STOP` hätte jede frische `docker compose`-Initialisierung dort abgebrochen (Trigger danach gefehlt); Duplikat entfernt und `init.sql` gegen eine frische Datenbank verifiziert (33 Indizes, alle Trigger).
+- **Nachweis:** Build/Lint/tsc grün, Vitest 243/243, Pytest 140/140 (echte Postgres), Playwright phase-21 16/16 (2 davon live gegen Gemini, lokales FastAPI auf :8000), Regression phase-3/8/9/10/11/12/13/15/17/18/20 und Mobile-Suiten (`mobile-navigation`, `mobile-install`) über alle vier Projekte 91/91 grün.
 
 ---
 

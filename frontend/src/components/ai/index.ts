@@ -4,3 +4,4 @@ export { default as ScalingHintsPanel } from "./ScalingHintsPanel";
 export { default as UrlImportDialog } from "./UrlImportDialog";
 export { default as RecipeSuggestions } from "./RecipeSuggestions";
 export { default as WebSearchResults } from "./WebSearchResults";
+export { default as SubstitutionDialog } from "./SubstitutionDialog";

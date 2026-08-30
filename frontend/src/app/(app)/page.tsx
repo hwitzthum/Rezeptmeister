@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { recipes, images, shoppingListItems, mealPlans, users } from "@/lib/db/schema";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { recipes, images, shoppingListItems, mealPlans, users, recipeCookLogs } from "@/lib/db/schema";
+import { eq, desc, and, sql, inArray, gte, lt } from "drizzle-orm";
 import { thumbnailUrl } from "@/lib/images";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
@@ -26,7 +26,10 @@ export default async function DashboardPage() {
   const greeting = getGreeting(zurichHour);
   const userName = session.user.name ?? session.user.email?.split("@")[0] ?? "";
 
-  const [recentRecipes, favoriteRecipes, shoppingCountResult, todayMeals, userRow] =
+  // «Lange nicht mehr gekocht»: mindestens zweimal gekocht, zuletzt vor über 60 Tagen
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10);
+
+  const [recentRecipes, favoriteRecipes, shoppingCountResult, todayMeals, userRow, recentCooked, longAgoCooked] =
     await Promise.all([
       // 1. Last 5 edited recipes
       db
@@ -99,6 +102,40 @@ export default async function DashboardPage() {
         .from(users)
         .where(eq(users.id, userId))
         .limit(1),
+
+      // 6. Kochhistorie: die letzten 5 Einträge
+      db
+        .select({
+          recipeId: recipeCookLogs.recipeId,
+          title: recipes.title,
+          cookedOn: recipeCookLogs.cookedOn,
+        })
+        .from(recipeCookLogs)
+        .innerJoin(recipes, eq(recipes.id, recipeCookLogs.recipeId))
+        .where(eq(recipeCookLogs.userId, userId))
+        .orderBy(desc(recipeCookLogs.cookedOn), desc(recipeCookLogs.createdAt))
+        .limit(5),
+
+      // 7. Lange nicht mehr gekocht: >= 2x gekocht, zuletzt vor > 60 Tagen
+      db
+        .select({
+          recipeId: recipeCookLogs.recipeId,
+          title: recipes.title,
+          cookCount: sql<number>`count(*)::int`,
+          lastCookedOn: sql<string>`max(${recipeCookLogs.cookedOn})`,
+        })
+        .from(recipeCookLogs)
+        .innerJoin(recipes, eq(recipes.id, recipeCookLogs.recipeId))
+        .where(eq(recipeCookLogs.userId, userId))
+        .groupBy(recipeCookLogs.recipeId, recipes.title)
+        .having(
+          and(
+            gte(sql`count(*)`, 2),
+            lt(sql`max(${recipeCookLogs.cookedOn})`, sixtyDaysAgo),
+          ),
+        )
+        .orderBy(sql`max(${recipeCookLogs.cookedOn}) ASC`)
+        .limit(3),
     ]);
 
   // Fetch primary images for recent + favorite recipes
@@ -147,6 +184,8 @@ export default async function DashboardPage() {
       openShoppingCount={openShoppingCount}
       todayMeals={todayMeals}
       hasApiKey={hasApiKey}
+      recentCooked={recentCooked}
+      longAgoCooked={longAgoCooked}
     />
   );
 }

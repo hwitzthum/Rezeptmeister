@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Button, ConfirmDialog } from "@/components/ui";
+import {
+  toRecipePayload,
+  formatValidationDetails,
+} from "@/lib/recipes/from-extraction";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -51,7 +55,6 @@ interface GeneratedRecipe {
   cuisine?: string | null;
 }
 
-
 interface ConstraintForm {
   ingredients: string[];
   ingredientInput: string;
@@ -92,15 +95,18 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 };
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  einfach: "bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400",
-  mittel: "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400",
+  einfach:
+    "bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400",
+  mittel:
+    "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400",
   anspruchsvoll: "bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400",
 };
 
 const selectCls =
   "w-full border border-[var(--border-base)] rounded-lg px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-terra-400 transition-all";
 
-const labelCls = "block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1.5";
+const labelCls =
+  "block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1.5";
 
 /**
  * Welche der tragenden Zutaten fehlen noch? Der Vergleich laeuft ueber
@@ -134,7 +140,8 @@ export default function RecipeSuggestions() {
   const [error, setError] = useState<string | null>(null);
   const [tokensUsed, setTokensUsed] = useState<number | null>(null);
 
-  const [selectedSuggestion, setSelectedSuggestion] = useState<SuggestionItem | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] =
+    useState<SuggestionItem | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [generatingRecipe, setGeneratingRecipe] = useState(false);
 
@@ -143,18 +150,29 @@ export default function RecipeSuggestions() {
   function addIngredient(value: string) {
     const trimmed = value.trim();
     if (!trimmed || form.ingredients.includes(trimmed)) return;
-    setForm((f) => ({ ...f, ingredients: [...f.ingredients, trimmed], ingredientInput: "" }));
+    setForm((f) => ({
+      ...f,
+      ingredients: [...f.ingredients, trimmed],
+      ingredientInput: "",
+    }));
   }
 
   function removeIngredient(ing: string) {
-    setForm((f) => ({ ...f, ingredients: f.ingredients.filter((i) => i !== ing) }));
+    setForm((f) => ({
+      ...f,
+      ingredients: f.ingredients.filter((i) => i !== ing),
+    }));
   }
 
   function handleIngredientKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       addIngredient(form.ingredientInput);
-    } else if (e.key === "Backspace" && !form.ingredientInput && form.ingredients.length > 0) {
+    } else if (
+      e.key === "Backspace" &&
+      !form.ingredientInput &&
+      form.ingredients.length > 0
+    ) {
       setForm((f) => ({ ...f, ingredients: f.ingredients.slice(0, -1) }));
     }
   }
@@ -194,7 +212,11 @@ export default function RecipeSuggestions() {
       setSuggestions(data.suggestions ?? []);
       setTokensUsed(data.tokens_used ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Fehler beim Laden der Vorschläge.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Fehler beim Laden der Vorschläge.",
+      );
     } finally {
       setLoading(false);
     }
@@ -233,36 +255,27 @@ export default function RecipeSuggestions() {
       const saveRes = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: generated.title,
-          description: generated.description ?? undefined,
-          instructions: generated.instructions,
-          servings: generated.servings ?? 4,
-          prepTimeMinutes: generated.prep_time_minutes ?? undefined,
-          cookTimeMinutes: generated.cook_time_minutes ?? undefined,
-          difficulty: generated.difficulty ?? undefined,
-          category: generated.category ?? undefined,
-          cuisine: generated.cuisine ?? undefined,
-          tags: generated.tags,
-          sourceType: "ai_generated",
-          ingredients: generated.ingredients.map((ing, idx) => ({
-            name: ing.name,
-            amount: ing.amount ?? undefined,
-            unit: ing.unit ?? undefined,
-            notes: ing.notes ?? undefined,
-            sortOrder: idx,
-            isOptional: false,
-          })),
-        }),
+        body: JSON.stringify(toRecipePayload(generated, "ai_generated")),
       });
       if (!saveRes.ok) {
-        const data = (await saveRes.json()) as { error?: string };
-        throw new Error(data.error ?? "Fehler beim Speichern des Rezepts.");
+        const data = (await saveRes.json()) as {
+          error?: string;
+          details?: Parameters<typeof formatValidationDetails>[0];
+        };
+        throw new Error(
+          data.details
+            ? formatValidationDetails(data.details)
+            : (data.error ?? "Fehler beim Speichern des Rezepts."),
+        );
       }
       const saved = (await saveRes.json()) as { id: string };
       router.push(`/rezepte/${saved.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Fehler beim Generieren des Rezepts.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Fehler beim Generieren des Rezepts.",
+      );
       setGeneratingRecipe(false);
     }
   }
@@ -290,19 +303,38 @@ export default function RecipeSuggestions() {
                     aria-label={`${ing} entfernen`}
                     className="hover:text-terra-900 transition-colors"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </span>
               ))}
               <input
                 type="text"
-                placeholder={form.ingredients.length === 0 ? "Zutat eingeben, Enter drücken…" : ""}
+                placeholder={
+                  form.ingredients.length === 0
+                    ? "Zutat eingeben, Enter drücken…"
+                    : ""
+                }
                 value={form.ingredientInput}
-                onChange={(e) => setForm((f) => ({ ...f, ingredientInput: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, ingredientInput: e.target.value }))
+                }
                 onKeyDown={handleIngredientKeyDown}
-                onBlur={() => { if (form.ingredientInput.trim()) addIngredient(form.ingredientInput); }}
+                onBlur={() => {
+                  if (form.ingredientInput.trim())
+                    addIngredient(form.ingredientInput);
+                }}
                 className="flex-1 min-w-[120px] pointer-coarse:min-h-11 text-sm text-[var(--text-primary)] bg-transparent outline-none placeholder:text-warm-400"
               />
             </div>
@@ -316,11 +348,15 @@ export default function RecipeSuggestions() {
             <label className={labelCls}>Küche</label>
             <select
               value={form.cuisine}
-              onChange={(e) => setForm((f) => ({ ...f, cuisine: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, cuisine: e.target.value }))
+              }
               className={selectCls}
             >
               {CUISINE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -336,7 +372,9 @@ export default function RecipeSuggestions() {
               max={120}
               step={5}
               value={form.timeBudget}
-              onChange={(e) => setForm((f) => ({ ...f, timeBudget: Number(e.target.value) }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, timeBudget: Number(e.target.value) }))
+              }
               className="w-full pointer-coarse:min-h-11 accent-terra-500"
             />
             <div className="flex justify-between text-xs text-[var(--text-muted)] mt-0.5">
@@ -362,7 +400,9 @@ export default function RecipeSuggestions() {
                   <input
                     type="checkbox"
                     checked={form[key]}
-                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, [key]: e.target.checked }))
+                    }
                     className="w-4 h-4 rounded border-[var(--border-base)] text-terra-500 accent-terra-500 cursor-pointer"
                   />
                   <span className="text-sm text-[var(--text-primary)] group-hover:text-terra-600 transition-colors">
@@ -378,11 +418,15 @@ export default function RecipeSuggestions() {
             <label className={labelCls}>Jahreszeit</label>
             <select
               value={form.season}
-              onChange={(e) => setForm((f) => ({ ...f, season: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, season: e.target.value }))
+              }
               className={selectCls}
             >
               {SEASON_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -395,7 +439,9 @@ export default function RecipeSuggestions() {
               fullWidth
               loading={loading}
               icon={<Sparkles className="w-4 h-4" />}
-              onClick={() => { void fetchSuggestions(); }}
+              onClick={() => {
+                void fetchSuggestions();
+              }}
             >
               Vorschläge generieren
             </Button>
@@ -405,7 +451,9 @@ export default function RecipeSuggestions() {
                 size="md"
                 fullWidth
                 loading={loading}
-                onClick={() => { void fetchSuggestions(); }}
+                onClick={() => {
+                  void fetchSuggestions();
+                }}
               >
                 Regenerieren
               </Button>
@@ -423,7 +471,10 @@ export default function RecipeSuggestions() {
       {/* ── Right: Suggestion cards ──────────────────────────────────────────── */}
       <div className="flex-1 min-w-0">
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400" role="alert">
+          <div
+            className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400"
+            role="alert"
+          >
             {error}
           </div>
         )}
@@ -456,7 +507,8 @@ export default function RecipeSuggestions() {
               Noch keine Vorschläge
             </p>
             <p className="text-sm max-w-sm">
-              Wählen Sie Ihre Präferenzen links und klicken Sie auf «Vorschläge generieren».
+              Wählen Sie Ihre Präferenzen links und klicken Sie auf «Vorschläge
+              generieren».
             </p>
           </div>
         )}
@@ -467,86 +519,93 @@ export default function RecipeSuggestions() {
             {suggestions.map((suggestion, i) => {
               const fehlende = missingSet(suggestion);
               return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setSelectedSuggestion(suggestion);
-                  setShowConfirm(true);
-                }}
-                className="text-left bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 hover:border-terra-300 hover:shadow-warm transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500"
-              >
-                <h3 className="font-semibold text-[var(--text-primary)] group-hover:text-terra-700 transition-colors mb-1.5"
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSuggestion(suggestion);
+                    setShowConfirm(true);
+                  }}
+                  className="text-left bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 hover:border-terra-300 hover:shadow-warm transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500"
                 >
-                  {suggestion.title}
-                </h3>
-                <p className="text-sm text-[var(--text-secondary)] mb-3">
-                  {suggestion.description}
-                </p>
-
-                {suggestion.why_it_fits && (
-                  <p className="text-sm text-[var(--text-primary)] mb-2 pl-3 border-l-2 border-terra-300 dark:border-terra-700">
-                    <span className="font-semibold text-terra-700 dark:text-terra-400">
-                      Warum das passt:{" "}
-                    </span>
-                    {suggestion.why_it_fits}
+                  <h3 className="font-semibold text-[var(--text-primary)] group-hover:text-terra-700 transition-colors mb-1.5">
+                    {suggestion.title}
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-3">
+                    {suggestion.description}
                   </p>
-                )}
 
-                {suggestion.highlight && (
-                  <p className="text-sm text-[var(--text-secondary)] mb-3 pl-3 border-l-2 border-gold-300 dark:border-gold-700">
-                    <span className="font-semibold text-gold-700 dark:text-gold-400">
-                      Das Besondere:{" "}
+                  {suggestion.why_it_fits && (
+                    <p className="text-sm text-[var(--text-primary)] mb-2 pl-3 border-l-2 border-terra-300 dark:border-terra-700">
+                      <span className="font-semibold text-terra-700 dark:text-terra-400">
+                        Warum das passt:{" "}
+                      </span>
+                      {suggestion.why_it_fits}
+                    </p>
+                  )}
+
+                  {suggestion.highlight && (
+                    <p className="text-sm text-[var(--text-secondary)] mb-3 pl-3 border-l-2 border-gold-300 dark:border-gold-700">
+                      <span className="font-semibold text-gold-700 dark:text-gold-400">
+                        Das Besondere:{" "}
+                      </span>
+                      {suggestion.highlight}
+                    </p>
+                  )}
+
+                  {(suggestion.key_ingredients?.length ?? 0) > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {suggestion.key_ingredients!.map((zutat) => {
+                        const fehlt = fehlende.has(zutat.toLowerCase());
+                        return (
+                          <span
+                            key={zutat}
+                            data-testid={
+                              fehlt ? "zutat-fehlt" : "zutat-vorhanden"
+                            }
+                            title={
+                              fehlt
+                                ? "Muss eingekauft werden"
+                                : "Hast du bereits"
+                            }
+                            className={[
+                              "text-xs px-2 py-0.5 rounded-full border",
+                              fehlt
+                                ? "bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-base)] border-dashed"
+                                : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
+                            ].join(" ")}
+                          >
+                            {fehlt ? "+ " : "\u2713 "}
+                            {zutat}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {suggestion.cuisine && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
+                        {suggestion.cuisine}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                      <ClockIcon />
+                      {suggestion.time_estimate_minutes} Min.
                     </span>
-                    {suggestion.highlight}
-                  </p>
-                )}
-
-                {(suggestion.key_ingredients?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {suggestion.key_ingredients!.map((zutat) => {
-                      const fehlt = fehlende.has(zutat.toLowerCase());
-                      return (
-                        <span
-                          key={zutat}
-                          data-testid={fehlt ? "zutat-fehlt" : "zutat-vorhanden"}
-                          title={fehlt ? "Muss eingekauft werden" : "Hast du bereits"}
-                          className={[
-                            "text-xs px-2 py-0.5 rounded-full border",
-                            fehlt
-                              ? "bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-base)] border-dashed"
-                              : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
-                          ].join(" ")}
-                        >
-                          {fehlt ? "+ " : "\u2713 "}
-                          {zutat}
-                        </span>
-                      );
-                    })}
+                    {suggestion.difficulty && (
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          DIFFICULTY_COLORS[suggestion.difficulty] ??
+                          "bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300"
+                        }`}
+                      >
+                        {DIFFICULTY_LABELS[suggestion.difficulty] ??
+                          suggestion.difficulty}
+                      </span>
+                    )}
                   </div>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {suggestion.cuisine && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300">
-                      {suggestion.cuisine}
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                    <ClockIcon />
-                    {suggestion.time_estimate_minutes} Min.
-                  </span>
-                  {suggestion.difficulty && (
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        DIFFICULTY_COLORS[suggestion.difficulty] ?? "bg-warm-100 dark:bg-warm-800 text-warm-700 dark:text-warm-300"
-                      }`}
-                    >
-                      {DIFFICULTY_LABELS[suggestion.difficulty] ?? suggestion.difficulty}
-                    </span>
-                  )}
-                </div>
-              </button>
+                </button>
               );
             })}
           </div>
@@ -557,7 +616,9 @@ export default function RecipeSuggestions() {
       <ConfirmDialog
         open={showConfirm}
         onClose={() => setShowConfirm(false)}
-        onConfirm={() => { void handleGenerateRecipe(); }}
+        onConfirm={() => {
+          void handleGenerateRecipe();
+        }}
         title="Vollständiges Rezept generieren?"
         message={
           selectedSuggestion
@@ -578,7 +639,9 @@ export default function RecipeSuggestions() {
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Rezept wird generiert…
             </p>
-            <p className="text-xs text-[var(--text-muted)]">Das kann einen Moment dauern.</p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Das kann einen Moment dauern.
+            </p>
           </div>
         </div>
       )}
@@ -590,17 +653,42 @@ export default function RecipeSuggestions() {
 
 function ClockIcon() {
   return (
-    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+    <svg
+      className="w-3.5 h-3.5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+      />
     </svg>
   );
 }
 
 function SpinnerIcon() {
   return (
-    <svg className="w-8 h-8 animate-spin text-terra-500" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    <svg
+      className="w-8 h-8 animate-spin text-terra-500"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
     </svg>
   );
 }

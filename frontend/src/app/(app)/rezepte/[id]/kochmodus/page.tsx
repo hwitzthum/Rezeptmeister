@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import CookingMode from "@/components/recipes/CookingMode";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -43,6 +45,12 @@ export default async function KochmodusPage({ params, searchParams }: PageProps)
 
   if (!recipe) notFound();
 
+  const userRow = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { apiKeyEncrypted: true, apiProvider: true },
+  });
+  const hasApiKey = !!userRow?.apiKeyEncrypted && userRow.apiProvider === "gemini";
+
   // Serialisieren für Client-Übergabe
   const serialized = JSON.parse(JSON.stringify(recipe));
 
@@ -52,6 +60,7 @@ export default async function KochmodusPage({ params, searchParams }: PageProps)
     <CookingMode
       recipe={serialized}
       targetServings={targetServings && !isNaN(targetServings) ? targetServings : undefined}
+      hasApiKey={hasApiKey}
     />
   );
 }

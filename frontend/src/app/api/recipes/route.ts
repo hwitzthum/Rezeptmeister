@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { recipes, ingredients, images, users } from "@/lib/db/schema";
+import { images } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
-import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
-import { decrypt } from "@/lib/crypto";
+import { recipeBodySchema } from "@/lib/schemas";
 import { listQuerySchema, listRecipes } from "@/lib/recipes/list";
+import { createRecipe, scheduleTextEmbeddings } from "@/lib/recipes/create";
 
 // ── POST /api/recipes ─────────────────────────────────────────────────────────
 
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
   }
 
   const { imageId, ...data } = parsed.data;
-  const totalTime = calcTotalTime(data.prepTimeMinutes, data.cookTimeMinutes);
 
   // If an imageId was supplied, verify it belongs to this user before entering
   // the transaction — fail fast with a clear error rather than a silent rollback.
@@ -64,38 +62,7 @@ export async function POST(request: Request) {
 
   try {
     const recipe = await db.transaction(async (tx) => {
-      const [newRecipe] = await tx
-        .insert(recipes)
-        .values({
-          userId: session.user.id,
-          title: data.title,
-          description: data.description || null,
-          instructions: data.instructions,
-          servings: data.servings,
-          prepTimeMinutes: data.prepTimeMinutes ?? null,
-          cookTimeMinutes: data.cookTimeMinutes ?? null,
-          totalTimeMinutes: totalTime,
-          difficulty: data.difficulty ?? null,
-          category: data.category || null,
-          cuisine: data.cuisine || null,
-          tags: data.tags,
-          sourceType: data.sourceType,
-        })
-        .returning();
-
-      if (data.ingredients.length > 0) {
-        await tx.insert(ingredients).values(
-          data.ingredients.map((ing, idx) => ({
-            recipeId: newRecipe.id,
-            name: ing.name,
-            amount: ing.amount != null ? String(ing.amount) : null,
-            unit: ing.unit || null,
-            groupName: ing.groupName || null,
-            sortOrder: ing.sortOrder ?? idx,
-            isOptional: ing.isOptional,
-          })),
-        );
-      }
+      const newRecipe = await createRecipe(tx, session.user.id, data);
 
       // Atomically link the image to this recipe within the same transaction.
       if (imageId) {
@@ -109,31 +76,7 @@ export async function POST(request: Request) {
     });
 
     // Fire-and-forget: Embedding im Hintergrund berechnen (nur wenn Gemini-Schlüssel vorhanden)
-    const backendUrl = process.env.BACKEND_URL;
-    if (backendUrl) {
-      const userRecord = await db.query.users.findFirst({
-        where: eq(users.id, session.user.id),
-        columns: { apiKeyEncrypted: true, apiProvider: true },
-      });
-      let geminiKey: string | null = null;
-      if (userRecord?.apiProvider === "gemini" && userRecord.apiKeyEncrypted) {
-        try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
-      }
-      const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
-      fetch(`${backendUrl}/embed/text`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          recipe_id: recipe.id,
-          text: [recipe.title, recipe.description, recipe.instructions]
-            .filter(Boolean)
-            .join(" "),
-        }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch((err) => {
-        console.error("Embedding-Berechnung fehlgeschlagen", { message: err instanceof Error ? err.message : String(err) });
-      });
-    }
+    void scheduleTextEmbeddings(session.user.id, [recipe]);
 
     return NextResponse.json(recipe, { status: 201 });
   } catch (err) {

@@ -11,7 +11,7 @@ import { useOfflineUserId } from "@/lib/hooks/useOfflineUserId";
 function OfflineRecipeContent() {
   const searchParams = useSearchParams();
   const recipeId = searchParams.get("id");
-  const userId = useOfflineUserId();
+  const { userId } = useOfflineUserId();
 
   const [entry, setEntry] = useState<OfflineRecipe | null>(null);
   const [fetchFailed, setFetchFailed] = useState(false);

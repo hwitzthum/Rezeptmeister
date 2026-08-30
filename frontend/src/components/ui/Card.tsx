@@ -45,6 +45,8 @@ interface RecipeCardProps {
   imageUrl?: string;
   isFavorite?: boolean;
   averageRating?: number;
+  /** Wie oft gekocht (Kochhistorie); 0/undefined blendet die Pille aus. */
+  cookCount?: number;
   servings?: number;
   tags?: string[];
   onClick?: () => void;
@@ -175,6 +177,7 @@ export function RecipeCard({
   imageUrl,
   isFavorite = false,
   averageRating,
+  cookCount,
   servings,
   onClick,
   onFavoriteToggle,
@@ -317,6 +320,29 @@ export function RecipeCard({
                   />
                 </svg>
                 {servings} {servings === 1 ? "Person" : "Personen"}
+              </span>
+            )}
+            {cookCount !== undefined && cookCount > 0 && (
+              <span
+                className="flex items-center gap-1 text-terra-600 dark:text-terra-400"
+                data-testid="cook-count"
+                title="Aus der Kochhistorie"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {cookCount}× gekocht
               </span>
             )}
           </div>
