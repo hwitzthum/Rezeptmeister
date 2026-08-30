@@ -22,9 +22,20 @@ function getDb() {
   // serverless (Vercel) globalThis persists across invocations on a warm
   // instance, so this lets connections be reused instead of opening a fresh
   // pool per invocation — which otherwise exhausts Postgres connections.
+  // prepare: false — Pflicht am Supabase-Pooler (Supavisor, Port 6543,
+  // Transaction-Modus). Mit benannten Prepared Statements landet ein Statement
+  // auf einem Backend, das es nie gesehen hat ("prepared statement ... does not
+  // exist"). postgres.js wiederholt den Aufruf dann still — innerhalb einer
+  // Transaktion antwortet Postgres auf das wiederholte COMMIT mit ROLLBACK,
+  // ohne Fehler: die Route meldet 201, die Zeile existiert aber nie.
   const client =
     globalForDb.pgClient ??
-    postgres(url, { max: 10, idle_timeout: 30, connect_timeout: 10 });
+    postgres(url, {
+      max: 10,
+      idle_timeout: 30,
+      connect_timeout: 10,
+      prepare: false,
+    });
   globalForDb.pgClient = client;
 
   const instance = globalForDb.db ?? drizzle(client, { schema });
