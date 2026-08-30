@@ -12,7 +12,7 @@
 - [x] Verzeichnisstruktur anlegen (`frontend/`, `backend/`, `db/`, `uploads/`)
 - [x] `docker-compose.yml` erstellen (pgvector/pgvector:pg16, FastAPI)
 - [x] `db/init.sql` mit pgvector Extension und vollem Schema erstellen
-- [x] `db/seed.sql` mit 5 Schweizer Musterrezepten
+- [x] `db/seed.sql` mit 9 Schweizer Musterrezepten
 - [x] `.env.example` anlegen
 - [x] **E2E-Test:** FastAPI /health (skipped – Backend nicht gestartet), Next.js-Tests alle grün
 
@@ -362,7 +362,7 @@
 - [x] WCAG 2.1 AA: Kontraste prüfen, Tastaturnavigation, ARIA-Labels ✅ Skip-to-content, Kontrastfixes, alt-Texte, aria-expanded, Fokus-Trap
 - [x] Dark Mode implementieren (abgedunkelte warme Farbtöne) ✅ next-themes + ThemeProvider + ThemeToggle + ~45 Komponenten mit dark:-Varianten
 - [x] Performance-Optimierung (next/image, lazy loading, bundle analysis) ✅ next/image in 7 Stellen, next.config.ts optimiert, lazy loading
-- [x] Admin: Re-Embedding-Funktion für alle Rezepte ✅ FastAPI POST /admin/re-embed-all + Next.js Proxy + Admin-UI-Button
+- [x] Admin: Re-Embedding-Funktion für alle Rezepte ✅ FastAPI POST /admin/re-embed-user + Next.js Proxy + Admin-UI-Button
 - [x] `db/seed.sql` mit Testdaten (5–10 Schweizer Musterrezepte) ✅ 9 Rezepte (5 bestehende + 4 neue: Älplermagronen, Basler Mehlsuppe, Bündner Gerstensuppe, Vermicelles)
 - [x] README aktualisieren (alle Features dokumentiert, Setup-Anleitung) ✅ Vollständiges README.md auf Deutsch mit 11 Abschnitten
 - [x] Deployment-Dokumentation (Vercel, Railway/Fly.io, Supabase) ✅ Im README integriert
@@ -587,7 +587,7 @@
 - **Dark Mode:** next-themes ThemeProvider, 3-State-Toggle (Hell/System/Dunkel) in Sidebar + Einstellungen, ~45 Komponenten mit dark:-Varianten, CSS-Variablen-System mit .dark-Overrides.
 - **Barrierefreiheit (WCAG 2.1 AA):** Skip-to-content-Link, Kontrast-Korrekturen (warm-400→warm-500 für sichtbaren Text), alt-Texte auf allen Bildern, aria-expanded auf Einkaufsliste, Fokus-Management.
 - **Performance:** next/image in 7 Stellen (mit fill/sizes/priority), next.config.ts mit WebP + deviceSizes, lazy loading für Offline-Bilder.
-- **Admin Re-Embedding:** FastAPI POST /admin/re-embed-all (sequenziell mit Rate-Limit-Delay), Next.js Proxy-Route, Admin-Dashboard-Button.
+- **Admin Re-Embedding:** FastAPI POST /admin/re-embed-user (sequenziell mit Rate-Limit-Delay), Next.js Proxy-Route, Admin-Dashboard-Button.
 - **Testdaten:** 9 Schweizer Rezepte in db/seed.sql (Züri Geschnetzeltes, Birchermüesli, Rösti, Käseschnitten, Apfelwähe, Älplermagronen, Basler Mehlsuppe, Bündner Gerstensuppe, Vermicelles).
 - **Dokumentation:** Vollständiges README.md (deutsch, 11 Abschnitte inkl. Deployment für Vercel/Railway/Supabase).
 - **E2E-Test:** phase-18.spec.ts mit 8 seriellen Tests (Full Journey: Registrierung → Freigabe → Login → Rezept → Suche → Einkaufsliste → Wochenplan → Aufräumen).
