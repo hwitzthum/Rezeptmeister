@@ -91,6 +91,7 @@ npm run dev  # http://localhost:3001
 ### Core Recipe Management
 
 - **CRUD:** Create, edit, delete recipes with rich metadata (category, cuisine, difficulty, prep/cook time, source)
+- **Inline title edit:** Pencil icon on the recipe hero renames a recipe in place (Enter saves, Escape cancels) — no trip through the full edit form (`PATCH /api/recipes/[id]`)
 - **Ingredients:** Dynamic list with Swiss units — g, kg, ml, dl, l, EL, TL, KL, Msp., Prise, Stk., Bund, Pkg., Scheibe, Dose, Becher, Pfd.
 - **Portions:** Live recalculation of ingredient amounts with AI hints for extreme scaling (spices, bake times)
 - **Favorites:** One-click toggle with dedicated filter
@@ -138,7 +139,7 @@ All AI features require a user-provided Gemini API key configured in `/einstellu
 | OCR Import | Extract a recipe from a photo (Gemini Pro multimodal); supports multi-photo batches |
 | Recipe Suggestions | 5 proposals grounded in **your own collection** — see below |
 | Smart Scaling | KI hints when scaling to extreme portions |
-| Image Generation | Auto-create recipe photos from title + ingredients |
+| Image Generation | Auto-create recipe photos from title + ingredients. Every request rolls perspective, surface, light, composition, style and dish-appropriate crockery independently (`backend/app/services/image_prompt_service.py`), so a collection's images stay visually distinct; «Neues Bild generieren» always yields a different look |
 | URL Import | Parse any recipe website (schema.org/Recipe or AI fallback); auto-converts US ↔ CH units |
 | Web Search | Find and import recipes from across the web |
 | Nutrition | AI-estimated kcal, protein, fat, carbs, fiber — with manual override |
