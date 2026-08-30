@@ -907,7 +907,7 @@ In local development, the backend falls back to local filesystem (`uploads/`) wh
 | `CORS_ORIGINS_RAW` | `https://rezeptmeister.vercel.app` |
 | `DEBUG` | `false` |
 
-> **Note:** The `DATABASE_URL` format differs between frontend (`postgresql://`) and backend (`postgresql+asyncpg://`). Both use the Supabase **connection pooler** (port 6543), which requires `statement_cache_size=0` for asyncpg (already configured in `database.py`).
+> **Note:** The `DATABASE_URL` format differs between frontend (`postgresql://`) and backend (`postgresql+asyncpg://`). Both use the Supabase **connection pooler** (port 6543), which requires `statement_cache_size=0` for asyncpg (already configured in `database.py`) and `prepare: false` for postgres.js (already configured in `frontend/src/lib/db/index.ts`) — without it, a failed prepared `COMMIT` is silently retried as `ROLLBACK` and the API reports success for rows that were never written.
 
 ### Database Migrations in Production
 
@@ -996,7 +996,7 @@ git push origin main
 
 ### Key Differences to Be Aware Of
 
-1. **Database URL format:** Local uses `localhost:5434`, production uses `aws-1-eu-west-1.pooler.supabase.com:6543`. The pooler requires `statement_cache_size=0` for asyncpg — this is already handled in `backend/app/database.py`.
+1. **Database URL format:** Local uses `localhost:5434`, production uses `aws-1-eu-west-1.pooler.supabase.com:6543`. The pooler requires `statement_cache_size=0` for asyncpg (`backend/app/database.py`) and `prepare: false` for postgres.js (`frontend/src/lib/db/index.ts`) — both already handled.
 
 2. **Image storage:** Local dev writes to `uploads/` on disk. Production uses Supabase Storage. The code handles both paths automatically:
    - Frontend: `supabase-storage.ts` handles uploads; `SUPABASE_URL` env var presence controls the path
