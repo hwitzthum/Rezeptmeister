@@ -85,6 +85,7 @@ npx playwright show-report     # View last test report
 - Both ORMs point to the same PostgreSQL instance — the Drizzle schema is the source of truth for table structure; Alembic migrations must stay in sync.
 - `embedding` columns are `VECTOR(3072)` (Gemini Embedding 2 default). Use HNSW index, cosine distance (`<=>` operator).
 - Drizzle does not natively support `VECTOR` type — use `customType` wrapper.
+- **Produktions-DDL (Supabase):** Die Supabase-Instanz teilt sich `public` mit einem zweiten Repo (RAG-System), dem die Tabelle `supabase_migrations.schema_migrations` gehört. DDL nur über den SQL-Editor, `psql` oder Supabase-MCP `execute_sql` einspielen — **nie** über `apply_migration`, `supabase db push` oder `drizzle-kit migrate`. Jede Zeile, die dabei in die Migrations-Historie geschrieben wird, lässt den Deploy des anderen Repos abbrechen (Details: README → "Database Migrations in Production").
 
 ### Next.js 16 – Breaking Changes
 - **`middleware.ts` is renamed to `proxy.ts`** (same API, just the filename). Export a named `proxy` function or a default export. `export const config` with `matcher` still works the same.
