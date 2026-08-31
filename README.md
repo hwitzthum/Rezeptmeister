@@ -930,6 +930,19 @@ in the Supabase Dashboard → SQL Editor, or with `psql` against the direct (non
 string. Every migration in this repo is written to be idempotent (`IF NOT EXISTS`,
 `CREATE OR REPLACE`), so re-running one is safe.
 
+> **Do not use the Supabase MCP `apply_migration` tool either** (use `execute_sql` instead), and do
+> not run `supabase db push`. Both write a row into `supabase_migrations.schema_migrations`, and
+> that table belongs to the other project on this instance
+> ([RAG-System](https://github.com/hwitzthum/RAG-System)) — it compares the table against its own
+> `supabase/migrations/` folder on every deploy and aborts on any version it has no file for. On
+> 2026-08-30 `0005_recipe_cook_logs.sql` was applied with `apply_migration`; the row
+> `20260830103343 recipe_cook_logs` blocked RAG-System's migration deploys and failed its daily
+> credential check until the row was removed with
+> `supabase migration repair --status reverted 20260830103343` (run from RAG-System, which holds
+> the credentials). The `recipe_cook_logs` table itself is unaffected by that repair — only the
+> history row goes away, which is correct, because production DDL here is not tracked by any
+> migration tool.
+
 **`0004_smart_search.sql` is required for search to work at all.** Without `pg_trgm`, the
 `rm_normalize()` function and the two trigram indexes, every query with a search term fails on the
 `word_similarity()` call. Paste `frontend/drizzle/0004_smart_search.sql` into the SQL editor, then
