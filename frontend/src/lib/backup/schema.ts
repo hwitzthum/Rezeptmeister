@@ -67,8 +67,9 @@ export const backupCollectionSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().nullable(),
   coverImageId: uuid.nullable(),
-  /** In Sortierreihenfolge. */
-  recipeIds: z.array(uuid).max(5000),
+  /** In Sortierreihenfolge. Ohne Obergrenze, aus demselben Grund wie die
+   *  Listen in `backupSchema`: eine Sammlung darf jedes Rezept enthalten. */
+  recipeIds: z.array(uuid),
   createdAt: isoDate,
 });
 
@@ -98,10 +99,19 @@ export const backupSchema = z.object({
   user: z
     .object({ email: z.string().nullable(), name: z.string().nullable() })
     .optional(),
-  recipes: z.array(backupRecipeSchema).max(5000),
-  collections: z.array(backupCollectionSchema).max(1000).default([]),
-  mealPlans: z.array(backupMealPlanSchema).max(10000).default([]),
-  shoppingList: z.array(backupShoppingItemSchema).max(5000).default([]),
+  // Bewusst ohne Stueckzahl-Grenzen: /api/export schreibt alles, was der
+  // Nutzerin gehoert, ohne Obergrenze. Jede Zahl hier waere kleiner als das,
+  // was der Export erzeugen kann, sobald ein Konto entsprechend waechst — das
+  // Backup liesse sich dann herunterladen, aber nicht mehr einspielen (real
+  // aufgetreten bei mehr als 1000 Sammlungen). Die Nutzlast begrenzt die
+  // Import-Route ueber ihre 20-MB-Schranke; die gilt unabhaengig davon, wie
+  // sich die Eintraege auf die Listen verteilen, und kann nicht auseinander-
+  // driften. Die Grenzen *innerhalb* eines Eintrags bleiben bestehen: sie
+  // schuetzen die Spaltenbreiten der Datenbank.
+  recipes: z.array(backupRecipeSchema),
+  collections: z.array(backupCollectionSchema).default([]),
+  mealPlans: z.array(backupMealPlanSchema).default([]),
+  shoppingList: z.array(backupShoppingItemSchema).default([]),
 });
 
 export type BackupV1 = z.infer<typeof backupSchema>;

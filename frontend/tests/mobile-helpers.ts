@@ -26,7 +26,8 @@ export const test = base.extend<{ ohneDevOverlay: void }>({
           (document.head ?? document.documentElement)?.appendChild(style);
         };
         if (document.head) inject();
-        else document.addEventListener("DOMContentLoaded", inject, { once: true });
+        else
+          document.addEventListener("DOMContentLoaded", inject, { once: true });
       });
       await use();
     },
@@ -60,12 +61,63 @@ export const RUN_ID = Date.now().toString(36);
 /** Ablage der einmal angemeldeten Sitzung (siehe `mobile-auth.setup.ts`). */
 export const STORAGE_STATE = path.resolve(__dirname, "../.auth/mobile.json");
 
+// ── Seitenruhe ───────────────────────────────────────────────────────────────
+
+/**
+ * Wartet, bis die Seite geladen ist und auf Eingaben reagieren kann.
+ *
+ * Das server-gerenderte Markup ist sichtbar, lange bevor React seine
+ * Ereignis-Handler angehaengt hat. Ein `fill()` oder `setInputFiles()` in
+ * diesem Fenster setzt zwar den DOM-Zustand, loest aber keinen React-Handler
+ * aus: die Seite reagiert nie, und der Test wartet auf etwas, das nicht mehr
+ * kommt. Unter WebKit (mobile-safari, tablet) ist die Hydration langsam genug,
+ * dass die Suite regelmaessig hineinlief — auf Chromium blieb es unsichtbar.
+ *
+ * `networkidle` ist dafuer ein Stellvertreter, kein direktes Hydrations-Signal:
+ * React meldet den Abschluss nicht nach aussen. In der Praxis heisst «keine
+ * Netzaktivitaet mehr», dass die Bundles geladen und ausgefuehrt sind — das
+ * genuegt, wie die zuvor reproduzierbar fehlschlagenden Faelle zeigen.
+ * Sichtbarkeit einer Schaltflaeche genuegt ausdruecklich *nicht*.
+ */
+export async function warteAufSeitenruhe(page: Page) {
+  await page.waitForLoadState("networkidle");
+}
+
 // ── Anmeldung ────────────────────────────────────────────────────────────────
+
+/**
+ * Traegt die Zugangsdaten ein und wartet, bis React sie uebernommen hat.
+ *
+ * Das Anmeldeformular arbeitet mit kontrollierten Feldern (`value={email}`).
+ * Ein `fill()` vor der Hydration setzt nur den DOM-Wert; React ueberschreibt
+ * ihn beim ersten eigenen Render wieder mit seinem leeren State. Der
+ * «Anmelden»-Knopf (`disabled={loading || !email || !password}`) bleibt dann
+ * deaktiviert und der Test laeuft in den Timeout.
+ *
+ * Gemessen: Nach abgeschlossener Hydration nimmt WebKit die Eingabe zuverlaessig
+ * an. Der Fehler trat nur auf, wenn die drei Geraeteprojekte parallel laufen und
+ * der Dev-Server dabei noch uebersetzt — dann dauert die Hydration laenger als
+ * ein knapp bemessenes Zeitfenster.
+ *
+ * Deshalb: erst die Bundles abwarten, dann Eingabe *und* Knopfpruefung
+ * wiederholen. Der DOM-Wert taugt nicht als Nachweis (er ueberlebt bis zum
+ * naechsten Render); belastbar ist nur der Knopf, denn er haengt am State.
+ */
+export async function fillCredentials(page: Page) {
+  const email = page.getByLabel(/E-Mail/);
+  const password = page.locator("#password");
+  const submit = page.getByRole("button", { name: "Anmelden" });
+  await warteAufSeitenruhe(page);
+  await expect(async () => {
+    await email.fill(ADMIN_EMAIL);
+    await password.fill(ADMIN_PASSWORD);
+    await expect(submit).toBeEnabled({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+}
 
 export async function loginAdmin(page: Page) {
   await page.goto("/auth/anmelden");
-  await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
-  await page.locator("#password").fill(ADMIN_PASSWORD);
+  await fillCredentials(page);
   await page.getByRole("button", { name: "Anmelden" }).click();
   await expect(page).toHaveURL("/", { timeout: 15_000 });
 }
@@ -131,10 +183,16 @@ export async function measureLayout(page: Page): Promise<LayoutReport> {
       if (testId) parts.push(`[data-testid="${testId}"]`);
       else if (el.id) parts.push(`#${el.id}`);
       else {
-        const cls = (el.getAttribute("class") ?? "").trim().split(/\s+/).slice(0, 3);
+        const cls = (el.getAttribute("class") ?? "")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 3);
         if (cls[0]) parts.push(`.${cls.join(".")}`);
       }
-      const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+      const text = (el.textContent ?? "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .slice(0, 40);
       if (text) parts.push(`— „${text}"`);
       return parts.join("");
     }
@@ -178,9 +236,12 @@ export async function measureLayout(page: Page): Promise<LayoutReport> {
      * Bedienelement dagegen ist der Fehler, den Welle 2 dreimal gefunden hat.
      */
     function carriesMeaning(el: Element): boolean {
-      if (el.matches(TARGET_SELECTOR) || el.matches("img, video, canvas")) return true;
+      if (el.matches(TARGET_SELECTOR) || el.matches("img, video, canvas"))
+        return true;
       return Array.from(el.childNodes).some(
-        (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim().length > 0,
+        (n) =>
+          n.nodeType === Node.TEXT_NODE &&
+          (n.textContent ?? "").trim().length > 0,
       );
     }
 
@@ -206,12 +267,15 @@ export async function measureLayout(page: Page): Promise<LayoutReport> {
       const parent = el.parentElement;
       if (!parent) return false;
       return Array.from(parent.childNodes).some(
-        (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim().length > 0,
+        (n) =>
+          n.nodeType === Node.TEXT_NODE &&
+          (n.textContent ?? "").trim().length > 0,
       );
     }
 
     const overflow: { selector: string; right: number; width: number }[] = [];
-    const smallTargets: { selector: string; width: number; height: number }[] = [];
+    const smallTargets: { selector: string; width: number; height: number }[] =
+      [];
     const smallInputs: { selector: string; fontSize: number }[] = [];
 
     const TARGET_SELECTOR =
@@ -226,7 +290,11 @@ export async function measureLayout(page: Page): Promise<LayoutReport> {
       if (!isVisible(el, rect)) continue;
 
       // Ueberlauf: ragt die Box rechts aus dem Bild?
-      if (rect.right > vw + TOL && !insideHorizontalScroller(el) && carriesMeaning(el)) {
+      if (
+        rect.right > vw + TOL &&
+        !insideHorizontalScroller(el) &&
+        carriesMeaning(el)
+      ) {
         overflow.push({
           selector: describe(el),
           right: Math.round(rect.right),
@@ -267,7 +335,10 @@ export async function measureLayout(page: Page): Promise<LayoutReport> {
 }
 
 /** Formatiert einen Befund so, dass die Fehlermeldung allein zum Fix reicht. */
-export function formatLayoutReport(route: string, report: LayoutReport): string {
+export function formatLayoutReport(
+  route: string,
+  report: LayoutReport,
+): string {
   const lines: string[] = [`Layout-Befunde auf ${route}:`];
   if (report.scrollWidth > report.clientWidth) {
     lines.push(
@@ -275,7 +346,9 @@ export function formatLayoutReport(route: string, report: LayoutReport): string 
     );
   }
   for (const o of report.overflow) {
-    lines.push(`  ueberlaeuft (rechts bei ${o.right}, breit ${o.width}): ${o.selector}`);
+    lines.push(
+      `  ueberlaeuft (rechts bei ${o.right}, breit ${o.width}): ${o.selector}`,
+    );
   }
   for (const t of report.smallTargets) {
     lines.push(`  Tippziel ${t.width}x${t.height} < 44: ${t.selector}`);

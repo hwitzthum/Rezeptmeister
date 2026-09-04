@@ -33,7 +33,12 @@ export interface ImportSummary {
     mealPlans: number;
     shoppingItems: number;
   };
-  skipped: { recipes: number; mealPlans: number; shoppingItems: number };
+  skipped: {
+    recipes: number;
+    collections: number;
+    mealPlans: number;
+    shoppingItems: number;
+  };
   embeddingQueued: number;
 }
 
@@ -123,7 +128,7 @@ export async function POST(request: Request) {
       mealPlans: 0,
       shoppingItems: 0,
     },
-    skipped: { recipes: 0, mealPlans: 0, shoppingItems: 0 },
+    skipped: { recipes: 0, collections: 0, mealPlans: 0, shoppingItems: 0 },
     embeddingQueued: 0,
   };
   const created: {
@@ -217,7 +222,25 @@ export async function POST(request: Request) {
         }
       }
 
+      // Duplikatschutz wie bei Rezepten, hier ueber den Namen. Ohne ihn legte
+      // jedes erneute Einspielen desselben Backups saemtliche Sammlungen noch
+      // einmal an — die Tabelle verdoppelte sich bei jedem Durchlauf, waehrend
+      // die Rezepte korrekt uebersprungen wurden.
+      const bestehendeNamen = new Set(
+        (
+          await tx
+            .select({ name: collections.name })
+            .from(collections)
+            .where(eq(collections.userId, userId))
+        ).map((row) => row.name.trim().toLowerCase()),
+      );
+
       for (const c of backup.collections) {
+        if (bestehendeNamen.has(c.name.trim().toLowerCase())) {
+          summary.skipped.collections += 1;
+          continue;
+        }
+        bestehendeNamen.add(c.name.trim().toLowerCase());
         const recipeIds = c.recipeIds
           .map((id) => idMap.get(id))
           .filter((id): id is string => !!id);

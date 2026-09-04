@@ -176,3 +176,31 @@ class TestExtractRecipesFromImages:
         assert "ss" in prompt
         # Keine permissiven Mengenangaben.
         assert "3-5" not in prompt and "3–5" not in prompt
+
+@pytest.mark.asyncio
+async def test_leere_modellantwort_liefert_platzhalter(tmp_path):
+    """
+    Regression: Gibt das Modell trotz Prompt-Regel eine leere Rezeptliste
+    zurueck, darf die Oberflaeche keine leere Vorschau zeigen. Der Platzhalter
+    wird im Code erzwungen, nicht im Prompt erhofft.
+    """
+    bild = tmp_path / "seite.png"
+    bild.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    class _Antwort:
+        text = '{"recipes": []}'
+
+    from app.services.ocr_service import (
+        NO_RECIPE_TITLE,
+        extract_recipes_from_image,
+    )
+
+    with patch("app.services.ocr_service._utils.get_gemini_client") as client:
+        client.return_value.aio.models.generate_content = AsyncMock(
+            return_value=_Antwort()
+        )
+        result = await extract_recipes_from_image(str(bild), "key")
+
+    assert len(result.recipes) == 1
+    assert result.recipes[0].title == NO_RECIPE_TITLE
+    assert result.recipes[0].ingredients == []

@@ -6,6 +6,11 @@ Rechenzentrums-IPs pauschal mit 403 — unabhängig von den gesendeten Headern.
 Der direkte Abruf scheiterte deshalb hart und der Import brach mit einer
 generischen Fehlermeldung ab. Diese Tests sichern den Ausweichpfad über
 Geminis `url_context`-Tool sowie die kuratierten Fehlermeldungen ab.
+
+Der Ausweichpfad läuft bewusst als *ein* Aufruf (url_context + response_schema).
+Die frühere zweistufige Variante ("Seite wörtlich wiedergeben", danach
+strukturieren) lief in Geminis Rezitationsfilter und meldete der Nutzerin
+fälschlich, die Seite enthalte kein Rezept.
 """
 
 from unittest.mock import AsyncMock, patch
@@ -26,7 +31,7 @@ def _forbidden_response() -> httpx.Response:
     )
 
 
-def _gemini_response(text: str, status) -> object:
+def _gemini_response(parsed, status, finish_reason=None) -> object:
     """Minimale Nachbildung der genai-Antwort mit url_context_metadata."""
 
     class _Candidate:
@@ -36,10 +41,12 @@ def _gemini_response(text: str, status) -> object:
             ]
         )
 
+    _Candidate.finish_reason = finish_reason
+
     class _Response:
         candidates = [_Candidate()]
 
-    _Response.text = text
+    _Response.parsed = parsed
     return _Response()
 
 
@@ -81,7 +88,7 @@ class TestBlockedPageFallback:
         ):
             mock_client.return_value.aio.models.generate_content = AsyncMock(
                 return_value=_gemini_response(
-                    "Cottage-Cheese-Ei-Muffins\n200 g Hüttenkäse\n1. Alles verrühren.",
+                    _recipe(),
                     types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_SUCCESS,
                 )
             )
@@ -89,8 +96,13 @@ class TestBlockedPageFallback:
 
         assert result.title == "Cottage-Cheese-Ei-Muffins"
         assert result.source_type == "web_import"
-        # Der von Gemini geholte Seitentext muss in die Extraktion eingeflossen sein.
-        assert "Hüttenkäse" in mock_structured.await_args.args[0]
+        # Abruf und Extraktion laufen in einem einzigen Aufruf — der frühere
+        # zweite Strukturierungs-Aufruf entfällt.
+        mock_structured.assert_not_awaited()
+        config = mock_client.return_value.aio.models.generate_content.await_args.kwargs[
+            "config"
+        ]
+        assert config.response_schema is OcrResult
 
     async def test_404_verbraucht_keinen_ki_aufruf(self):
         """Eine nicht existierende Seite bricht sofort ab, statt Tokens zu verbrennen."""
@@ -134,7 +146,7 @@ class TestBlockedPageFallback:
         ):
             mock_client.return_value.aio.models.generate_content = AsyncMock(
                 return_value=_gemini_response(
-                    "", types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_PAYWALL
+                    None, types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_PAYWALL
                 )
             )
             with pytest.raises(UrlImportError) as exc:
@@ -164,7 +176,7 @@ class TestBlockedPageFallback:
         ):
             mock_client.return_value.aio.models.generate_content = AsyncMock(
                 return_value=_gemini_response(
-                    "Sorry, you have been blocked",
+                    None,
                     types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_ERROR,
                 )
             )
@@ -173,6 +185,45 @@ class TestBlockedPageFallback:
 
         assert exc.value.code == "blocked"
         mock_structured.assert_not_awaited()
+
+    async def test_rezitationsfilter_wird_nicht_als_fehlendes_rezept_gemeldet(self):
+        """
+        Regression: Seitenabruf erfolgreich, aber das Modell verweigert die
+        Antwort (finish_reason=RECITATION, keine geparste Antwort). Früher
+        meldete der Import dafür "Auf dieser Seite wurde kein Rezept gefunden",
+        obwohl das Rezept auf der Seite steht (beobachtet auf falstaff.com).
+        """
+        with (
+            patch(
+                "app.services.url_import_service._is_safe_url",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.url_import_service._fetch_page_html",
+                AsyncMock(
+                    side_effect=httpx.HTTPStatusError(
+                        "403 Forbidden",
+                        request=httpx.Request("GET", _URL),
+                        response=_forbidden_response(),
+                    )
+                ),
+            ),
+            patch(
+                "app.services.url_import_service.get_gemini_client"
+            ) as mock_client,
+        ):
+            mock_client.return_value.aio.models.generate_content = AsyncMock(
+                return_value=_gemini_response(
+                    None,
+                    types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_SUCCESS,
+                    finish_reason=types.FinishReason.RECITATION,
+                )
+            )
+            with pytest.raises(UrlImportError) as exc:
+                await fetch_and_parse(_URL, "key", "gemini-3.6-flash")
+
+        assert exc.value.code == "recitation"
+        assert "kein Rezept gefunden" not in exc.value.message
 
 
 @pytest.mark.asyncio
@@ -232,6 +283,38 @@ class TestDirectPath:
 
         mock_client.assert_not_called()
         assert "Kartoffeln" in mock_structured.await_args.args[0]
+
+    async def test_seite_ohne_rezept_liefert_klare_meldung(self):
+        """
+        Regel 8 der Extraktionsvorgaben markiert rezeptlose Seiten mit
+        title="Kein Rezept erkannt". Das Modell füllt `instructions` dabei
+        gerne mit einem Hinweissatz — ohne Titelprüfung landete deshalb ein
+        leeres "Rezept" im Importformular statt einer Fehlermeldung.
+        """
+        leer = OcrResult(
+            title="Kein Rezept erkannt",
+            ingredients=[],
+            instructions="Auf dieser Seite steht kein konkretes Rezept.",
+            source_type="image_ocr",
+        )
+        with (
+            patch(
+                "app.services.url_import_service._is_safe_url",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.url_import_service._fetch_page_html",
+                AsyncMock(return_value="<html><body>Übersicht</body></html>"),
+            ),
+            patch(
+                "app.services.url_import_service.generate_structured",
+                AsyncMock(return_value=leer),
+            ),
+        ):
+            with pytest.raises(UrlImportError) as exc:
+                await fetch_and_parse(_URL, "key", "gemini-3.6-flash")
+
+        assert exc.value.code == "no_recipe"
 
     async def test_unsichere_bild_url_der_ki_wird_verworfen(self):
         recipe = _recipe()

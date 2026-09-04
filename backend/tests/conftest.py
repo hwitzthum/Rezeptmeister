@@ -53,9 +53,10 @@ except ImportError:
 
 # ── Gemeinsame Test-Fixtures ───────────────────────────────────────────────────
 
-import os
-import pathlib
-import pytest
+# Die Importe stehen bewusst nach den Mocks oben: sie ziehen app.* nach und
+# muessen die ersetzten Module vorfinden (E402 ist hier gewollt).
+import pathlib  # noqa: E402
+import pytest  # noqa: E402
 
 # Muss >= 32 Zeichen sein, sonst lehnt der Validator in app.config (check_internal_secret)
 # die Settings-Instanziierung ab und app.main kann nicht importiert werden.

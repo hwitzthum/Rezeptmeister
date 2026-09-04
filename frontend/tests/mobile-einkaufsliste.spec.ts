@@ -9,7 +9,13 @@
  */
 
 import type { Page } from "@playwright/test";
-import { test, expect, CREDS_AVAILABLE, RUN_ID } from "./mobile-helpers";
+import {
+  test,
+  expect,
+  CREDS_AVAILABLE,
+  RUN_ID,
+  warteAufSeitenruhe,
+} from "./mobile-helpers";
 
 test.skip(!CREDS_AVAILABLE, "TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD fehlen in .env");
 
@@ -20,6 +26,10 @@ interface ServerItem {
 }
 
 async function addItemViaApi(page: Page, name: string): Promise<string> {
+  // WebKit bricht ein `fetch` aus `page.evaluate()` ab, solange die Seite noch
+  // laedt ("TypeError: Load failed") — der Eintrag entsteht dann nie und der
+  // Test scheitert an einer Vorbedingung statt an der Sache. Erst Ruhe abwarten.
+  await warteAufSeitenruhe(page);
   const resp = await page.evaluate(async (ingredientName: string) => {
     const res = await fetch("/api/shopping-list", {
       method: "POST",

@@ -11,7 +11,7 @@
  */
 
 import type { Page, Request } from "@playwright/test";
-import { test, expect, ADMIN_EMAIL, ADMIN_PASSWORD, CREDS_AVAILABLE, RUN_ID } from "./mobile-helpers";
+import { test, expect, CREDS_AVAILABLE, RUN_ID, fillCredentials } from "./mobile-helpers";
 
 test.skip(!CREDS_AVAILABLE, "TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD fehlen in .env");
 
@@ -177,8 +177,7 @@ test.describe("C1.4 — Geteilte Adresse", () => {
     await page.goto(target);
     await expect(page).toHaveURL(/\/auth\/anmelden/);
 
-    await page.getByLabel(/E-Mail/).fill(ADMIN_EMAIL);
-    await page.locator("#password").fill(ADMIN_PASSWORD);
+    await fillCredentials(page);
     await page.getByRole("button", { name: "Anmelden" }).click();
 
     await expect(page).toHaveURL(/\/rezepte\/importieren\?/, { timeout: 20_000 });

@@ -98,7 +98,9 @@ export function watchForUpdates({
       if (worker.state === "installed") considerWaiting(worker);
     };
     worker.addEventListener("statechange", onStateChange);
-    cleanups.push(() => worker.removeEventListener("statechange", onStateChange));
+    cleanups.push(() =>
+      worker.removeEventListener("statechange", onStateChange),
+    );
     // Der Zustand kann schon erreicht sein, bevor wir zuhoeren konnten.
     onStateChange();
   }
@@ -109,12 +111,20 @@ export function watchForUpdates({
     if (updateRequested && !stopped) onActivated();
   };
   container.addEventListener("controllerchange", onControllerChange);
-  cleanups.push(() => container.removeEventListener("controllerchange", onControllerChange));
+  cleanups.push(() =>
+    container.removeEventListener("controllerchange", onControllerChange),
+  );
 
   container
     .register("/sw.js")
     .then((reg) => {
       if (stopped) return;
+      // `register()` erfuellt sich nicht in jeder Umgebung mit einer
+      // Registrierung: unterdrueckt der Browser Service Worker (Playwright
+      // `serviceWorkers: "block"`, manche Privatmodi), kommt `undefined`
+      // zurueck statt einer Ablehnung. Ohne diese Pruefung wirft der Zugriff
+      // auf `reg.waiting` — die Aktualisierungspruefung faellt dann still aus.
+      if (!reg) return;
       registration = reg;
 
       // Beim Laden kann bereits eine Fassung warten — etwa weil die App
@@ -124,7 +134,9 @@ export function watchForUpdates({
 
       const onUpdateFound = () => trackInstalling(reg.installing);
       reg.addEventListener("updatefound", onUpdateFound);
-      cleanups.push(() => reg.removeEventListener("updatefound", onUpdateFound));
+      cleanups.push(() =>
+        reg.removeEventListener("updatefound", onUpdateFound),
+      );
     })
     .catch((err) => onError?.(err));
 

@@ -7,7 +7,6 @@ Wird genau einmal nachgefordert? Diese Tests brauchen keine Datenbank —
 das Geschmacksprofil entsteht auf der Next.js-Seite und kommt als Nutzlast.
 """
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest

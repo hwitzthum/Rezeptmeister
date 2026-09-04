@@ -12,7 +12,14 @@
  */
 
 import type { Page, Request } from "@playwright/test";
-import { test, expect, CREDS_AVAILABLE, RUN_ID, isPhoneLayout } from "./mobile-helpers";
+import {
+  test,
+  expect,
+  CREDS_AVAILABLE,
+  RUN_ID,
+  isPhoneLayout,
+  warteAufSeitenruhe,
+} from "./mobile-helpers";
 
 test.skip(!CREDS_AVAILABLE, "TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD fehlen in .env");
 
@@ -62,6 +69,10 @@ test.describe("C1.3 — Das [+]-Sheet", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 });
+    // Vor der Hydration ist [+] ein gewoehnlicher Link: der Tap navigiert dann
+    // direkt nach /rezepte/neu, statt das Sheet zu oeffnen — die Aktionen darin
+    // erscheinen nie und der Test laeuft in den Timeout.
+    await warteAufSeitenruhe(page);
   });
 
   test("fuehrt zum Abfotografieren", async ({ page }) => {
@@ -98,6 +109,7 @@ test.describe("C1.3 — Mehrseitiger Scan", () => {
 
     await page.goto("/rezepte/scannen");
     await expect(page.getByTestId("scan-galerie-button")).toBeVisible();
+    await warteAufSeitenruhe(page);
 
     await page.getByTestId("scan-galerie-input").setInputFiles([
       { name: "seite-1.png", mimeType: "image/png", buffer: PNG_1PX },
@@ -134,6 +146,7 @@ test.describe("C1.3 — Mehrseitiger Scan", () => {
 
     await page.goto("/rezepte/scannen");
     await expect(page.getByTestId("scan-galerie-button")).toBeVisible();
+    await warteAufSeitenruhe(page);
 
     await page.getByTestId("scan-galerie-input").setInputFiles(
       Array.from({ length: 11 }, (_, i) => ({
