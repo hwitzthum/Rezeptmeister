@@ -422,77 +422,108 @@ _EXTRACTION_RULES = """REGELN:
    ingredients-Liste."""
 
 
-async def _extract_page_text_via_gemini(url: str, api_key: str, model: str) -> str:
+def _raise_for_url_retrieval(response: object) -> None:
     """
-    Holt den Seiteninhalt über Geminis `url_context`-Tool statt über einen
-    eigenen HTTP-Request.
+    Wertet den Abrufstatus des `url_context`-Tools aus, bevor die Modellantwort
+    verwendet wird: ohne diese Prüfung würde eine Paywall- oder Fehlerseite als
+    "Rezept" halluziniert werden.
+    """
+    candidates = getattr(response, "candidates", None) or []
+    meta = getattr(candidates[0], "url_context_metadata", None) if candidates else None
+    statuses = [
+        getattr(entry, "url_retrieval_status", None)
+        for entry in (getattr(meta, "url_metadata", None) or [])
+    ]
+    if not statuses or any(
+        status == types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_SUCCESS
+        for status in statuses
+    ):
+        return
+    if types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_PAYWALL in statuses:
+        raise UrlImportError(
+            "Die Seite liegt hinter einer Bezahlschranke und kann nicht "
+            "importiert werden. Tipp: Rezept abfotografieren und über "
+            "«Foto scannen» importieren.",
+            code="paywall",
+        )
+    raise UrlImportError(
+        "Diese Webseite lässt den automatischen Import nicht zu. Tipp: "
+        "Rezept abfotografieren und über «Foto scannen» importieren.",
+        code="blocked",
+    )
+
+
+async def _extract_recipe_via_gemini_url_context(
+    url: str, api_key: str, model: str
+) -> OcrResult:
+    """
+    Holt die Seite über Geminis `url_context`-Tool und extrahiert das Rezept im
+    *selben* Aufruf strukturiert.
 
     Nötig, weil Bot-Management (Cloudflare & Co.) Anfragen aus
     Rechenzentrums-IPs pauschal mit 403 beantwortet — unabhängig davon, wie
     browserähnlich die Header sind, da zusätzlich der TLS-Fingerabdruck
     ausgewertet wird. Google ruft die Seite von seiner eigenen, für Suche und
-    Grounding zugelassenen Infrastruktur ab und liefert den aufbereiteten Text
-    zurück, der anschliessend durch dieselbe strukturierte Extraktion läuft wie
-    der direkte Pfad.
+    Grounding zugelassenen Infrastruktur ab.
 
-    Wirft UrlImportError mit einer nutzbaren Meldung, wenn auch Gemini die
-    Seite nicht laden kann (Paywall, Fehler, unsicherer Inhalt).
+    Warum ein Aufruf statt zwei: Der frühere Umweg holte die Seite zuerst als
+    Freitext ("Gib den Inhalt unverändert wieder") und strukturierte ihn danach.
+    Genau dieser Prompt löste Geminis Rezitationsfilter aus — die Antwort kam
+    mit finish_reason=RECITATION und leerem Text zurück, obwohl der Seitenabruf
+    erfolgreich war. Der Import meldete daraufhin fälschlich "Auf dieser Seite
+    wurde kein Rezept gefunden" (reproduziert auf falstaff.com). Die
+    strukturierte Extraktion formuliert den Inhalt in Schema-Felder um, statt
+    ihn wörtlich zu wiederholen, und wird nicht gefiltert; nebenbei spart sie
+    einen KI-Aufruf und damit Laufzeit und Tokens der Nutzerin.
+
+    Wirft UrlImportError mit einer nutzbaren Meldung, wenn Gemini die Seite
+    nicht laden (Paywall, Bot-Schutz) oder nicht auswerten kann.
     """
     client = get_gemini_client(api_key)
     prompt = (
-        "Öffne die folgende Webseite und gib den vollständigen Rezeptinhalt "
-        "als reinen Text wieder: Titel, Kurzbeschreibung, Portionenzahl, "
-        "Vorbereitungs- und Kochzeit, die vollständige Zutatenliste mit allen "
-        "Mengenangaben (eine Zutat pro Zeile) sowie alle Zubereitungsschritte "
-        "in der Originalreihenfolge. Nenne zusätzlich die absolute URL des "
-        "Titelbilds, falls vorhanden. Gib den Inhalt unverändert wieder, "
-        "kürze und interpretiere nichts.\n\n"
-        f"{url}"
+        "Du bist ein Rezept-Digitalisierungs-Assistent für die Schweiz.\n"
+        f"Öffne die Webseite {url} und extrahiere das dort veröffentlichte "
+        "Rezept als strukturierten JSON-Output.\n\n"
+        f"{_EXTRACTION_RULES}"
     )
     response = await client.aio.models.generate_content(
         model=model,
         contents=prompt,
-        # url_context ist ein serverseitiges Tool; response_mime_type/
-        # response_schema sind mit Tools inkompatibel (siehe web_search.py).
-        # Daher hier nur Freitext holen und die Struktur im zweiten Schritt
-        # über generate_structured() erzeugen.
         config=types.GenerateContentConfig(
             tools=[types.Tool(url_context=types.UrlContext())],
-            temperature=0.0,
+            response_mime_type="application/json",
+            response_schema=OcrResult,
+            temperature=0.2,
         ),
     )
 
-    # Abrufstatus auswerten, bevor der Text verwendet wird: ohne diese Prüfung
-    # würde eine Paywall-/Fehlerseite als "Rezept" halluziniert werden.
-    meta = getattr(response.candidates[0], "url_context_metadata", None) if response.candidates else None
-    statuses = [
-        getattr(entry, "url_retrieval_status", None)
-        for entry in (getattr(meta, "url_metadata", None) or [])
-    ]
-    if statuses and not any(
-        status == types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_SUCCESS
-        for status in statuses
-    ):
-        if types.UrlRetrievalStatus.URL_RETRIEVAL_STATUS_PAYWALL in statuses:
+    _raise_for_url_retrieval(response)
+
+    result = getattr(response, "parsed", None)
+    if not isinstance(result, OcrResult):
+        candidates = getattr(response, "candidates", None) or []
+        finish_reason = getattr(candidates[0], "finish_reason", None) if candidates else None
+        logger.warning(
+            f"url_context-Extraktion ohne verwertbares Ergebnis für {url!r} "
+            f"(finish_reason={finish_reason})"
+        )
+        # Der Seitenabruf war laut Metadaten erfolgreich — das Modell hat die
+        # Antwort verweigert. Das ist ausdrücklich *nicht* dasselbe wie "die
+        # Seite enthält kein Rezept" und darf der Nutzerin auch nicht so
+        # gemeldet werden.
+        if finish_reason == types.FinishReason.RECITATION:
             raise UrlImportError(
-                "Die Seite liegt hinter einer Bezahlschranke und kann nicht "
-                "importiert werden. Tipp: Rezept abfotografieren und über "
+                "Der KI-Dienst hat die Auswertung dieser Seite blockiert "
+                "(Urheberrechtsfilter). Tipp: Rezept abfotografieren und über "
                 "«Foto scannen» importieren.",
-                code="paywall",
+                code="recitation",
             )
         raise UrlImportError(
-            "Diese Webseite lässt den automatischen Import nicht zu. Tipp: "
-            "Rezept abfotografieren und über «Foto scannen» importieren.",
-            code="blocked",
-        )
-
-    text = (response.text or "").strip()
-    if not text:
-        raise UrlImportError(
-            "Auf dieser Seite wurde kein Rezept gefunden.",
+            "Der KI-Dienst konnte diese Seite nicht auswerten. Bitte später "
+            "erneut versuchen oder das Rezept über «Foto scannen» importieren.",
             code="empty",
         )
-    return text
+    return result
 
 
 async def _fetch_page_html(url: str) -> str:
@@ -552,19 +583,45 @@ def _parse_jsonld(soup: BeautifulSoup) -> Optional[OcrResult]:
     return None
 
 
+def _finalize_ai_result(result: OcrResult) -> OcrResult:
+    """
+    Nachbearbeitung für jedes aus freiem Modell-Output stammende Rezept
+    (Seitentext-Extraktion wie url_context-Extraktion).
+    """
+    result.source_type = "web_import"
+    # CH-Einheiten auch auf Gemini-Ergebnis anwenden
+    result.ingredients = _apply_ch_conversions(result.ingredients)
+    # Die Bild-URL stammt hier aus freiem Modell-Output, nicht aus JSON-LD:
+    # dasselbe https-Kriterium anwenden wie in _extract_image_url().
+    if result.image_url and not result.image_url.startswith("https://"):
+        result.image_url = None
+    # Regel 8 der Extraktionsvorgaben lässt das Modell rezeptlose Seiten mit
+    # genau diesem Titel markieren. Ohne die Prüfung landete stattdessen ein
+    # leeres "Rezept" im Importformular — das Modell füllt `instructions` in
+    # dem Fall gerne mit einem Hinweissatz, sodass die Inhaltsprüfung darunter
+    # nicht greift (beobachtet auf einer Artikel-Übersicht von falstaff.com).
+    if result.title.strip().casefold() == "kein rezept erkannt" or (
+        not result.ingredients and not result.instructions.strip()
+    ):
+        raise UrlImportError(
+            "Auf dieser Seite wurde kein Rezept gefunden.",
+            code="no_recipe",
+        )
+    return result
+
+
 async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
     """
     1. Direkter Abruf der URL mit browserähnlichen Headern
     2. JSON-LD <script>-Tags nach @type: Recipe parsen (beste Datenqualität)
     3. Kein JSON-LD: bereinigter Seitentext an Gemini Flash
-    4. Direkter Abruf blockiert (403 & Co.): Seiteninhalt über Geminis
-       url_context-Tool holen und ebenfalls strukturiert extrahieren
+    4. Direkter Abruf blockiert (403 & Co.): Seite über Geminis url_context-Tool
+       abrufen und in einem Aufruf strukturiert extrahieren
     5. Gibt OcrResult zurück
     """
     if not await _is_safe_url(url):
         raise ValueError(f"URL nicht erlaubt (privates Netz oder ungültiges Schema): {url}")
 
-    page_text: Optional[str] = None
     try:
         html = await _fetch_page_html(url)
     except httpx.HTTPStatusError as exc:
@@ -582,7 +639,9 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
             f"Direkter Abruf von {url!r} fehlgeschlagen "
             f"(HTTP {exc.response.status_code}) – weiche auf Gemini url_context aus."
         )
-        page_text = await _extract_page_text_via_gemini(url, api_key, model)
+        return _finalize_ai_result(
+            await _extract_recipe_via_gemini_url_context(url, api_key, model)
+        )
     except (httpx.HTTPError, ValueError) as exc:
         # Timeout, Verbindungsabbruch, blockierter Redirect: ebenfalls über
         # Gemini versuchen.
@@ -590,19 +649,21 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
             f"Direkter Abruf von {url!r} fehlgeschlagen "
             f"({type(exc).__name__}) – weiche auf Gemini url_context aus."
         )
-        page_text = await _extract_page_text_via_gemini(url, api_key, model)
-    else:
-        # Parsing ist synchron CPU-gebunden (großer DOM → 100-500 ms); im Thread-Pool
-        # ausführen, damit der Event-Loop nicht blockiert und gleichzeitige Importe
-        # nicht serialisieren.
-        soup = await asyncio.to_thread(BeautifulSoup, html, "html.parser")
-        result = _parse_jsonld(soup)
-        if result is not None:
-            logger.info(f"Rezept via JSON-LD importiert: {result.title!r}")
-            return result
+        return _finalize_ai_result(
+            await _extract_recipe_via_gemini_url_context(url, api_key, model)
+        )
 
-        logger.info(f"Kein JSON-LD gefunden – Fallback auf Gemini-Textextraktion für {url}")
-        page_text = await asyncio.to_thread(soup.get_text, separator="\n", strip=True)
+    # Parsing ist synchron CPU-gebunden (großer DOM → 100-500 ms); im Thread-Pool
+    # ausführen, damit der Event-Loop nicht blockiert und gleichzeitige Importe
+    # nicht serialisieren.
+    soup = await asyncio.to_thread(BeautifulSoup, html, "html.parser")
+    result = _parse_jsonld(soup)
+    if result is not None:
+        logger.info(f"Rezept via JSON-LD importiert: {result.title!r}")
+        return result
+
+    logger.info(f"Kein JSON-LD gefunden – Fallback auf Gemini-Textextraktion für {url}")
+    page_text = await asyncio.to_thread(soup.get_text, separator="\n", strip=True)
 
     prompt = (
         "Du bist ein Rezept-Digitalisierungs-Assistent für die Schweiz.\n"
@@ -611,17 +672,6 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
         f"{_EXTRACTION_RULES}\n\n"
         f"SEITENINHALT:\n{page_text[:12000]}"
     )
-    result = await generate_structured(prompt, OcrResult, api_key, model, temperature=0.2)
-    result.source_type = "web_import"
-    # CH-Einheiten auch auf Gemini-Ergebnis anwenden
-    result.ingredients = _apply_ch_conversions(result.ingredients)
-    # Die Bild-URL stammt hier aus freiem Modell-Output, nicht aus JSON-LD:
-    # dasselbe https-Kriterium anwenden wie in _extract_image_url().
-    if result.image_url and not result.image_url.startswith("https://"):
-        result.image_url = None
-    if not result.ingredients and not result.instructions.strip():
-        raise UrlImportError(
-            "Auf dieser Seite wurde kein Rezept gefunden.",
-            code="no_recipe",
-        )
-    return result
+    return _finalize_ai_result(
+        await generate_structured(prompt, OcrResult, api_key, model, temperature=0.2)
+    )
