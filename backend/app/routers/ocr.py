@@ -20,7 +20,7 @@ from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.models.image import Image
 from app.services import _utils
-from app.services.ocr_service import OcrResults, extract_recipes_from_images
+from app.services.ocr_service import OcrError, OcrResults, extract_recipes_from_images
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ocr", tags=["OCR"])
@@ -89,6 +89,17 @@ async def ocr_extract(
 
     upload_dir = get_settings().upload_dir
 
+    # Pfadprüfung VOR dem KI-Aufruf: Ein Path-Traversal-Versuch ist der einzige
+    # Fall, der als 400 (Client-Fehler) gemeldet werden darf. Früher fing ein
+    # `except ValueError` um den gesamten Block auch pydantics ValidationError
+    # (eine ValueError-Unterklasse) ab — eine vom Modell gesperrte Antwort
+    # erschien der Nutzerin dann als «Ungültige Anfrage».
+    for image in images:
+        try:
+            _utils.safe_image_path(image.file_path, upload_dir)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ungültiger Dateipfad.")
+
     try:
         # AsyncExitStack hält alle Seitenpfade gleichzeitig offen und gibt
         # temporär materialisierte Dateien (Supabase-Download) danach wieder frei.
@@ -100,8 +111,12 @@ async def ocr_extract(
                 for image in images
             ]
             result = await extract_recipes_from_images(image_paths, x_gemini_api_key)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Ungültiger Dateipfad.")
+    except OcrError as e:
+        # Kuratierte Meldung (Rezitationsfilter, abgeschnittene oder leere
+        # Antwort). Als Objekt, damit der Next.js-Proxy sie von FastAPIs
+        # Validierungsfehlern unterscheiden und gezielt durchreichen kann.
+        logger.info(f"OCR abgebrochen für {len(images)} Bild(er): {e.code}")
+        raise HTTPException(status_code=422, detail={"code": e.code, "message": e.message})
     except FileNotFoundError:
         raise HTTPException(
             status_code=422,

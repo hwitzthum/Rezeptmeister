@@ -159,4 +159,37 @@ test.describe("C1.3 — Mehrseitiger Scan", () => {
     await expect(page.getByTestId("scan-seite")).toHaveCount(10);
     expect(calls).toHaveLength(0);
   });
+
+  test("eine kuratierte Backend-Meldung erscheint woertlich im Fehlerbanner", async ({ page }) => {
+    // Regression (Prod, 2026-09-04): Geminis Rezitationsfilter sperrte die
+    // Antwort auf Kochbuchseiten; die Nutzerin sah nur «Ungueltige Anfrage».
+    // Der Proxy reicht kuratierte 422-Meldungen jetzt durch — der Scan-Dialog
+    // muss sie anzeigen und zum Sammeln zurueckkehren, statt haengen zu bleiben.
+    const meldung =
+      "Der KI-Dienst hat die Texterkennung blockiert (Urheberrechtsfilter). " +
+      "Bitte erneut versuchen oder die Seiten einzeln scannen.";
+    await page.route("**/api/ai/ocr", (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ error: meldung }),
+      }),
+    );
+
+    await page.goto("/rezepte/scannen");
+    await expect(page.getByTestId("scan-galerie-button")).toBeVisible();
+    await warteAufSeitenruhe(page);
+
+    await page.getByTestId("scan-galerie-input").setInputFiles([
+      { name: "seite-1.png", mimeType: "image/png", buffer: PNG_1PX },
+      { name: "seite-2.png", mimeType: "image/png", buffer: PNG_1PX },
+    ]);
+    await expect(page.getByTestId("scan-seite")).toHaveCount(2);
+    await page.getByTestId("scan-start-ocr").tap();
+
+    await expect(page.getByTestId("scan-fehler")).toHaveText(meldung, { timeout: 60_000 });
+    // Zurueck im Sammelmodus: die Seiten bleiben erhalten, ein neuer Versuch ist moeglich.
+    await expect(page.getByTestId("scan-seite")).toHaveCount(2);
+    await expect(page.getByTestId("scan-start-ocr")).toBeEnabled();
+  });
 });

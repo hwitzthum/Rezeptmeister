@@ -204,3 +204,111 @@ async def test_leere_modellantwort_liefert_platzhalter(tmp_path):
     assert len(result.recipes) == 1
     assert result.recipes[0].title == NO_RECIPE_TITLE
     assert result.recipes[0].ingredients == []
+
+
+# ── Gesperrte oder unbrauchbare Modellantworten ───────────────────────────────
+
+def _blocked_response(finish_reason, text=None):
+    """Antwort ohne verwertbaren Text, wie Gemini sie bei einer Sperre liefert."""
+    from types import SimpleNamespace
+
+    response = MagicMock()
+    response.text = text
+    response.candidates = [SimpleNamespace(finish_reason=finish_reason)]
+    return response
+
+
+def _client_returning(response):
+    client = MagicMock()
+    client.aio.models.generate_content = AsyncMock(return_value=response)
+    return client
+
+
+class TestBlockedModelResponses:
+    """
+    Regression (Prod, 2026-09-04): Geminis Rezitationsfilter sperrte die
+    Antwort auf abfotografierte Kochbuchseiten (finish_reason=RECITATION,
+    text=None). model_validate_json(None) warf eine pydantic-ValidationError —
+    eine ValueError-Unterklasse —, die der Router als 400 «Ungültiger
+    Dateipfad» und der Proxy als «Ungültige Anfrage» meldete.
+    """
+
+    @pytest.mark.asyncio
+    async def test_recitation_multipage_raises_ocr_error(self, tmp_path, minimal_jpeg):
+        from google.genai import types
+        from app.services.ocr_service import OcrError, extract_recipes_from_images
+
+        page_two = tmp_path / "seite-2.jpg"
+        page_two.write_bytes(minimal_jpeg.read_bytes())
+        client = _client_returning(_blocked_response(types.FinishReason.RECITATION))
+
+        with patch("app.services._utils.get_gemini_client", return_value=client):
+            with pytest.raises(OcrError) as excinfo:
+                await extract_recipes_from_images([str(minimal_jpeg), str(page_two)], "fake-key")
+
+        assert excinfo.value.code == "recitation"
+        assert "Urheberrechtsfilter" in excinfo.value.message
+        # Niemals als ValueError nach aussen — sonst wird daraus ein 400.
+        assert not isinstance(excinfo.value, ValueError)
+
+    @pytest.mark.asyncio
+    async def test_recitation_single_page_raises_ocr_error(self, minimal_jpeg):
+        from google.genai import types
+        from app.services.ocr_service import OcrError, extract_recipes_from_image
+
+        client = _client_returning(_blocked_response(types.FinishReason.RECITATION))
+        with patch("app.services._utils.get_gemini_client", return_value=client):
+            with pytest.raises(OcrError) as excinfo:
+                await extract_recipes_from_image(str(minimal_jpeg), "fake-key")
+        assert excinfo.value.code == "recitation"
+
+    @pytest.mark.asyncio
+    async def test_max_tokens_raises_truncated(self, minimal_jpeg):
+        from google.genai import types
+        from app.services.ocr_service import OcrError, extract_recipes_from_images
+
+        client = _client_returning(_blocked_response(types.FinishReason.MAX_TOKENS))
+        with patch("app.services._utils.get_gemini_client", return_value=client):
+            with pytest.raises(OcrError) as excinfo:
+                await extract_recipes_from_images([str(minimal_jpeg)], "fake-key")
+        assert excinfo.value.code == "truncated"
+        assert "weniger Seiten" in excinfo.value.message
+
+    @pytest.mark.asyncio
+    async def test_no_candidates_raises_empty(self, minimal_jpeg):
+        from app.services.ocr_service import OcrError, extract_recipes_from_images
+
+        response = MagicMock()
+        response.text = None
+        response.candidates = []
+        with patch("app.services._utils.get_gemini_client", return_value=_client_returning(response)):
+            with pytest.raises(OcrError) as excinfo:
+                await extract_recipes_from_images([str(minimal_jpeg)], "fake-key")
+        assert excinfo.value.code == "empty"
+
+    @pytest.mark.asyncio
+    async def test_schema_violation_raises_invalid_output(self, tmp_path, minimal_jpeg):
+        """Kaputtes JSON darf ebenfalls nicht als ValueError (→ 400) entweichen."""
+        from app.services.ocr_service import OcrError, extract_recipes_from_images
+
+        page_two = tmp_path / "seite-2.jpg"
+        page_two.write_bytes(minimal_jpeg.read_bytes())
+        response = MagicMock()
+        response.text = '{"title": "Rösti", "ingredients": "keine Liste"'
+        with patch("app.services._utils.get_gemini_client", return_value=_client_returning(response)):
+            with pytest.raises(OcrError) as excinfo:
+                await extract_recipes_from_images([str(minimal_jpeg), str(page_two)], "fake-key")
+        assert excinfo.value.code == "invalid_output"
+
+
+class TestOwnWordsRule:
+    """Die Umformulierungsregel ist die eigentliche Abhilfe gegen den Rezitationsfilter."""
+
+    def test_both_prompts_demand_own_words(self):
+        from app.services.ocr_service import _OCR_MULTIPAGE_PROMPT, _OCR_PROMPT, _OWN_WORDS_RULE
+
+        assert "EIGENEN WORTEN" in _OWN_WORDS_RULE
+        assert _OWN_WORDS_RULE in _OCR_PROMPT
+        assert _OWN_WORDS_RULE in _OCR_MULTIPAGE_PROMPT.format(page_count=3)
+        # Der fachliche Inhalt bleibt ausdrücklich vollständig — kein Freibrief zum Kürzen.
+        assert "vollständig erhalten" in _OWN_WORDS_RULE
