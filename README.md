@@ -346,10 +346,18 @@ Add a new area there and it appears in the sidebar, the tab bar and the *Mehr* m
    image ids in page order — up to 10 pages become **one** recipe, not one per page.
 4. The result opens in the editable preview; saving redirects to the new recipe.
 
+The OCR prompt asks Gemini to rewrite the description and the method **in its own words** while
+keeping every ingredient, amount, time and temperature. Printed cookbook pages are usually online
+too, and a verbatim transcription trips Gemini's recitation (copyright) filter, which then returns
+an empty answer — one page of an affected book is enough. If the filter still blocks a scan, the
+backend answers with a curated message (`Urheberrechtsfilter`) that the scan page shows verbatim;
+the pages stay in the list so the user can retry or scan them one at a time.
+
 ```
 POST /api/ai/ocr
   { "imageIds": ["<uuid>", "<uuid>"] }   // 1–10, order = page order
   → 200 { "recipes": [ { … } ] }         // exactly one merged recipe
+  → 422 { "error": "Der KI-Dienst hat die Texterkennung blockiert (Urheberrechtsfilter) …" }
 ```
 
 ### Importing a recipe from a link

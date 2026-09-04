@@ -9,12 +9,27 @@ import logging
 from typing import Literal, Optional
 
 from google.genai import types
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app.config import get_settings
 from app.services import _utils
 
 logger = logging.getLogger(__name__)
+
+
+class OcrError(Exception):
+    """
+    Fachlicher OCR-Fehler mit einer für die Nutzerin bestimmten Meldung.
+
+    Wird geworfen, wenn das Modell keine verwertbare Antwort liefert (etwa
+    weil Geminis Rezitationsfilter die Ausgabe sperrt). Der Router reicht
+    `message` als kuratierte Meldung durch; `code` bleibt für Log und Tests.
+    """
+
+    def __init__(self, message: str, code: str):
+        super().__init__(message)
+        self.message = message
+        self.code = code
 
 
 # ── Ausgabe-Schemas ────────────────────────────────────────────────────────────
@@ -55,6 +70,19 @@ class OcrResults(BaseModel):
 
 # ── Service-Funktion ───────────────────────────────────────────────────────────
 
+# Warum «eigene Worte»: Kochbuchseiten stehen meist auch im Netz. Verlangt der
+# Prompt eine Abschrift, erkennt Geminis Rezitationsfilter den bekannten
+# Wortlaut und sperrt die gesamte Antwort (finish_reason=RECITATION, kein
+# Text) — reproduziert am 2026-09-04 mit den Prod-Bildern einer Nutzerin,
+# bei denen schon EINE Seite gesperrt wurde. Eine Umformulierung der
+# Anleitung passiert den Filter; Zutaten, Mengen, Zeiten und Temperaturen
+# bleiben als Fakten vollständig erhalten.
+_OWN_WORDS_RULE = """EIGENE FORMULIERUNG (verbindlich): Schreibe Beschreibung und Zubereitungsanleitung
+   vollständig in EIGENEN WORTEN. Übernimm keine ganzen Sätze aus der Vorlage: Formuliere jeden
+   Schritt als knappe, sachliche Anweisung um (Handlung, Zutat, Menge, Temperatur, Dauer), ohne
+   Wortlaut, Satzstellung oder Stil des Originals zu wiederholen. Der fachliche Inhalt — alle
+   Zutaten, Mengen, Schritte, Zeiten und Temperaturen — bleibt dabei vollständig erhalten."""
+
 _OCR_PROMPT = """Du bist ein Kochbuch-Digitalisierungs-Assistent für die Schweiz.
 
 Analysiere das Bild und extrahiere alle Rezeptinformationen als strukturierten JSON-Output.
@@ -72,6 +100,7 @@ REGELN:
 5. ANLEITUNG: Schreibe die Anleitung als fortlaufenden Text oder nummerierte Schritte.
 6. FALLS kein Rezept erkennbar: Gib title="Kein Rezept erkannt" und leere ingredients zurück.
 7. MEHRERE REZEPTE: Falls das Bild mehrere Rezepte enthält, extrahiere JEDES Rezept als separaten Eintrag in der Liste. Jedes Rezept erhält eigenen Titel, Zutaten und Anleitung.
+8. """ + _OWN_WORDS_RULE + """
 
 Extrahiere jetzt ALLE Rezepte aus dem Bild. Falls nur ein Rezept vorhanden ist, gib trotzdem eine Liste mit einem Eintrag zurück:"""
 
@@ -114,9 +143,55 @@ REGELN FÜR DEN INHALT:
 12. ANLEITUNG: Schreibe die vollständige Anleitung als nummerierte Schritte, ein Schritt pro Zeile.
 13. FALLS auf KEINER Seite ein Rezept erkennbar ist: Gib title="Kein Rezept erkannt" und leere
     ingredients zurück.
+14. """ + _OWN_WORDS_RULE + """
 
 Gib jetzt GENAU EIN zusammengeführtes Rezept zurück, das ALLE Zutaten und ALLE Schritte
 aus ALLEN {page_count} Seiten enthält:"""
+
+
+def _parse_response(response, schema, context: str):
+    """
+    Validiert die Modellantwort gegen `schema` oder wirft einen OcrError mit
+    einer ehrlichen Meldung.
+
+    Ohne diese Prüfung lief eine gesperrte Antwort (finish_reason=RECITATION,
+    `response.text` ist None) in `model_validate_json(None)` und damit in eine
+    pydantic-ValidationError — eine ValueError-Unterklasse, die der Router als
+    400 «Ungültiger Dateipfad» und der Proxy als «Ungültige Anfrage» meldete.
+    Eine Modell-Sperre ist kein Client-Fehler und darf auch nicht so aussehen.
+    """
+    text = response.text
+    if text:
+        try:
+            return schema.model_validate_json(text)
+        except ValidationError as e:
+            # Nur Fehlerarten loggen, nie den Inhalt — der ist Rezepttext der Nutzerin.
+            kinds = sorted({err.get("type", "?") for err in e.errors()})
+            logger.warning(f"OCR-Antwort verletzt Schema ({context}): {kinds}")
+            raise OcrError(
+                "Der KI-Dienst hat eine unbrauchbare Antwort geliefert. Bitte erneut versuchen.",
+                code="invalid_output",
+            ) from e
+
+    candidates = getattr(response, "candidates", None) or []
+    finish_reason = getattr(candidates[0], "finish_reason", None) if candidates else None
+    logger.warning(f"OCR ohne verwertbare Antwort ({context}, finish_reason={finish_reason})")
+    if finish_reason == types.FinishReason.RECITATION:
+        raise OcrError(
+            "Der KI-Dienst hat die Texterkennung blockiert (Urheberrechtsfilter). "
+            "Bitte erneut versuchen oder die Seiten einzeln scannen.",
+            code="recitation",
+        )
+    if finish_reason == types.FinishReason.MAX_TOKENS:
+        raise OcrError(
+            "Die Antwort des KI-Dienstes war unvollständig. "
+            "Bitte weniger Seiten auf einmal scannen.",
+            code="truncated",
+        )
+    raise OcrError(
+        "Der KI-Dienst konnte die Seiten nicht auswerten. Bitte erneut versuchen.",
+        code="empty",
+    )
 
 
 async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
@@ -148,11 +223,12 @@ async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
             ),
         )
 
-        text = response.text
-        result = OcrResult.model_validate_json(text)
+        result = _parse_response(response, OcrResult, "einseitig")
         result.source_type = "image_ocr"  # immer von uns gesetzt, nicht vom Modell
         return result
 
+    except OcrError:
+        raise
     except Exception as e:
         logger.error(f"OCR-Fehler für {image_path}: {type(e).__name__}")
         raise
@@ -216,12 +292,13 @@ async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResult
             ),
         )
 
-        text = response.text
-        result = OcrResults.model_validate_json(text)
+        result = _parse_response(response, OcrResults, "einseitig, mehrere Rezepte")
         for recipe in result.recipes:
             recipe.source_type = "image_ocr"
         return _ensure_non_empty(result)
 
+    except OcrError:
+        raise
     except Exception as e:
         logger.error(f"OCR-Fehler (multi) für {image_path}: {type(e).__name__}")
         raise
@@ -277,10 +354,12 @@ async def extract_recipes_from_images(image_paths: list[str], api_key: str) -> O
             ),
         )
 
-        recipe = OcrResult.model_validate_json(response.text)
+        recipe = _parse_response(response, OcrResult, f"mehrseitig, {len(image_paths)} Seiten")
         recipe.source_type = "image_ocr"
         return OcrResults(recipes=[recipe])
 
+    except OcrError:
+        raise
     except Exception as e:
         logger.error(
             f"OCR-Fehler (mehrseitig, {len(image_paths)} Seiten): {type(e).__name__}"

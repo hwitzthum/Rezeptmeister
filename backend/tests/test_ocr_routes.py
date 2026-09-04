@@ -316,3 +316,86 @@ class TestOcrExtractValidation:
     async def test_invalid_uuid_returns_422(self, app):
         res = await _post(app, {"image_ids": ["kein-uuid"], "user_id": str(uuid.uuid4())})
         assert res.status_code == 422
+
+
+def _blocked_gemini_mock(finish_reason=None, text=None) -> MagicMock:
+    """Gemini-Antwort ohne verwertbaren Text (Rezitationsfilter, Abbruch)."""
+    from types import SimpleNamespace as _NS
+
+    response = MagicMock()
+    response.text = text
+    response.candidates = [_NS(finish_reason=finish_reason)] if finish_reason else []
+    client = MagicMock()
+    client.aio.models.generate_content = AsyncMock(return_value=response)
+    return client
+
+
+@requires_db
+class TestOcrExtractBlockedResponses:
+    """
+    Regression (Prod, 2026-09-04): Eine vom Rezitationsfilter gesperrte Antwort
+    wurde als 400 «Ungültiger Dateipfad» gemeldet — der Next.js-Proxy machte
+    daraus «Ungültige Anfrage». Jetzt: 422 mit kuratierter Meldung als Objekt.
+    """
+
+    async def test_recitation_returns_422_with_curated_message(self, app, seeded):
+        from google.genai import types
+
+        mock_client = _blocked_gemini_mock(types.FinishReason.RECITATION)
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app,
+                {
+                    "image_ids": [str(seeded.page_one_id), str(seeded.page_two_id)],
+                    "user_id": str(seeded.owner_id),
+                },
+            )
+
+        assert res.status_code == 422
+        detail = res.json()["detail"]
+        assert detail["code"] == "recitation"
+        assert "Urheberrechtsfilter" in detail["message"]
+
+    async def test_recitation_single_page_returns_422(self, app, seeded):
+        from google.genai import types
+
+        mock_client = _blocked_gemini_mock(types.FinishReason.RECITATION)
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app, {"image_ids": [str(seeded.page_one_id)], "user_id": str(seeded.owner_id)}
+            )
+        assert res.status_code == 422
+        assert res.json()["detail"]["code"] == "recitation"
+
+    async def test_unusable_model_output_returns_422_not_400(self, app, seeded):
+        mock_client = _blocked_gemini_mock(text='{"title": 42')
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app,
+                {
+                    "image_ids": [str(seeded.page_one_id), str(seeded.page_two_id)],
+                    "user_id": str(seeded.owner_id),
+                },
+            )
+        assert res.status_code == 422
+        assert res.json()["detail"]["code"] == "invalid_output"
+
+    async def test_path_traversal_still_returns_400(self, app, seeded):
+        """Der einzige echte Client-Fehler bleibt ein 400 — und kommt vor dem KI-Aufruf."""
+        from sqlalchemy import text
+
+        from app.database import engine
+
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("UPDATE images SET file_path = '..' WHERE id = :id"),
+                {"id": seeded.page_one_id},
+            )
+        mock_client = _gemini_mock(MERGED_RECIPE)
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app, {"image_ids": [str(seeded.page_one_id)], "user_id": str(seeded.owner_id)}
+            )
+        assert res.status_code == 400
+        assert res.json()["detail"] == "Ungültiger Dateipfad."
+        mock_client.aio.models.generate_content.assert_not_awaited()
