@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 import httpx
+from fastapi import HTTPException
 from google import genai
 
 from app.config import get_settings
@@ -116,7 +117,7 @@ def get_gemini_client(api_key: str) -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
-def map_gemini_error(exc: Exception, fallback: str = "KI-Dienst momentan nicht verfügbar.") -> "HTTPException":
+def map_gemini_error(exc: Exception, fallback: str = "KI-Dienst momentan nicht verfügbar.") -> HTTPException:
     """
     Übersetzt Gemini-Fehler in HTTP-Antworten, die der Nutzerin etwas sagen.
 
@@ -125,7 +126,6 @@ def map_gemini_error(exc: Exception, fallback: str = "KI-Dienst momentan nicht v
     Objekt mit `message` reicht der Next.js-Proxy als kuratierte Meldung durch;
     rohe Fehlertexte bleiben im Log.
     """
-    from fastapi import HTTPException
     from google.genai import errors as genai_errors
 
     if isinstance(exc, genai_errors.ClientError):

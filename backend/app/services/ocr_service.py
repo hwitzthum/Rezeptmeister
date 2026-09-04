@@ -158,6 +158,35 @@ async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
         raise
 
 
+#: Titel, mit dem der Prompt (Regel 6 bzw. 13) eine Seite ohne Rezept markiert.
+NO_RECIPE_TITLE = "Kein Rezept erkannt"
+
+
+def _ensure_non_empty(result: OcrResults) -> OcrResults:
+    """
+    Stellt sicher, dass immer mindestens ein Rezept zurueckkommt.
+
+    Der Prompt verlangt fuer eine Seite ohne Rezept ausdruecklich einen
+    Platzhalter mit `title="Kein Rezept erkannt"`. Das Modell haelt sich nicht
+    zuverlaessig daran und liefert stattdessen gelegentlich eine leere Liste
+    (beobachtet bei sehr kleinen/unlesbaren Bildern). Die Oberflaeche zeigt dann
+    eine leere Vorschau ohne jeden Hinweis — ein stiller Fehlschlag.
+
+    Die Zusage gehoert deshalb in den Code und nicht in die Prompt-Formulierung.
+    """
+    if result.recipes:
+        return result
+    return OcrResults(
+        recipes=[
+            OcrResult(
+                title=NO_RECIPE_TITLE,
+                instructions="",
+                source_type="image_ocr",
+            )
+        ]
+    )
+
+
 async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResults:
     """
     Extrahiert ALLE Rezepte aus einem Bild via Gemini multimodal OCR.
@@ -191,7 +220,7 @@ async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResult
         result = OcrResults.model_validate_json(text)
         for recipe in result.recipes:
             recipe.source_type = "image_ocr"
-        return result
+        return _ensure_non_empty(result)
 
     except Exception as e:
         logger.error(f"OCR-Fehler (multi) für {image_path}: {type(e).__name__}")

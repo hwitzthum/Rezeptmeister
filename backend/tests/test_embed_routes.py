@@ -13,7 +13,7 @@ import uuid
 import pytest
 
 from httpx import AsyncClient, ASGITransport
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 from tests.conftest import TEST_INTERNAL_SECRET
 

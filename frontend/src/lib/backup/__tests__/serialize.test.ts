@@ -182,6 +182,28 @@ describe("backupSchema", () => {
     expect(backupSchema.safeParse({ recipes: [] }).success).toBe(false);
   });
 
+  it("kennt keine Stueckzahl-Grenze — der Export hat auch keine", () => {
+    // Regression: mit einer Obergrenze liess sich ein selbst erzeugtes Backup
+    // herunterladen, aber nicht mehr einspielen, sobald das Konto sie
+    // ueberschritt. Erst war es 1000, dann 5000 — die Zahl driftet mit den
+    // Daten, deshalb gibt es sie nicht mehr. Begrenzt wird ueber die
+    // 20-MB-Schranke der Import-Route.
+    const backup = buildBackup(row());
+    const viele = {
+      ...backup,
+      collections: Array.from({ length: 6000 }, (_, i) => ({
+        id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+        name: `Sammlung ${i}`,
+        description: null,
+        coverImageId: null,
+        recipeIds: [],
+        createdAt: new Date().toISOString(),
+      })),
+    };
+    const parsed = backupSchema.safeParse(viele);
+    expect(parsed.success).toBe(true);
+  });
+
   it("verlangt gueltige Rezepte (Titel, Anleitung, UUID)", () => {
     const backup = buildBackup(row());
     const kaputt = {

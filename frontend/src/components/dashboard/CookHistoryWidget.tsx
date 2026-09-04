@@ -64,11 +64,11 @@ export default function CookHistoryWidget({ recent, longAgo }: Props) {
           {recent.map((e) => (
             <li
               key={`${e.recipeId}-${e.cookedOn}`}
-              className="flex items-baseline justify-between gap-3 text-sm"
+              className="flex items-baseline justify-between gap-3 text-sm pointer-coarse:items-center"
             >
               <Link
                 href={`/rezepte/${e.recipeId}`}
-                className="text-[var(--text-primary)] hover:text-terra-600 dark:hover:text-terra-400 truncate transition-colors"
+                className="text-[var(--text-primary)] hover:text-terra-600 dark:hover:text-terra-400 truncate transition-colors pointer-coarse:min-tap pointer-coarse:flex pointer-coarse:items-center"
               >
                 {e.title}
               </Link>
@@ -92,11 +92,11 @@ export default function CookHistoryWidget({ recent, longAgo }: Props) {
             {longAgo.map((e) => (
               <li
                 key={e.recipeId}
-                className="flex items-baseline justify-between gap-3 text-sm"
+                className="flex items-baseline justify-between gap-3 text-sm pointer-coarse:items-center"
               >
                 <Link
                   href={`/rezepte/${e.recipeId}`}
-                  className="text-[var(--text-primary)] hover:text-terra-600 dark:hover:text-terra-400 truncate transition-colors"
+                  className="text-[var(--text-primary)] hover:text-terra-600 dark:hover:text-terra-400 truncate transition-colors pointer-coarse:min-tap pointer-coarse:flex pointer-coarse:items-center"
                 >
                   {e.title}
                 </Link>

@@ -14,7 +14,12 @@ interface ImportSummary {
     mealPlans: number;
     shoppingItems: number;
   };
-  skipped: { recipes: number; mealPlans: number; shoppingItems: number };
+  skipped: {
+    recipes: number;
+    collections: number;
+    mealPlans: number;
+    shoppingItems: number;
+  };
   embeddingQueued: number;
 }
 
@@ -174,7 +179,8 @@ export default function BackupPanel() {
           Kochlog-Einträge, {lastResult.imported.collections} Sammlungen,{" "}
           {lastResult.imported.mealPlans} Wochenplan-Einträge,{" "}
           {lastResult.imported.shoppingItems} Einkaufsposten. Übersprungen:{" "}
-          {lastResult.skipped.recipes} Rezepte.
+          {lastResult.skipped.recipes} Rezepte, {lastResult.skipped.collections}{" "}
+          Sammlungen.
           {lastResult.embeddingQueued > 0 &&
             " Die Suche wird im Hintergrund aktualisiert."}
         </p>
