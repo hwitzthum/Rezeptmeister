@@ -2,11 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Die Mobile-Suite (Welle 3 / C1) laeuft auf drei Geraeteprofilen, die
- * Bestands-Specs der 18 Phasen weiterhin nur auf dem Desktop.
+ * Bestands-Specs der Phasen (phase-*.spec.ts) weiterhin nur auf dem Desktop.
  *
  * Die Trennung laeuft ueber den Dateinamen: `mobile-*.spec.ts` gehoert den
  * Geraeteprojekten, alles andere dem `chromium`-Projekt. Ohne diese Weiche
- * wuerden die 19 Phase-Specs viermal laufen — auf Viewports, fuer die sie nie
+ * wuerden die Phase-Specs viermal laufen — auf Viewports, fuer die sie nie
  * geschrieben wurden (Sidebar sichtbar, kein Tab-Bar-Ueberdeckung, kein Touch).
  */
 const MOBILE_SPECS = /mobile-.*\.spec\.ts$/;
