@@ -3,7 +3,7 @@
 **AI-powered recipe management for the Swiss market.**  
 *Bring Your Own Key (BYOK) — your API keys, your data, your privacy.*
 
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.3.0-black?logo=nextdotjs)](https://nextjs.org)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.3.4-black?logo=nextdotjs)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009485?logo=fastapi)](https://fastapi.tiangolo.com)
 [![PostgreSQL + pgvector](https://img.shields.io/badge/PostgreSQL-16%2Bpgvector-4169E1?logo=postgresql)](https://www.postgresql.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -458,7 +458,7 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 
 | Layer | Technology | Version |
 |-------|------------|--------|
-| **Frontend framework** | Next.js App Router (TypeScript) | 16.3.0 |
+| **Frontend framework** | Next.js App Router (TypeScript) | 16.3.4 |
 | **UI runtime** | React | 19.2.4 |
 | **Styling** | Tailwind CSS | v4 |
 | **Icons** | Lucide React | 1.7.0 |
@@ -467,7 +467,7 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 | **DB driver** | postgres (native) | 3.4.8 |
 | **Drag-and-drop** | @dnd-kit | 6.3.1 |
 | **PDF export** | @react-pdf/renderer | 4.3.3 |
-| **Image processing** | sharp | 0.35.3 |
+| **Image processing** | sharp | 0.35.4 |
 | **Offline storage** | idb (IndexedDB) | 8.0.3 |
 | **Date utilities** | date-fns (Europe/Zurich) | 4.1.0 |
 | **Backend framework** | FastAPI (async Python) | 0.115+ |
