@@ -1,6 +1,6 @@
 # Rezeptmeister – Implementierungsplan
 
-**Status:** Phasen 1–18 abgeschlossen ✅ · Phase 19 (Mobile/PWA) abgeschlossen ✅ (2026-08-28)  
+**Status:** Phasen 1–18 abgeschlossen ✅ · Phase 19 (Mobile/PWA) abgeschlossen ✅ (2026-08-28) · Phase 20 (UX) abgeschlossen ✅ (2026-08-28) · Phase 21 (Kochhistorie, Backup, KI-Wochenplan) abgeschlossen ✅ (2026-08-30)  
 **Ziel:** KI-gestützte Rezeptverwaltung für den Schweizer Markt  
 **Stack:** Next.js + FastAPI + PostgreSQL/pgvector + Gemini Embedding 2  
 
@@ -571,7 +571,7 @@
 - [x] Alle UI-Texte durchgehend Deutsch (Schweizer Schreibweisen: "ss" statt "ß")
 - [x] Schweizer Masseinheiten überall konsequent einsetzen
 - [x] KI-Funktionen immer mit "Bitte API-Schlüssel in Einstellungen hinterlegen"-Hinweis sichern
-- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 21 Testdateien (phase-1 bis phase-21, inkl. phase-1b) + 4 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
+- [x] Playwright-Testdatei für jede Phase anlegen (`tests/phase-X.spec.ts`) ✅ 22 Testdateien (phase-1 bis phase-21 ohne phase-19, inkl. phase-1b und phase-20-update) + 5 Mobile-Specs (`tests/mobile-*.spec.ts`) aus Phase 19
 - [x] Frontend-Design-Skill für alle neuen Seiten/Komponenten aufrufen
 - [x] BYOK: API-Schlüssel nie ins Frontend leaken
 

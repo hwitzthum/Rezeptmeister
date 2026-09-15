@@ -14,7 +14,7 @@
 
 Rezeptmeister is a full-stack recipe management app tailored for Swiss home cooks. It features AI-powered search, OCR recipe import, meal planning, offline mode, and a full cooking assistant — all powered by the API keys you provide. Keys are encrypted at rest and never sent to the browser.
 
-All 18 implementation phases are complete with Playwright E2E, Vitest unit, and Pytest integration test coverage.
+All 21 implementation phases are complete with Playwright E2E, Vitest unit, and Pytest integration test coverage.
 
 ---
 
@@ -53,11 +53,13 @@ git clone https://github.com/hwitzthum/rezeptmeister.git
 cd rezeptmeister
 
 # 2. Generate secrets
-cp .env.example frontend/.env.local
-# Edit frontend/.env.local — fill in the three required secrets:
+cp .env.example .env                 # read by docker compose (DB_PASSWORD, INTERNAL_SECRET)
+cp .env.example frontend/.env.local  # read by Next.js
+# Fill in the secrets:
+#   DB_PASSWORD=$(openssl rand -hex 16)          # root .env — use the same password in DATABASE_URL
 #   NEXTAUTH_SECRET=$(openssl rand -base64 48)
-#   ENCRYPTION_KEY=$(openssl rand -hex 32)    # must be exactly 64 hex chars
-#   INTERNAL_SECRET=$(openssl rand -hex 32)
+#   ENCRYPTION_KEY=$(openssl rand -hex 32)       # must be exactly 64 hex chars
+#   INTERNAL_SECRET=$(openssl rand -hex 32)      # identical in both files
 
 # 3. Start PostgreSQL + pgvector + FastAPI backend
 docker compose up -d
@@ -82,7 +84,7 @@ npm run dev  # http://localhost:3001
 | Admin | `admin@rezeptmeister.ch` | `Rezeptmeister1!` |
 | Test user | `test@rezeptmeister.ch` | `test1234` |
 
-> **Port note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on **3001** (frontend) and **8000** (FastAPI, available at `http://localhost:8000/docs`).
+> **Port note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on **3001** (frontend) and **8000** (FastAPI — not published by Docker Compose; see [Access FastAPI Swagger Docs](#access-fastapi-swagger-docs)).
 
 ---
 
@@ -438,7 +440,7 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 
 **Key rule:** Next.js API routes decrypt the user's API key server-side and inject it into each FastAPI request. The key is never sent to the browser and never stored in FastAPI.
 
-### Database Schema (10 Tabellen)
+### Database Schema (11 Tabellen)
 
 | Table | Purpose |
 |-------|-------|
@@ -451,6 +453,8 @@ containers, so nothing wraps into a ragged trailing button on a narrow screen:
 | `shopping_list_items` | Shopping items, checked status, aisle categories |
 | `meal_plans` | Weekly slots (breakfast/lunch/dinner/snack) |
 | `collections` | User-created recipe collections / cookbooks |
+| `collection_recipes` | Join table linking recipes to collections |
+| `re_embed_jobs` | Admin re-embedding job progress (backend-only; not in the Drizzle schema) |
 
 ---
 
@@ -552,8 +556,6 @@ psql postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister
 docker compose exec db psql -U rezeptmeister -d rezeptmeister
 # Useful psql commands: \dt (tables), \d recipes (schema), SELECT * FROM users;
 
-# View FastAPI OpenAPI docs
-open http://localhost:8000/docs
 ```
 
 ---
@@ -567,7 +569,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 | File | Read by | Why it lives here |
 |------|---------|------------------|
 | `frontend/.env.local` | Next.js (Node.js process) | Next.js's native convention. `.env.local` is auto-excluded from git by Next.js's default `.gitignore` — a security feature you get for free. |
-| `backend/.env` | FastAPI / Python (`python-dotenv`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
+| `backend/.env` | FastAPI (`pydantic-settings`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
 | `.env` (project root) | `docker-compose.yml` + test suites | Docker Compose reads it for `DB_PASSWORD` and `INTERNAL_SECRET`. Playwright and Pytest tests read it for `GEMINI_TEST_KEY` and admin credentials. Not read by Next.js or FastAPI at runtime. |
 
 > **Production:** None of these files travel to production. Secrets are set via the deployment platform (Vercel dashboard, Railway secrets, Fly.io `flyctl secrets set`). See [Production Deployment](#production-deployment).
@@ -587,6 +589,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 | `UPLOAD_DIR` | Where uploaded images are stored, relative to `frontend/` | `./uploads` |
 | `ENCRYPTION_KEY` | AES-256-GCM key used to encrypt user API keys at rest. **Must be exactly 64 hex characters (32 bytes).** | `openssl rand -hex 32` |
 | `INTERNAL_SECRET` | Shared secret that Next.js sends to FastAPI on every AI request, so FastAPI can reject unauthenticated calls. Must match `backend/.env`. | `openssl rand -hex 32` |
+| `CRON_SECRET` | Bearer secret for the Vercel cron `/api/cron/keepalive` (`frontend/vercel.json`, every 10 min). The route rejects all calls when unset. | `openssl rand -hex 32` |
 | `UPSTASH_REDIS_REST_URL` | *(Optional)* Upstash Redis REST URL for distributed rate limiting. Omit locally to use the in-memory limiter. | Upstash console, or the Vercel integration |
 | `UPSTASH_REDIS_REST_TOKEN` | *(Optional)* Upstash Redis REST token, paired with the URL above. | Upstash console, or the Vercel integration |
 | `GEMINI_TEST_KEY` | *(Optional)* Gemini API key used only during live E2E tests. Never used in the running app. | Gemini API key from Google AI Studio |
@@ -658,7 +661,7 @@ Frontend shows only the last 4 characters (`sk-...abc1`). The plaintext key neve
 Two layers, both configured in `frontend/src/lib/rate-limit.ts`:
 
 - **In-memory sliding window** on every API route — **100 requests / 15 min per IP** by default, stricter on `/api/auth/*` (**10 / 15 min**, brute-force protection) and `/api/ai/*` (Gemini quota protection). Sufficient for single-instance / self-hosted deployments. Responses expose `RateLimit-Remaining` / `RateLimit-Reset` headers.
-- **Distributed (Redis-backed)** limiting on every API route via [Upstash](https://upstash.com) (`@upstash/ratelimit`). On Vercel's serverless platform the in-memory store is per-instance and bypassable by spreading requests across cold-start containers; the Redis limiter enforces the limit **across all instances**. It runs *before* the in-memory check, returns `429` with `Retry-After: 900`, and falls back gracefully to in-memory when Upstash is not configured.
+- **Distributed (Redis-backed)** limiting on every API route via [Upstash](https://upstash.com) (`@upstash/ratelimit`). On Vercel's serverless platform the in-memory store is per-instance and bypassable by spreading requests across cold-start containers; the Redis limiter enforces the limit **across all instances**. It runs *before* the in-memory check, returns `429` with `Retry-After: 900`, and falls back to in-memory when Upstash is not configured — outside production only; in production missing Upstash credentials throw (fail closed).
 
 > **Production requires Upstash credentials** (see [Environment Variables (Production)](#environment-variables-production)). Without them, rate limiting silently degrades to the per-instance in-memory limiter on serverless. The limiter reads `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, falling back to the `UPSTASH_REDIS_KV_REST_API_URL` / `UPSTASH_REDIS_KV_REST_API_TOKEN` names that the Vercel Upstash Marketplace integration provisions.
 
@@ -749,13 +752,13 @@ Tests skip gracefully when the DB is unavailable (`pytest.mark.skipif` on connec
 
 ### Layer 3 — E2E Tests (Playwright)
 
-Full user journeys across all 20 phases, plus a device suite for the mobile experience.
+Full user journeys across all 21 phases, plus a device suite for the mobile experience (Phase 19).
 
 ```bash
 cd frontend
 npx playwright install                        # First run: downloads Chromium + WebKit
 npx playwright test                           # Everything, all four projects
-npx playwright test --project=chromium        # Only the 20 phase specs (desktop)
+npx playwright test --project=chromium        # Only the phase specs (desktop)
 npx playwright test --project=mobile-safari   # Only the mobile suite on iPhone 14
 npx playwright test tests/phase-8.spec.ts     # Single phase
 npx playwright test --ui                      # Interactive mode
@@ -768,7 +771,7 @@ npx playwright show-report                    # HTML report
 
 | Project | Device | Runs |
 | ------- | ------ | ---- |
-| `chromium` | Desktop Chrome | `tests/phase-*.spec.ts` — the 20 phase specs |
+| `chromium` | Desktop Chrome | `tests/phase-*.spec.ts` — the phase specs |
 | `mobile-safari` | iPhone 14 (WebKit) | `tests/mobile-*.spec.ts` |
 | `mobile-chrome` | Pixel 7 (Chromium) | `tests/mobile-*.spec.ts` |
 | `tablet` | iPad gen 7 (WebKit) | `tests/mobile-*.spec.ts` |
@@ -784,12 +787,15 @@ registration, caching and the offline fallback are covered by `phase-17` in the 
 | File | Covers |
 | ---- | ------ |
 | `tests/phase-{1..18}.spec.ts` | One implementation phase each — all 18 implemented and passing |
+| `tests/phase-1b-drizzle-auth.spec.ts` | Phase 1.2: NextAuth endpoints, route protection, `/api/health`, Drizzle schema consistency |
 | `tests/phase-20.spec.ts` | Dashboard home button on phones, prefix/ingredient search, equal-width action tiles, suggestion cards with reasoning and ingredient chips |
+| `tests/phase-20-update.spec.ts` | "New app version" notice: running Service Worker, changed `sw.js`, update check, takeover |
 | `tests/phase-21.spec.ts` | URL-import save bugfix, cook history, ingredients per step, backup/restore, substitution assistant, AI week planner (bulk endpoint, stubbed dialog flow, live Gemini test) |
 | `tests/mobile-navigation.spec.ts` | Every area reachable by tapping (tab bar → *Mehr*, sidebar on tablet); per-page overflow, tap-target and font-size audit |
 | `tests/mobile-erfassen.spec.ts` | `[+]` sheet → all three capture routes; two photos → **one** OCR call with two `imageIds` |
 | `tests/mobile-import.spec.ts` | Share target (`?url=`, `?text=`), manifest wiring, address surviving the login redirect |
 | `tests/mobile-einkaufsliste.spec.ts` | Tick and add offline, queue replay, server state after reconnect |
+| `tests/mobile-install.spec.ts` | Way back to the home screen after the installed icon disappeared |
 
 Credentials come from `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` in the root `.env`; without them the
 mobile suite skips instead of failing.
@@ -904,6 +910,7 @@ In local development, the backend falls back to local filesystem (`uploads/`) wh
 | `BACKEND_URL` | `https://rezeptmeister-api.onrender.com` |
 | `ENCRYPTION_KEY` | Generated with `openssl rand -hex 32` |
 | `INTERNAL_SECRET` | Generated with `openssl rand -hex 32` (must match Render) |
+| `CRON_SECRET` | Generated with `openssl rand -hex 32` — required by the Vercel cron `/api/cron/keepalive` |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API |
 | `UPSTASH_REDIS_KV_REST_API_URL` | Auto-provisioned by the Vercel **Upstash for Redis** Marketplace integration — REST endpoint for distributed rate limiting |
@@ -1150,11 +1157,11 @@ Check and adjust limits in `frontend/src/lib/rate-limit.ts`. Headers `RateLimit-
 
 ### Access FastAPI Swagger Docs
 
-FastAPI is exposed on port 8000 by default:
+`docker-compose.yml` does not publish port 8000, and FastAPI serves its docs only with `DEBUG=true`. Every route except `/health` also requires the `X-Internal-Token` header. Run the backend outside Docker to inspect the API:
 
 ```bash
-open http://localhost:8000/docs      # Swagger UI
-open http://localhost:8000/openapi.json
+cd backend && DEBUG=true uv run uvicorn app.main:app --reload --port 8000
+curl -H "X-Internal-Token: $INTERNAL_SECRET" http://localhost:8000/openapi.json
 ```
 
 ### View Alembic Migration History

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Rezeptmeister** is a BYOK (Bring Your Own Key) AI-powered recipe management web app for the Swiss market. The full feature spec and implementation roadmap live in `tasks/todo.md` (18 phases, each ending with Playwright E2E tests).
+**Rezeptmeister** is a BYOK (Bring Your Own Key) AI-powered recipe management web app for the Swiss market. The full feature spec and implementation roadmap live in `tasks/todo.md` (21 phases, each ending with Playwright E2E tests).
 
 **Language:** All UI text, DB enums, error messages, and API responses must be in **German (Swiss standard)** — use "ss" not "ß", use Swiss units (dl, EL, TL, KL, °C) throughout.
 
@@ -97,7 +97,7 @@ npx playwright show-report     # View last test report
 - Passwords: bcrypt (never plain).
 - User `status` must be `'approved'` to log in — enforce in NextAuth `authorize` callback.
 - API keys: AES-256 encrypted at rest using `ENCRYPTION_KEY` env var (32-byte hex). Decrypted only in server-side API route handlers, never returned to client (only masked placeholder shown).
-- Rate limiting: custom in-memory sliding window rate limiter (`frontend/src/lib/rate-limit.ts`) on every Next.js API route (100 req/15 min default), stricter on `/api/ai/*` and `/api/auth/*`.
+- Rate limiting: `frontend/src/lib/rate-limit.ts` on every Next.js API route — Upstash Redis sliding window (`@upstash/ratelimit`) when Upstash REST credentials are set; in-memory sliding window only outside production (in production missing credentials throw). 100 req/15 min default, stricter on `/api/ai/*` (20) and `/api/auth/*` (10).
 - Validate all inputs with `zod` at API route entry points.
 
 ### AI / Embeddings (FastAPI)
@@ -157,6 +157,9 @@ BACKEND_URL=http://localhost:8000
 UPLOAD_DIR=./uploads
 ENCRYPTION_KEY=<32-byte-hex-key>
 INTERNAL_SECRET=<random-secret>
+CRON_SECRET=<random-secret>          # Vercel cron /api/cron/keepalive
+UPSTASH_REDIS_REST_URL=<optional>    # distributed rate limiting; required in production (or UPSTASH_REDIS_KV_REST_API_*)
+UPSTASH_REDIS_REST_TOKEN=<optional>
 # Produktion: Supabase Storage
 SUPABASE_URL=<your-supabase-url>
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
@@ -174,9 +177,9 @@ User-provided AI API keys (Gemini) are stored encrypted in the DB — never in e
 ## Project Structure (top-level)
 
 ```
-SPEC.md              # Full feature specification — source of truth
 CLAUDE.md            # This file
-tasks/todo.md        # 18-phase implementation plan with checkboxes
+tasks/todo.md        # Feature roadmap + 21-phase implementation plan with checkboxes — source of truth
+SPEC_1.md            # Phase 19 (Mobile/PWA) spec and progress tracker
 docker-compose.yml   # PostgreSQL/pgvector + FastAPI
 db/init.sql          # Schema DDL + pgvector extension
 db/seed.sql          # Swiss test recipes
