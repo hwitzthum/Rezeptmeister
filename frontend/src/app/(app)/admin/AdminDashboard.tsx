@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { RE_EMBED_POLL_INTERVAL_MS } from "@/lib/re-embed-poll";
 
 type UserStatus = "pending" | "approved" | "rejected";
 type UserRole = "admin" | "user";
@@ -346,9 +347,9 @@ export default function AdminDashboard({
             );
           }
         } catch {
-          // Polling-Fehler ignorieren, nächster Versuch in 2s
+          // Polling-Fehler ignorieren, nächster Versuch im nächsten Intervall
         }
-      }, 2000);
+      }, RE_EMBED_POLL_INTERVAL_MS);
     } catch {
       showToast("Netzwerkfehler beim Re-Embedding.", "error");
     } finally {
