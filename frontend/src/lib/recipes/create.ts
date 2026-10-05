@@ -91,8 +91,8 @@ type EmbeddableRecipe = Pick<
 >;
 
 /**
- * Text-Embeddings im Hintergrund anstossen. Ein Rezept: fire-and-forget wie
- * bisher. Viele Rezepte (Import): nacheinander mit kurzem Abstand, damit der
+ * Text-Embeddings im Hintergrund anstossen (Aufrufer: in after() einhängen).
+ * Viele Rezepte (Import): nacheinander mit kurzem Abstand, damit der
  * Backend-Container und das Gemini-Kontingent nicht mit N parallelen
  * Anfragen geflutet werden.
  */

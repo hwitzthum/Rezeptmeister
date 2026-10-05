@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { images } from "@/lib/db/schema";
@@ -75,8 +75,9 @@ export async function POST(request: Request) {
       return newRecipe;
     });
 
-    // Fire-and-forget: Embedding im Hintergrund berechnen (nur wenn Gemini-Schlüssel vorhanden)
-    void scheduleTextEmbeddings(session.user.id, [recipe]);
+    // Embedding nach der Antwort berechnen (nur wenn Gemini-Schlüssel vorhanden)
+    const userId = session.user.id;
+    after(() => scheduleTextEmbeddings(userId, [recipe]));
 
     return NextResponse.json(recipe, { status: 201 });
   } catch (err) {
