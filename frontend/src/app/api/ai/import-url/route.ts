@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import sharp from "sharp";
 import { auth } from "@/auth";
 import { z } from "zod";
@@ -162,18 +162,20 @@ async function fetchImageResponse(
     isPrimary: false,
   });
 
-  // Fire-and-forget image embedding
+  // Image embedding after the response — see images/upload/route.ts
   const backendUrl = process.env.BACKEND_URL;
   if (backendUrl) {
     const headers = geminiKey
       ? buildAiHeaders(geminiKey)
       : buildBackendHeaders();
-    fetch(`${backendUrl}/embed/image`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ image_id: imageId }),
-      signal: AbortSignal.timeout(60_000),
-    }).catch(() => {});
+    after(() =>
+      fetch(`${backendUrl}/embed/image`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ image_id: imageId }),
+        signal: AbortSignal.timeout(60_000),
+      }).catch(() => {}),
+    );
   }
 
   return imageId;

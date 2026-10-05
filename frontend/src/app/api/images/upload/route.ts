@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import sharp, { type Metadata } from "sharp";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -200,7 +200,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Fire-and-forget Bild-Embedding (nur wenn Gemini-Schlüssel vorhanden)
+  // Bild-Embedding nach der Antwort (nur wenn Gemini-Schlüssel vorhanden).
+  // after() statt eines losen fetch: Die Plattform friert die Funktion ein,
+  // sobald die Antwort gesendet ist — der Aufruf erreichte das Backend dann
+  // oft gar nicht, und das Bild blieb ohne Embedding.
   const backendUrl = process.env.BACKEND_URL;
   if (backendUrl) {
     const userRecord = await db.query.users.findFirst({
@@ -218,14 +221,16 @@ export async function POST(request: Request) {
     const headers = geminiKey
       ? buildAiHeaders(geminiKey)
       : buildBackendHeaders();
-    fetch(`${backendUrl}/embed/image`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ image_id: imageId }),
-      signal: AbortSignal.timeout(60_000),
-    }).catch((err) => {
-      console.error("Bild-Embedding-Berechnung fehlgeschlagen:", err);
-    });
+    after(() =>
+      fetch(`${backendUrl}/embed/image`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ image_id: imageId }),
+        signal: AbortSignal.timeout(60_000),
+      }).catch((err) => {
+        console.error("Bild-Embedding-Berechnung fehlgeschlagen:", err);
+      }),
+    );
   }
 
   return NextResponse.json(

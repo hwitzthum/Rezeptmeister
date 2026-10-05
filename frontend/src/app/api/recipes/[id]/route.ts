@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -169,7 +169,7 @@ export async function PUT(
       }
     });
 
-    // Fire-and-forget: Embedding neu berechnen (nur wenn Gemini-Schlüssel vorhanden)
+    // Embedding nach der Antwort neu berechnen (nur wenn Gemini-Schlüssel vorhanden)
     const backendUrl = process.env.BACKEND_URL;
     if (backendUrl) {
       const userRecord = await db.query.users.findFirst({
@@ -181,19 +181,21 @@ export async function PUT(
         try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
       }
       const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
-      fetch(`${backendUrl}/embed/text`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          recipe_id: id,
-          text: [data.title, data.description, data.instructions]
-            .filter(Boolean)
-            .join(" "),
+      after(() =>
+        fetch(`${backendUrl}/embed/text`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            recipe_id: id,
+            text: [data.title, data.description, data.instructions]
+              .filter(Boolean)
+              .join(" "),
+          }),
+          signal: AbortSignal.timeout(60_000),
+        }).catch((err) => {
+          console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
         }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch((err) => {
-        console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
-      });
+      );
     }
 
     const updated = await db.query.recipes.findFirst({
