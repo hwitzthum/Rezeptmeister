@@ -278,7 +278,7 @@ See [Mobile & PWA](#mobile--pwa) for installation, the scan flow and the iOS sho
 - User list with pending / approved / rejected filters and search
 - Approve, reject, change role, delete users — all with confirmation dialogs
 - Pagination for large user bases
-- Batch re-embed all recipes when switching embedding models
+- Batch re-embed all recipes when switching embedding models; the same job backfills image embeddings for images that have none
 - Available at `/admin` (role `admin` required)
 
 ---
@@ -700,8 +700,9 @@ When upgrading to a new embedding model:
 
 1. Admin Dashboard → "Re-Embed All Recipes"
 2. FastAPI re-processes recipes sequentially (rate-limit safe)
-3. Progress visible in admin UI in real time
-4. Endpoint chain: `POST /api/admin/re-embed` → `POST /admin/re-embed-user` (FastAPI)
+3. The same job then embeds every image that has no embedding yet (existing image embeddings are left untouched); images count towards the progress total and appear in the job details as `Bild: <file name>`
+4. Progress visible in admin UI in real time
+5. Endpoint chain: `POST /api/admin/re-embed` → `POST /admin/re-embed-user` (FastAPI)
 
 ### Swiss Units & Auto-Conversion
 
