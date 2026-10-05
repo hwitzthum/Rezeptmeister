@@ -399,3 +399,68 @@ class TestOcrExtractBlockedResponses:
         assert res.status_code == 400
         assert res.json()["detail"] == "Ungültiger Dateipfad."
         mock_client.aio.models.generate_content.assert_not_awaited()
+
+
+def _failing_gemini_mock(code: int, status: str, message: str) -> MagicMock:
+    """Gemini lehnt die Anfrage selbst ab (4xx) — z. B. Kontingent oder Schlüssel."""
+    from google.genai import errors
+
+    client = MagicMock()
+    client.aio.models.generate_content = AsyncMock(
+        side_effect=errors.ClientError(
+            code, {"error": {"code": code, "status": status, "message": message}}
+        )
+    )
+    return client
+
+
+@requires_db
+class TestOcrExtractGeminiRejections:
+    """
+    Regression (Prod, 2026-10-05): Gemini wies den Schlüssel einer Nutzerin ab
+    (ClientError). Der Router meldete pauschal 502, der Proxy machte daraus
+    «OCR-Extraktion fehlgeschlagen» — ohne Hinweis, dass der Schlüssel das
+    Problem ist, und bei jedem erneuten Versuch gleich.
+    """
+
+    async def test_exhausted_quota_returns_429_with_curated_message(self, app, seeded):
+        mock_client = _failing_gemini_mock(429, "RESOURCE_EXHAUSTED", "Quota exceeded")
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app, {"image_ids": [str(seeded.page_one_id)], "user_id": str(seeded.owner_id)}
+            )
+        assert res.status_code == 429
+        detail = res.json()["detail"]
+        assert detail["code"] == "quota"
+        assert "Kontingent" in detail["message"]
+
+    async def test_rejected_key_returns_400_with_curated_message(self, app, seeded):
+        mock_client = _failing_gemini_mock(403, "PERMISSION_DENIED", "API key not valid")
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app,
+                {
+                    "image_ids": [str(seeded.page_one_id), str(seeded.page_two_id)],
+                    "user_id": str(seeded.owner_id),
+                },
+            )
+        assert res.status_code == 400
+        detail = res.json()["detail"]
+        assert detail["code"] == "invalid_key"
+        assert "KI-Schlüssel" in detail["message"]
+
+    async def test_gemini_outage_stays_generic_502(self, app, seeded):
+        from google.genai import errors
+
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
+            side_effect=errors.ServerError(
+                503, {"error": {"code": 503, "status": "UNAVAILABLE", "message": "overloaded"}}
+            )
+        )
+        with patch("app.services._utils.get_gemini_client", return_value=mock_client):
+            res = await _post(
+                app, {"image_ids": [str(seeded.page_one_id)], "user_id": str(seeded.owner_id)}
+            )
+        assert res.status_code == 502
+        assert res.json()["detail"] == "KI-Dienst momentan nicht verfügbar."
