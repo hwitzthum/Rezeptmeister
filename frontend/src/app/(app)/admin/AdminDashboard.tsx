@@ -341,7 +341,7 @@ export default function AdminDashboard({
             pollRef.current = null;
             setReEmbedLoading(false);
             showToast(
-              `Re-Embedding abgeschlossen: ${status.completedRecipes}/${status.totalRecipes} Rezepte erfolgreich${status.totalErrors > 0 ? `, ${status.totalErrors} Fehler` : ""}.`,
+              `Re-Embedding abgeschlossen: ${status.completedRecipes}/${status.totalRecipes} Einträge erfolgreich${status.totalErrors > 0 ? `, ${status.totalErrors} Fehler` : ""}.`,
               status.totalErrors > 0 ? "error" : "success",
             );
           }
@@ -475,8 +475,9 @@ export default function AdminDashboard({
               </h3>
               <p className="text-xs text-warm-500 dark:text-warm-400 mt-1">
                 Berechnet die Embeddings aller Rezepte neu (pro Benutzer mit
-                eigenem API-Schlüssel). Nützlich nach einem Modell-Upgrade oder
-                wenn die Suche nicht korrekt funktioniert.
+                eigenem API-Schlüssel) und holt fehlende Bild-Embeddings nach.
+                Nützlich nach einem Modell-Upgrade oder wenn die Suche nicht
+                korrekt funktioniert.
               </p>
             </div>
             <button
@@ -539,7 +540,7 @@ export default function AdminDashboard({
                 </span>
                 <span>
                   {reEmbedProgress.completedRecipes}/
-                  {reEmbedProgress.totalRecipes} Rezepte
+                  {reEmbedProgress.totalRecipes} Einträge
                   {reEmbedProgress.totalErrors > 0 && (
                     <span className="text-red-500 ml-1">
                       ({reEmbedProgress.totalErrors} Fehler)

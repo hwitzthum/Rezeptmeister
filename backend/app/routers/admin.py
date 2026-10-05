@@ -1,6 +1,7 @@
 """
 Admin-Endpunkte fuer Rezeptmeister.
-Re-Embedding pro Benutzer mit Background-Processing und Fortschrittsverfolgung.
+Re-Embedding pro Benutzer mit Background-Processing und Fortschrittsverfolgung:
+alle Rezepttexte neu, dazu Bild-Embeddings fuer Bilder, denen noch eines fehlt.
 Job-Status wird in der Datenbank persistiert (ueberlebt Neustarts).
 """
 
@@ -15,11 +16,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, update
 
+from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.dependencies import require_internal_token
+from app.models.image import Image
 from app.models.recipe import Recipe
 from app.models.job import ReEmbedJob
-from app.services.embedding_service import embed_text
+from app.services import _utils
+from app.services.embedding_service import embed_image, embed_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -96,6 +100,11 @@ async def _run_re_embed(job_id: UUID, user_id: UUID, api_key: str) -> None:
     Berechnet Embeddings fuer alle Rezepte eines Benutzers.
     Schreibt alle erfolgreichen Embeddings in einer einzigen Transaktion (atomar).
     Fortschritt wird in der Datenbank gespeichert.
+
+    Danach werden Bilder OHNE Embedding nachgeholt. Das Bild-Embedding entsteht
+    sonst nur einmalig nach dem Upload; ging dieser Aufruf verloren, blieb das
+    Bild dauerhaft ohne Embedding. Bilder zaehlen in total/completed/errors mit
+    und erscheinen in den Details mit dem Titel «Bild: <Dateiname>».
     """
     try:
         # Rezepte des Benutzers laden
@@ -104,8 +113,14 @@ async def _run_re_embed(job_id: UUID, user_id: UUID, api_key: str) -> None:
                 select(Recipe).where(Recipe.user_id == user_id)
             )
             recipes = result.scalars().all()
+            result = await session.execute(
+                select(Image.id, Image.file_path, Image.file_name)
+                .where(Image.user_id == user_id, Image.embedding.is_(None))
+                .order_by(Image.created_at)
+            )
+            images = result.all()
 
-        total = len(recipes)
+        total = len(recipes) + len(images)
         await _update_job(job_id, total_recipes=total)
 
         if total == 0:
@@ -169,8 +184,41 @@ async def _run_re_embed(job_id: UUID, user_id: UUID, api_key: str) -> None:
                 await session.commit()
             logger.info(
                 f"Re-Embedding fuer Benutzer {user_id} abgeschlossen: "
-                f"{len(successful)}/{total} in DB geschrieben."
+                f"{len(successful)}/{len(recipes)} in DB geschrieben."
             )
+
+        # Fehlende Bild-Embeddings nachholen. Jedes Bild wird sofort gespeichert:
+        # anders als beim Modellwechsel der Rezepte gibt es hier keinen
+        # gemischten Zustand, den eine gemeinsame Transaktion verhindern muesste.
+        upload_dir = get_settings().upload_dir
+        for image_id, file_path, file_name in images:
+            title = f"Bild: {file_name or image_id}"
+            try:
+                async with _utils.resolved_image_path(file_path, upload_dir) as image_path:
+                    embedding = await embed_image(image_path, api_key)
+                async with AsyncSessionLocal() as session:
+                    await session.execute(
+                        update(Image).where(Image.id == image_id).values(embedding=embedding)
+                    )
+                    await session.commit()
+                details.append({"recipe_id": str(image_id), "title": title, "status": "ok"})
+                logger.info(f"Bild-Embedding nachgeholt fuer Bild {image_id}")
+            except Exception as e:
+                details.append({
+                    "recipe_id": str(image_id),
+                    "title": title,
+                    "status": "error",
+                    "error": str(e),
+                })
+                logger.error(f"Bild-Embedding-Fehler fuer Bild {image_id}: {e}")
+
+            await _update_job(
+                job_id,
+                completed_recipes=sum(1 for d in details if d["status"] == "ok"),
+                failed_recipes=sum(1 for d in details if d["status"] == "error"),
+                details=details.copy(),
+            )
+            await asyncio.sleep(0.1)
 
         await _update_job(
             job_id,
