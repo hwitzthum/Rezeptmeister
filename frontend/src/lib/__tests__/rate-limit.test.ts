@@ -115,3 +115,15 @@ describe("getClientIp", () => {
     expect(getClientIp(req)).toBe("unknown");
   });
 });
+
+describe("RE_EMBED_STATUS_LIMIT", () => {
+  // Regression (Prod, 2026-10-05): Die Fortschrittsanzeige pollte öfter, als
+  // das Limit der Status-Route erlaubte, und blieb bei 198/207 stehen.
+  it("covers a full window of polling from two tabs", async () => {
+    const { RE_EMBED_STATUS_LIMIT, DEFAULT_LIMIT } = await import("../rate-limit");
+    const { RE_EMBED_POLL_INTERVAL_MS } = await import("../re-embed-poll");
+    const pollsPerWindow = RE_EMBED_STATUS_LIMIT.windowMs / RE_EMBED_POLL_INTERVAL_MS;
+    expect(RE_EMBED_STATUS_LIMIT.max).toBeGreaterThanOrEqual(2 * pollsPerWindow);
+    expect(pollsPerWindow).toBeGreaterThan(DEFAULT_LIMIT.max);
+  });
+});

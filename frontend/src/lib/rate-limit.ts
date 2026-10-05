@@ -9,6 +9,7 @@
  */
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { RE_EMBED_POLL_INTERVAL_MS } from "@/lib/re-embed-poll";
 
 interface RateLimitEntry {
   count: number;
@@ -75,6 +76,21 @@ export const AI_LIMIT: RateLimitConfig = {
 export const IMAGE_LIMIT: RateLimitConfig = {
   windowMs: 5 * 60 * 1_000,
   max: 600,
+};
+
+const RE_EMBED_STATUS_WINDOW_MS = 15 * 60 * 1_000;
+
+/**
+ * Fortschrittsabfrage des Re-Embedding-Jobs: Kontingent für zwei gleichzeitig
+ * pollende Admin-Tabs über das ganze Fenster.
+ *
+ * Mit DEFAULT_LIMIT (100/15 min) war das Kontingent bei einem Poll alle 2 s
+ * nach gut drei Minuten aufgebraucht. Jeder weitere Poll bekam 429, und die
+ * Anzeige blieb stehen, obwohl der Job weiterlief und fertig wurde.
+ */
+export const RE_EMBED_STATUS_LIMIT: RateLimitConfig = {
+  windowMs: RE_EMBED_STATUS_WINDOW_MS,
+  max: 2 * Math.ceil(RE_EMBED_STATUS_WINDOW_MS / RE_EMBED_POLL_INTERVAL_MS),
 };
 
 export interface RateLimitResult {
