@@ -130,6 +130,10 @@ async def ocr_extract(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"OCR-Fehler für {len(images)} Bild(er): {type(e).__name__}")
-        raise HTTPException(status_code=502, detail="KI-Dienst momentan nicht verfügbar.")
+        # Mit Fehlertext loggen und über map_gemini_error abbilden: Ein von
+        # Gemini abgelehnter Schlüssel (Kontingent erschöpft, ungültig) lief
+        # sonst als namenloser 502 durch — die Nutzerin sah nur «OCR-Extraktion
+        # fehlgeschlagen», und das Log verriet nicht einmal den Statuscode.
+        logger.error(f"OCR-Fehler für {len(images)} Bild(er): {type(e).__name__}: {e}")
+        raise _utils.map_gemini_error(e)
     return result
