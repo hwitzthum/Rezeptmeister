@@ -70,6 +70,12 @@ SUGGEST_MAX_OUTPUT_TOKENS = 16384
 # "high" 51 s und eine leere Antwort, weil das Denken das Budget aufbrauchte.
 SUGGEST_THINKING_LEVEL = "low"
 
+# Nano Banana 2.1 denkt ohne Vorgabe auf "medium". Gemessen am selben
+# Rezeptbild: Vorgabe 17.8 s und $0.043 (1194 Denk-Token), "minimal" 9.4 s und
+# $0.034 bei gleicher Bildqualität. Langsamere Bilder reissen zudem die
+# 30-s-Grenze des Next.js-Proxys, dessen Wiederholung ein zweites Bild erzeugt.
+IMAGE_THINKING_LEVEL = "minimal"
+
 
 def _process_generated_image(
     image_bytes: bytes, thumbnail_size: tuple[int, int]
@@ -259,6 +265,9 @@ async def generate_image(
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE", "TEXT"],
+                    thinking_config=types.ThinkingConfig(
+                        thinking_level=IMAGE_THINKING_LEVEL
+                    ),
                 ),
             )
         except Exception as e:
@@ -267,10 +276,10 @@ async def generate_image(
                 raise HTTPException(status_code=502, detail="KI-Bildgenerierung fehlgeschlagen.")
             continue
 
-        # Bild-Part aus Antwort extrahieren
+        # Bild-Part aus Antwort extrahieren (Denk-Parts können Entwürfe sein)
         if response.candidates:
             for part in response.candidates[0].content.parts:
-                if part.inline_data and part.inline_data.data:
+                if part.inline_data and part.inline_data.data and not part.thought:
                     image_bytes = part.inline_data.data
                     break
 
