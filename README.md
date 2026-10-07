@@ -156,7 +156,7 @@ overridden per environment (`GEMINI_FLASH_MODEL`, `GEMINI_OCR_MODEL`, …):
 | ------- | ----- | ------- |
 | `gemini_flash_model` | `gemini-3.6-flash` | suggestions, recipe generation, scaling hints, nutrition, web search, URL import |
 | `gemini_ocr_model` | `gemini-3.1-pro-preview` | photo OCR |
-| `gemini_image_gen_model` | `gemini-3.1-flash-image` | recipe image generation |
+| `gemini_image_gen_model` | `gemini-nano-banana-2.1` | recipe image generation |
 | `gemini_embedding_model` | `gemini-embedding-2-preview` | text + image embeddings |
 
 > **Do not change the embedding model casually.** Existing vectors were written in that model's space;

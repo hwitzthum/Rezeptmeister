@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     gemini_embedding_model: str = "gemini-embedding-2-preview"
     gemini_ocr_model: str = "gemini-3.1-pro-preview"
     gemini_flash_model: str = "gemini-3.6-flash"
-    gemini_image_gen_model: str = "gemini-3.1-flash-image"
+    gemini_image_gen_model: str = "gemini-nano-banana-2.1"
 
     # Debug-Modus: aktiviert /docs, /redoc, /openapi.json
     debug: bool = False
