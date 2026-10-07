@@ -134,7 +134,6 @@ async def suggest_recipes(
             SuggestResponse,
             x_gemini_api_key,
             settings.gemini_flash_model,
-            temperature=0.9,
             max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
             thinking_level=SUGGEST_THINKING_LEVEL,
         )
@@ -148,7 +147,6 @@ async def suggest_recipes(
                 SuggestResponse,
                 x_gemini_api_key,
                 settings.gemini_flash_model,
-                temperature=0.9,
                 max_output_tokens=SUGGEST_MAX_OUTPUT_TOKENS,
                 thinking_level=SUGGEST_THINKING_LEVEL,
             )
@@ -211,7 +209,7 @@ async def generate_recipe(
 
     try:
         result: OcrResult = await generate_structured(
-            prompt, OcrResult, x_gemini_api_key, settings.gemini_flash_model, temperature=0.7
+            prompt, OcrResult, x_gemini_api_key, settings.gemini_flash_model
         )
     except Exception as e:
         logger.error(f"Generate-Recipe-Fehler: {type(e).__name__}: {e}")
@@ -498,7 +496,7 @@ async def scale_recipe(
         )
         try:
             hints_result: ScaleHints = await generate_structured(
-                prompt, ScaleHints, x_gemini_api_key, settings.gemini_flash_model, temperature=0.5
+                prompt, ScaleHints, x_gemini_api_key, settings.gemini_flash_model
             )
             hints = hints_result.hints
         except Exception as e:
@@ -560,7 +558,6 @@ async def calculate_nutrition(
             NutritionPerServing,
             x_gemini_api_key,
             settings.gemini_flash_model,
-            temperature=0.2,
         )
     except Exception as e:
         logger.error(f"Nutrition-Fehler: {type(e).__name__}: {e}")
@@ -589,7 +586,6 @@ async def substitute_ingredient(
             SubstituteResponse,
             x_gemini_api_key,
             settings.gemini_flash_model,
-            temperature=0.4,
         )
     except Exception as e:
         logger.error(f"Substitute-Fehler: {type(e).__name__}: {e}")
@@ -629,7 +625,6 @@ async def plan_week(
             PlanWeekResponse,
             x_gemini_api_key,
             settings.gemini_flash_model,
-            temperature=0.6,
             max_output_tokens=PLAN_MAX_OUTPUT_TOKENS,
             thinking_level=PLAN_THINKING_LEVEL,
         )
@@ -643,7 +638,6 @@ async def plan_week(
                 PlanWeekResponse,
                 x_gemini_api_key,
                 settings.gemini_flash_model,
-                temperature=0.6,
                 max_output_tokens=PLAN_MAX_OUTPUT_TOKENS,
                 thinking_level=PLAN_THINKING_LEVEL,
             )

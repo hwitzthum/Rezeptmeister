@@ -219,7 +219,6 @@ async def extract_recipe_from_image(image_path: str, api_key: str) -> OcrResult:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=OcrResult,
-                temperature=0.1,  # Niedrige Temperatur für konsistente Extraktion
             ),
         )
 
@@ -288,7 +287,6 @@ async def extract_recipes_from_image(image_path: str, api_key: str) -> OcrResult
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=OcrResults,
-                temperature=0.1,
             ),
         )
 
@@ -350,7 +348,6 @@ async def extract_recipes_from_images(image_paths: list[str], api_key: str) -> O
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=OcrResult,
-                temperature=0.1,
             ),
         )
 

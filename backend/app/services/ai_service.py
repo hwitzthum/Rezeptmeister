@@ -14,7 +14,6 @@ async def generate_structured(
     response_schema: Type,
     api_key: str,
     model: str,
-    temperature: float = 0.7,
     max_output_tokens: int | None = None,
     thinking_level: str | None = None,
 ) -> Any:
@@ -35,7 +34,6 @@ async def generate_structured(
     config_kwargs: dict[str, Any] = {
         "response_mime_type": "application/json",
         "response_schema": response_schema,
-        "temperature": temperature,
     }
     if max_output_tokens is not None:
         config_kwargs["max_output_tokens"] = max_output_tokens
