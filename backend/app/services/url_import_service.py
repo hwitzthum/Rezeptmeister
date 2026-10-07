@@ -493,7 +493,6 @@ async def _extract_recipe_via_gemini_url_context(
             tools=[types.Tool(url_context=types.UrlContext())],
             response_mime_type="application/json",
             response_schema=OcrResult,
-            temperature=0.2,
         ),
     )
 
@@ -673,5 +672,5 @@ async def fetch_and_parse(url: str, api_key: str, model: str) -> OcrResult:
         f"SEITENINHALT:\n{page_text[:12000]}"
     )
     return _finalize_ai_result(
-        await generate_structured(prompt, OcrResult, api_key, model, temperature=0.2)
+        await generate_structured(prompt, OcrResult, api_key, model)
     )
