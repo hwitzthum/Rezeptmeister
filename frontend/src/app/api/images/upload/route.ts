@@ -6,7 +6,11 @@ import { db } from "@/lib/db";
 import { images, recipes, users } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
+import {
+  buildBackendHeaders,
+  buildAiHeaders,
+  postBackendTask,
+} from "@/lib/backend";
 import { decrypt } from "@/lib/crypto";
 import {
   ALLOWED_IMAGE_MIME,
@@ -222,14 +226,12 @@ export async function POST(request: Request) {
       ? buildAiHeaders(geminiKey)
       : buildBackendHeaders();
     after(() =>
-      fetch(`${backendUrl}/embed/image`, {
-        method: "POST",
+      postBackendTask(
+        "/embed/image",
         headers,
-        body: JSON.stringify({ image_id: imageId }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch((err) => {
-        console.error("Bild-Embedding-Berechnung fehlgeschlagen:", err);
-      }),
+        { image_id: imageId },
+        "Bild-Embedding-Berechnung fehlgeschlagen",
+      ),
     );
   }
 

@@ -5,7 +5,11 @@ import { db } from "@/lib/db";
 import { recipes, ingredients, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { checkRateLimitDistributed, getClientIp } from "@/lib/rate-limit";
-import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
+import {
+  buildBackendHeaders,
+  buildAiHeaders,
+  postBackendTask,
+} from "@/lib/backend";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
 import { USER_ROLE } from "@/lib/auth";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
@@ -182,19 +186,17 @@ export async function PUT(
       }
       const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
       after(() =>
-        fetch(`${backendUrl}/embed/text`, {
-          method: "POST",
+        postBackendTask(
+          "/embed/text",
           headers,
-          body: JSON.stringify({
+          {
             recipe_id: id,
             text: [data.title, data.description, data.instructions]
               .filter(Boolean)
               .join(" "),
-          }),
-          signal: AbortSignal.timeout(60_000),
-        }).catch((err) => {
-          console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
-        }),
+          },
+          "Embedding-Neuberechnung fehlgeschlagen",
+        ),
       );
     }
 
@@ -338,19 +340,20 @@ export async function PATCH(
         try { geminiKey = decrypt(userRecord.apiKeyEncrypted); } catch { /* Schlüssel beschädigt */ }
       }
       const headers = geminiKey ? buildAiHeaders(geminiKey) : buildBackendHeaders();
-      fetch(`${backendUrl}/embed/text`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          recipe_id: id,
-          text: [title, existing.description, existing.instructions]
-            .filter(Boolean)
-            .join(" "),
-        }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch((err) => {
-        console.error("Embedding-Neuberechnung fehlgeschlagen:", err);
-      });
+      // after(): ein loser fetch wird eingefroren, sobald die Antwort raus ist.
+      after(() =>
+        postBackendTask(
+          "/embed/text",
+          headers,
+          {
+            recipe_id: id,
+            text: [title, existing.description, existing.instructions]
+              .filter(Boolean)
+              .join(" "),
+          },
+          "Embedding-Neuberechnung fehlgeschlagen",
+        ),
+      );
     }
 
     return NextResponse.json(updated);

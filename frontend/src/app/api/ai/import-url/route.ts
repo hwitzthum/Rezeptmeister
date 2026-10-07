@@ -6,6 +6,7 @@ import {
   buildAiHeaders,
   buildBackendHeaders,
   fetchBackendWithRetry,
+  postBackendTask,
 } from "@/lib/backend";
 import { resolveGeminiKey } from "@/lib/api-key";
 import { checkRateLimitDistributed, getClientIp, AI_LIMIT } from "@/lib/rate-limit";
@@ -169,12 +170,12 @@ async function fetchImageResponse(
       ? buildAiHeaders(geminiKey)
       : buildBackendHeaders();
     after(() =>
-      fetch(`${backendUrl}/embed/image`, {
-        method: "POST",
+      postBackendTask(
+        "/embed/image",
         headers,
-        body: JSON.stringify({ image_id: imageId }),
-        signal: AbortSignal.timeout(60_000),
-      }).catch(() => {}),
+        { image_id: imageId },
+        "Bild-Embedding-Berechnung fehlgeschlagen",
+      ),
     );
   }
 

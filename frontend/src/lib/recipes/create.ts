@@ -8,7 +8,11 @@ import type { z } from "zod";
 import { db, type DB } from "@/lib/db";
 import { recipes, ingredients, users, type Recipe } from "@/lib/db/schema";
 import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
-import { buildBackendHeaders, buildAiHeaders } from "@/lib/backend";
+import {
+  buildBackendHeaders,
+  buildAiHeaders,
+  postBackendTask,
+} from "@/lib/backend";
 import { decrypt } from "@/lib/crypto";
 
 export type RecipeInput = z.infer<typeof recipeBodySchema>;
@@ -109,20 +113,16 @@ export async function scheduleTextEmbeddings(
 
   for (const [i, recipe] of items.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
-    await fetch(`${backendUrl}/embed/text`, {
-      method: "POST",
+    await postBackendTask(
+      "/embed/text",
       headers,
-      body: JSON.stringify({
+      {
         recipe_id: recipe.id,
         text: [recipe.title, recipe.description, recipe.instructions]
           .filter(Boolean)
           .join(" "),
-      }),
-      signal: AbortSignal.timeout(60_000),
-    }).catch((err) => {
-      console.error("Embedding-Berechnung fehlgeschlagen", {
-        message: err instanceof Error ? err.message : String(err),
-      });
-    });
+      },
+      "Embedding-Berechnung fehlgeschlagen",
+    );
   }
 }

@@ -66,6 +66,30 @@ export async function fetchBackendWithRetry(
 }
 
 /**
+ * Fire-and-forget POST to the backend (embeddings) with the cold-start retry
+ * of fetchBackendWithRetry. A single attempt also lost requests on a reused
+ * keep-alive socket the far side had already closed ("other side closed").
+ * Never throws; failures are logged under `errorLabel`.
+ */
+export async function postBackendTask(
+  path: string,
+  headers: Record<string, string>,
+  payload: unknown,
+  errorLabel: string,
+): Promise<void> {
+  const res = await fetchBackendWithRetry(
+    path,
+    { method: "POST", headers, body: JSON.stringify(payload) },
+    60_000,
+  );
+  if (!res) {
+    console.error(`${errorLabel}: Backend nicht erreichbar`, { path });
+  } else if (!res.ok) {
+    console.error(`${errorLabel}: HTTP ${res.status}`, { path });
+  }
+}
+
+/**
  * Proxies a POST to the FastAPI AI backend: injects the Gemini key, handles the
  * 503 (backend unreachable) and non-OK (forwarded detail) cases, and returns
  * the parsed JSON. Consolidates the identical tail of every /api/ai/* route.
