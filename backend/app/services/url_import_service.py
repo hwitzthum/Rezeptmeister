@@ -41,6 +41,12 @@ _BLOCKED_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),  # link-local / AWS metadata
     ipaddress.ip_network("100.64.0.0/10"),   # shared address space
+    ipaddress.ip_network("0.0.0.0/8"),       # "this host" — connect() reaches loopback on Linux
+    ipaddress.ip_network("192.0.0.0/24"),    # IETF protocol assignments
+    ipaddress.ip_network("198.18.0.0/15"),   # benchmarking
+    ipaddress.ip_network("224.0.0.0/4"),     # multicast
+    ipaddress.ip_network("240.0.0.0/4"),     # reserved
+    ipaddress.ip_network("::/128"),           # unspecified IPv6
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),         # ULA
     ipaddress.ip_network("fe80::/10"),        # link-local IPv6
