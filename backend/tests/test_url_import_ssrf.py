@@ -31,6 +31,27 @@ def _fake_getaddrinfo(addresses: list[tuple[int, str]]):
     return _impl
 
 
+class TestUnspecifiedAndReservedRanges:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "family, ip",
+        [
+            (socket.AF_INET, "0.0.0.0"),
+            (socket.AF_INET, "0.1.2.3"),
+            (socket.AF_INET, "224.0.0.1"),
+            (socket.AF_INET, "240.0.0.1"),
+            (socket.AF_INET, "198.18.0.1"),
+            (socket.AF_INET6, "::"),
+            (socket.AF_INET6, "::ffff:0.0.0.0"),
+        ],
+    )
+    async def test_unspecified_and_reserved_addresses_are_blocked(self, family, ip):
+        fake = _fake_getaddrinfo([(family, ip)])
+        with patch("socket.getaddrinfo", fake):
+            with pytest.raises(ValueError, match="privates/internes Netz"):
+                await _validate_all_ips("angreifer.example")
+
+
 class TestIpv4MappedBypass:
     @pytest.mark.asyncio
     async def test_ipv4_mapped_metadata_address_is_blocked(self):
