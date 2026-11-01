@@ -73,9 +73,11 @@ interface RowProps {
   onUpdate: (updated: IngredientItem) => void;
   onRemove: () => void;
   index: number;
+  groupListId: string;
 }
 
-function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
+function SortableIngredientRow({ item, onUpdate, onRemove, groupListId }: RowProps) {
+  const [groupOpen, setGroupOpen] = useState(item.groupName !== "");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -171,6 +173,20 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
         Opt.
       </label>
 
+      {/* Gruppe ein-/ausblenden */}
+      <button
+        type="button"
+        onClick={() => setGroupOpen((o) => !o)}
+        aria-expanded={groupOpen}
+        aria-label="Gruppe festlegen"
+        className={[
+          "shrink-0 px-1.5 text-xs rounded hover:bg-[var(--bg-subtle)] pointer-coarse:min-tap",
+          item.groupName ? "text-terra-600 font-medium" : "text-[var(--text-muted)]",
+        ].join(" ")}
+      >
+        Gruppe
+      </button>
+
       {/* Entfernen */}
       <button
         type="button"
@@ -200,6 +216,25 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
           />
         </svg>
       </button>
+
+      {/* Gruppenbezeichner */}
+      {groupOpen && (
+        <input
+          type="text"
+          list={groupListId}
+          value={item.groupName}
+          onChange={(e) => onUpdate({ ...item, groupName: e.target.value })}
+          placeholder="Gruppe, z.B. Für die Sauce"
+          aria-label="Gruppenbezeichner"
+          maxLength={255}
+          className={[
+            "basis-full px-2.5 py-1.5 rounded-lg text-sm pointer-coarse:min-tap",
+            "bg-[var(--bg-subtle)] border border-[var(--border-base)]",
+            "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+            "focus:outline-none focus:ring-2 focus:ring-terra-400 focus:border-terra-400",
+          ].join(" ")}
+        />
+      )}
     </div>
   );
 }
@@ -207,8 +242,11 @@ function SortableIngredientRow({ item, onUpdate, onRemove }: RowProps) {
 // ── Hauptkomponente ────────────────────────────────────────────────────────────
 
 export default function Step2Zutaten({ data, onChange }: Props) {
-  const [showGroupName, setShowGroupName] = useState(false);
   const dndId = useId();
+  const groupListId = `${dndId}-gruppen`;
+  const existingGroups = [
+    ...new Set(data.ingredients.map((i) => i.groupName.trim()).filter(Boolean)),
+  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -263,6 +301,7 @@ export default function Step2Zutaten({ data, onChange }: Props) {
           <span className="w-24 shrink-0">Einheit</span>
           <span className="flex-1">Zutat</span>
           <span className="w-10 text-center">Opt.</span>
+          <span className="w-12 shrink-0" />
           <span className="w-7 shrink-0" />
         </div>
       )}
@@ -286,6 +325,7 @@ export default function Step2Zutaten({ data, onChange }: Props) {
                 index={idx}
                 onUpdate={(updated) => updateItem(item.id, updated)}
                 onRemove={() => removeItem(item.id)}
+                groupListId={groupListId}
               />
             ))}
           </div>
@@ -330,21 +370,16 @@ export default function Step2Zutaten({ data, onChange }: Props) {
         Zutat hinzufügen
       </button>
 
-      {/* Hinweis zu Gruppen */}
-      {data.ingredients.length >= 3 && !showGroupName && (
-        <button
-          type="button"
-          onClick={() => setShowGroupName(true)}
-          className="text-xs text-terra-500 hover:text-terra-700 underline pointer-coarse:min-tap inline-flex items-center"
-        >
-          Zutaten in Gruppen aufteilen?
-        </button>
-      )}
+      <datalist id={groupListId}>
+        {existingGroups.map((g) => (
+          <option key={g} value={g} />
+        ))}
+      </datalist>
 
-      {showGroupName && (
+      {data.ingredients.length >= 3 && existingGroups.length === 0 && (
         <p className="text-xs text-[var(--text-muted)]">
-          Gruppenname: Klicken Sie auf eine Zutatzeile und fügen Sie einen
-          Gruppenbezeichner hinzu (z.B. &quot;Für die Sauce&quot;).
+          Tipp: Mit «Gruppe» in einer Zeile ordnen Sie Zutaten Abschnitten zu
+          (z.B. «Für die Sauce»).
         </p>
       )}
     </div>

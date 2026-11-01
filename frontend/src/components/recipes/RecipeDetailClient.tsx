@@ -28,6 +28,7 @@ import AddToCollectionButton from "@/components/collections/AddToCollectionButto
 import PrintOptionsModal from "@/components/recipes/PrintOptionsModal";
 import OfflineToggleButton from "@/components/recipes/OfflineToggleButton";
 import Image from "next/image";
+import { groupIngredients } from "@/lib/recipes/group-ingredients";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -686,53 +687,67 @@ export default function RecipeDetailClient({
                   Keine Zutaten angegeben.
                 </p>
               ) : (
-                <ul className="space-y-2 mt-4">
-                  {recipe.ingredients.map((ing) => {
-                    const amount = scaledAmount(ing.amount);
-                    return (
-                      <li
-                        key={ing.id}
-                        className={[
-                          "flex items-baseline gap-2 text-sm",
-                          ing.isOptional
-                            ? "text-[var(--text-muted)]"
-                            : "text-[var(--text-primary)]",
-                        ].join(" ")}
-                      >
-                        <span className="font-medium text-terra-600 w-16 shrink-0 text-right">
-                          {amount}
-                          {ing.unit && ` ${ing.unit}`}
-                        </span>
-                        <span className="flex-1">
-                          {ing.name}
-                          {ing.isOptional && (
-                            <span className="ml-1 text-xs text-[var(--text-muted)]">
-                              (optional)
-                            </span>
-                          )}
-                        </span>
-                        {hasApiKey && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSubstitutionTarget({
-                                name: ing.name,
-                                amount: scaledAmount(ing.amount) || null,
-                                unit: ing.unit,
-                              })
-                            }
-                            className="shrink-0 text-xs text-[var(--text-muted)] hover:text-terra-600 dark:hover:text-terra-400 pointer-coarse:min-tap px-1 transition-colors"
-                            aria-label={`Ersatz für ${ing.name} vorschlagen`}
-                            title="Ersatz vorschlagen"
-                            data-testid="substitute-button"
-                          >
-                            Ersatz
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="mt-4 space-y-4">
+                  {groupIngredients(recipe.ingredients).map((group) => (
+                    <section key={group.name ?? "__ohne_gruppe"}>
+                      {group.name && (
+                        <h4
+                          className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]"
+                          data-testid="ingredient-group-heading"
+                        >
+                          {group.name}
+                        </h4>
+                      )}
+                      <ul className="space-y-2">
+                        {group.items.map((ing) => {
+                          const amount = scaledAmount(ing.amount);
+                          return (
+                            <li
+                              key={ing.id}
+                              className={[
+                                "flex items-baseline gap-2 text-sm",
+                                ing.isOptional
+                                  ? "text-[var(--text-muted)]"
+                                  : "text-[var(--text-primary)]",
+                              ].join(" ")}
+                            >
+                              <span className="font-medium text-terra-600 w-16 shrink-0 text-right">
+                                {amount}
+                                {ing.unit && ` ${ing.unit}`}
+                              </span>
+                              <span className="flex-1">
+                                {ing.name}
+                                {ing.isOptional && (
+                                  <span className="ml-1 text-xs text-[var(--text-muted)]">
+                                    (optional)
+                                  </span>
+                                )}
+                              </span>
+                              {hasApiKey && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSubstitutionTarget({
+                                      name: ing.name,
+                                      amount: scaledAmount(ing.amount) || null,
+                                      unit: ing.unit,
+                                    })
+                                  }
+                                  className="shrink-0 text-xs text-[var(--text-muted)] hover:text-terra-600 dark:hover:text-terra-400 pointer-coarse:min-tap px-1 transition-colors"
+                                  aria-label={`Ersatz für ${ing.name} vorschlagen`}
+                                  title="Ersatz vorschlagen"
+                                  data-testid="substitute-button"
+                                >
+                                  Ersatz
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
               )}
 
               {/* Zeiten */}
