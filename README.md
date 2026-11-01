@@ -95,6 +95,7 @@ npm run dev  # http://localhost:3001
 - **CRUD:** Create, edit, delete recipes with rich metadata (category, cuisine, difficulty, prep/cook time, source)
 - **Inline title edit:** Pencil icon on the recipe hero renames a recipe in place (Enter saves, Escape cancels) — no trip through the full edit form (`PATCH /api/recipes/[id]`)
 - **Ingredients:** Dynamic list with Swiss units — g, kg, ml, dl, l, EL, TL, KL, Msp., Prise, Stk., Bund, Pkg., Scheibe, Dose, Becher, Pfd.
+- **Ingredient groups:** «Gruppe» button on each ingredient row in the editor sets a group label (e.g. «Für die Sauce», with suggestions from groups already used in the recipe); the recipe page lists ingredients under one heading per group, ungrouped ones first
 - **Portions:** Live recalculation of ingredient amounts with AI hints for extreme scaling (spices, bake times)
 - **Favorites:** One-click toggle with dedicated filter
 - **Autocomplete:** Category, cuisine, and tag suggestions as you type
