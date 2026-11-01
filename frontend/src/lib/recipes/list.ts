@@ -282,29 +282,37 @@ export async function listRecipes(
   let facets: RecipeListFacets | undefined;
 
   if (includeFacets === "true") {
+    // Keep saved categories/cuisines selectable even when the current search
+    // has no matches. Only their counts depend on the other active filters.
+    const categoryCountWhere = and(
+      ...alwaysConditions,
+      ...(cuisineCond ? [cuisineCond] : []),
+      ...(difficultyCond ? [difficultyCond] : []),
+    );
+    const cuisineCountWhere = and(
+      ...alwaysConditions,
+      ...(categoryCond ? [categoryCond] : []),
+      ...(difficultyCond ? [difficultyCond] : []),
+    );
     const [cats, cuisineRows, diffRows] = await Promise.all([
       db
-        .select({ value: recipes.category, count: sql<number>`count(*)::int` })
+        .select({
+          value: recipes.category,
+          count: sql<number>`(count(*) FILTER (WHERE ${categoryCountWhere}))::int`,
+        })
         .from(recipes)
-        .where(
-          and(
-            ...alwaysConditions,
-            ...(cuisineCond ? [cuisineCond] : []),
-            ...(difficultyCond ? [difficultyCond] : []),
-          ),
-        )
-        .groupBy(recipes.category),
+        .where(eq(recipes.userId, userId))
+        .groupBy(recipes.category)
+        .orderBy(asc(recipes.category)),
       db
-        .select({ value: recipes.cuisine, count: sql<number>`count(*)::int` })
+        .select({
+          value: recipes.cuisine,
+          count: sql<number>`(count(*) FILTER (WHERE ${cuisineCountWhere}))::int`,
+        })
         .from(recipes)
-        .where(
-          and(
-            ...alwaysConditions,
-            ...(categoryCond ? [categoryCond] : []),
-            ...(difficultyCond ? [difficultyCond] : []),
-          ),
-        )
-        .groupBy(recipes.cuisine),
+        .where(eq(recipes.userId, userId))
+        .groupBy(recipes.cuisine)
+        .orderBy(asc(recipes.cuisine)),
       db
         .select({
           value: recipes.difficulty,

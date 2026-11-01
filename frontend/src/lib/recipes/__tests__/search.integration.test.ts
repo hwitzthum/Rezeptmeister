@@ -52,6 +52,7 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
     risotto: `Risotto Milanese ${suffix}`,
     roesti: `Berner Rösti ${suffix}`,
     suppe: `Basler Mehlsuppe ${suffix}`,
+    curry: `Gemüsecurry ${suffix}`,
   };
 
   let listRecipes: typeof import("../list").listRecipes;
@@ -78,6 +79,8 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
         {
           userId,
           title: titel.zopf,
+          category: "Backen",
+          cuisine: "Schweizer",
           description: "Geflochtenes Butterbrot für den Sonntag.",
           instructions: "Teig kneten, gehen lassen, flechten, backen.",
           servings: 4,
@@ -85,6 +88,8 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
         {
           userId,
           title: titel.risotto,
+          category: "Hauptgericht",
+          cuisine: "Italienisch",
           description: "Cremiger Reis aus der Lombardei.",
           instructions: "Reis anschwitzen, ablöschen, rühren.",
           servings: 4,
@@ -92,6 +97,8 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
         {
           userId,
           title: titel.roesti,
+          category: "Hauptgericht",
+          cuisine: "Schweizer",
           description: "Knusprige Kartoffelfladen.",
           instructions: "Kartoffeln raffeln und braten.",
           servings: 2,
@@ -102,6 +109,14 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
           description: "Mehlsuppe für die Fasnacht.",
           instructions: "Mehl rösten, Bouillon zugeben.",
           servings: 4,
+        },
+        {
+          userId,
+          title: titel.curry,
+          category: "Hauptgericht",
+          cuisine: "Asiatisch",
+          instructions: "Gemüse mit Currypaste kochen.",
+          servings: 2,
         },
       ])
       .returning({ id: schema.recipes.id });
@@ -131,6 +146,73 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
     });
     return ergebnis.recipes.map((r) => r.title);
   }
+
+  async function filterSuche(
+    filters: Partial<import("../list").RecipeListParams> = {},
+    ownerId = userId,
+  ) {
+    return listRecipes(ownerId, {
+      includeFacets: "true",
+      seite: 1,
+      limit: 1,
+      sortierung: "neueste",
+      ...filters,
+    });
+  }
+
+  it("liefert gespeicherte Filteroptionen unabhängig von der Ergebnisseite", async () => {
+    const result = await filterSuche();
+    expect(result.recipes).toHaveLength(1);
+    expect(result.facets?.categories).toEqual([
+      { value: "Backen", count: 1 },
+      { value: "Hauptgericht", count: 3 },
+    ]);
+    expect(result.facets?.cuisines).toEqual([
+      { value: "Asiatisch", count: 1 },
+      { value: "Italienisch", count: 1 },
+      { value: "Schweizer", count: 2 },
+    ]);
+  });
+
+  it("behält Kategorien und Küchen bei einer Suche ohne Treffer bei", async () => {
+    const result = await filterSuche({ q: "quantenphysik" });
+    expect(result.recipes).toEqual([]);
+    expect(result.facets?.categories).toEqual([
+      { value: "Backen", count: 0 },
+      { value: "Hauptgericht", count: 0 },
+    ]);
+    expect(result.facets?.cuisines).toEqual([
+      { value: "Asiatisch", count: 0 },
+      { value: "Italienisch", count: 0 },
+      { value: "Schweizer", count: 0 },
+    ]);
+  });
+
+  it("behält Optionen bei kombinierten Filtern und zählt ohne den eigenen Filter", async () => {
+    const result = await filterSuche({
+      kategorie: "Backen",
+      kueche: "Asiatisch",
+    });
+    expect(result.recipes).toEqual([]);
+    expect(result.facets?.categories).toEqual([
+      { value: "Backen", count: 0 },
+      { value: "Hauptgericht", count: 1 },
+    ]);
+    expect(result.facets?.cuisines).toEqual([
+      { value: "Asiatisch", count: 0 },
+      { value: "Italienisch", count: 0 },
+      { value: "Schweizer", count: 1 },
+    ]);
+
+    const selected = await filterSuche({ kueche: "Asiatisch" });
+    expect(selected.recipes.map((r) => r.title)).toEqual([titel.curry]);
+  });
+
+  it("zeigt keine Kategorien oder Küchen anderer Nutzer", async () => {
+    const result = await filterSuche({}, randomUUID());
+    expect(result.facets?.categories).toEqual([]);
+    expect(result.facets?.cuisines).toEqual([]);
+  });
 
   it("findet ein Rezept ab dem Wortanfang — das war der gemeldete Fehler", async () => {
     expect(await suche("butterzop")).toContain(titel.zopf);
