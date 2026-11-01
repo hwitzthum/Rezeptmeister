@@ -105,12 +105,12 @@ npm run dev  # http://localhost:3001
 |------|-------------|
 | Full-text | PostgreSQL `tsvector` (German config, weighted A/B/C fields) **plus prefix matching, typo tolerance and ingredient hits** — see below |
 | Semantic | Gemini Embedding 2 (3072-dim) via pgvector cosine distance |
-| Hybrid | Reciprocal Rank Fusion combining full-text + vector ranks |
+| Hybrid | Reciprocal Rank Fusion combining full-text + vector ranks; the full-text leg also matches the auto-generated **tags** (substring, umlaut-normalised, typo-tolerant, also when the tag sits inside a whole sentence) |
 | Cross-modal | Upload an image → find visually similar recipes |
 | Ingredient match | Enter what's in your fridge → ranked recipe suggestions |
-| Advanced filters | Category, cuisine, diet, difficulty, prep time, tags |
+| Advanced filters | Category, cuisine, diet, difficulty, prep time, tag (dropdown of all stored tags with counts, `?tag=` in the URL) |
 
-**Full-text search matches on four paths at once**, so you rarely have to type a whole word:
+**Full-text search matches on five paths at once**, so you rarely have to type a whole word:
 
 | You type | You get | Why |
 |----------|---------|-----|
@@ -118,8 +118,13 @@ npm run dev  # http://localhost:3001
 | `rischotto` | *Risotto Milanese* | Trigram `word_similarity` above the calibrated threshold |
 | `Roesti` / `Rösti` | *Berner Rösti* | Both sides normalised through the `rm_normalize()` SQL function |
 | `safran` | *Risotto Milanese* | Match inside the recipe's ingredient names |
+| `asia` / `gefluegel` | recipes tagged *Asiatisch* / *Geflügel* | Substring match on the auto-generated tags (normalised like titles) |
 
-Ranking is a weighted sum of `ts_rank`, title similarity and an ingredient-hit bonus. The sort
+Tag typos are tolerated (`asiatich` → *Asiatisch*) through the same trigram `word_similarity` check.
+
+The embedding text (title, description, instructions, cuisine, category, tags) is built by one function on each side — `frontend/src/lib/recipes/embedding-text.ts` and `_build_embedding_text` in the backend — and must stay identical. Recipes embedded before tags were part of the text pick them up on their next edit or via Admin → *Re-Embed All Recipes*.
+
+Ranking is a weighted sum of `ts_rank`, title similarity and ingredient- and tag-hit bonuses. The sort
 control switches to **Relevanz** by itself the moment a query starts and back to **Neueste** when
 it is cleared — an explicit choice always wins. Requires the `pg_trgm` extension
 (migration `0004_smart_search.sql`).

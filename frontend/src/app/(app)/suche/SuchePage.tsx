@@ -77,6 +77,7 @@ interface Facets {
   categories: { value: string; count: number }[];
   cuisines: { value: string; count: number }[];
   difficulties: { value: string; count: number }[];
+  tags: { value: string; count: number }[];
 }
 
 // ── Highlight helper ──────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export default function SuchePage() {
     searchParams.get("kategorie") ?? "",
   );
   const [kueche, setKueche] = useState(searchParams.get("kueche") ?? "");
+  const [tag, setTag] = useState(searchParams.get("tag") ?? "");
   const [schwierigkeit, setSchwierigkeit] = useState(
     searchParams.get("schwierigkeit") ?? "",
   );
@@ -219,6 +221,7 @@ export default function SuchePage() {
     if (debouncedQ) params.set("q", debouncedQ);
     if (kategorie) params.set("kategorie", kategorie);
     if (kueche) params.set("kueche", kueche);
+    if (tag) params.set("tag", tag);
     if (schwierigkeit) params.set("schwierigkeit", schwierigkeit);
     if (debouncedErnaehrungsform)
       params.set("ernaehrungsform", debouncedErnaehrungsform);
@@ -233,6 +236,7 @@ export default function SuchePage() {
     debouncedQ,
     kategorie,
     kueche,
+    tag,
     schwierigkeit,
     debouncedErnaehrungsform,
     zeitaufwand,
@@ -253,6 +257,7 @@ export default function SuchePage() {
         if (debouncedQ) params.set("q", debouncedQ);
         if (kategorie) params.set("kategorie", kategorie);
         if (kueche) params.set("kueche", kueche);
+        if (tag) params.set("tag", tag);
         if (schwierigkeit) params.set("schwierigkeit", schwierigkeit);
         if (debouncedErnaehrungsform)
           params.set("ernaehrungsform", debouncedErnaehrungsform);
@@ -283,6 +288,7 @@ export default function SuchePage() {
       debouncedQ,
       kategorie,
       kueche,
+      tag,
       schwierigkeit,
       debouncedErnaehrungsform,
       zeitaufwand,
@@ -419,6 +425,7 @@ export default function SuchePage() {
   if (kategorie)
     activeFilters.push({ label: kategorie, clear: () => setKategorie("") });
   if (kueche) activeFilters.push({ label: kueche, clear: () => setKueche("") });
+  if (tag) activeFilters.push({ label: `Tag: ${tag}`, clear: () => setTag("") });
   if (schwierigkeit)
     activeFilters.push({
       label: DIFFICULTY_LABELS[schwierigkeit] ?? schwierigkeit,
@@ -446,6 +453,7 @@ export default function SuchePage() {
     setQ("");
     setKategorie("");
     setKueche("");
+    setTag("");
     setSchwierigkeit("");
     setErnaehrungsform("");
     setZeitaufwand("");
@@ -787,6 +795,8 @@ export default function SuchePage() {
             setKategorie={setKategorie}
             kueche={kueche}
             setKueche={setKueche}
+            tag={tag}
+            setTag={setTag}
             schwierigkeit={schwierigkeit}
             setSchwierigkeit={setSchwierigkeit}
             ernaehrungsform={ernaehrungsform}
@@ -815,6 +825,8 @@ export default function SuchePage() {
               setKategorie={setKategorie}
               kueche={kueche}
               setKueche={setKueche}
+              tag={tag}
+              setTag={setTag}
               schwierigkeit={schwierigkeit}
               setSchwierigkeit={setSchwierigkeit}
               ernaehrungsform={ernaehrungsform}
@@ -1148,6 +1160,8 @@ interface FilterSidebarProps {
   setKategorie: (v: string) => void;
   kueche: string;
   setKueche: (v: string) => void;
+  tag: string;
+  setTag: (v: string) => void;
   schwierigkeit: string;
   setSchwierigkeit: (v: string) => void;
   ernaehrungsform: string;
@@ -1166,6 +1180,8 @@ function FilterSidebar({
   setKategorie,
   kueche,
   setKueche,
+  tag,
+  setTag,
   schwierigkeit,
   setSchwierigkeit,
   ernaehrungsform,
@@ -1244,6 +1260,31 @@ function FilterSidebar({
           {(facets?.cuisines ?? []).map((c) => (
             <option key={c.value} value={c.value}>
               {c.value} ({c.count})
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {/* Tag */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+          Tag
+        </label>
+        <Select
+          name="tag"
+          data-filter="tag"
+          value={tag}
+          onChange={(e) => setTag(e.target.value)}
+        >
+          <option value="">Alle Tags</option>
+          {[
+            ...(tag && !facets?.tags.some((t) => t.value === tag)
+              ? [{ value: tag, count: 0 }]
+              : []),
+            ...(facets?.tags ?? []),
+          ].map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.value} ({t.count})
             </option>
           ))}
         </Select>

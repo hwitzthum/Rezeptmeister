@@ -14,6 +14,7 @@ import { recipeBodySchema, calcTotalTime } from "@/lib/schemas";
 import { USER_ROLE } from "@/lib/auth";
 import { recipeOwnerCondition } from "@/lib/db/helpers";
 import { decrypt } from "@/lib/crypto";
+import { buildEmbeddingText } from "@/lib/recipes/embedding-text";
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -191,9 +192,7 @@ export async function PUT(
           headers,
           {
             recipe_id: id,
-            text: [data.title, data.description, data.instructions]
-              .filter(Boolean)
-              .join(" "),
+            text: buildEmbeddingText(data),
           },
           "Embedding-Neuberechnung fehlgeschlagen",
         ),
@@ -308,7 +307,15 @@ export async function PATCH(
 
   const existing = await db.query.recipes.findFirst({
     where: eq(recipes.id, id),
-    columns: { id: true, userId: true, description: true, instructions: true },
+    columns: {
+      id: true,
+      userId: true,
+      description: true,
+      instructions: true,
+      cuisine: true,
+      category: true,
+      tags: true,
+    },
   });
 
   if (!existing) {
@@ -347,9 +354,7 @@ export async function PATCH(
           headers,
           {
             recipe_id: id,
-            text: [title, existing.description, existing.instructions]
-              .filter(Boolean)
-              .join(" "),
+            text: buildEmbeddingText({ ...existing, title }),
           },
           "Embedding-Neuberechnung fehlgeschlagen",
         ),

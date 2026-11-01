@@ -14,6 +14,10 @@ import {
   postBackendTask,
 } from "@/lib/backend";
 import { decrypt } from "@/lib/crypto";
+import {
+  buildEmbeddingText,
+  type EmbeddingTextSource,
+} from "@/lib/recipes/embedding-text";
 
 export type RecipeInput = z.infer<typeof recipeBodySchema>;
 
@@ -89,10 +93,7 @@ async function loadGeminiKey(userId: string): Promise<string | null> {
   }
 }
 
-type EmbeddableRecipe = Pick<
-  Recipe,
-  "id" | "title" | "description" | "instructions"
->;
+type EmbeddableRecipe = Pick<Recipe, "id"> & EmbeddingTextSource;
 
 /**
  * Text-Embeddings im Hintergrund anstossen (Aufrufer: in after() einhängen).
@@ -118,9 +119,7 @@ export async function scheduleTextEmbeddings(
       headers,
       {
         recipe_id: recipe.id,
-        text: [recipe.title, recipe.description, recipe.instructions]
-          .filter(Boolean)
-          .join(" "),
+        text: buildEmbeddingText(recipe),
       },
       "Embedding-Berechnung fehlgeschlagen",
     );

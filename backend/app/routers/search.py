@@ -85,6 +85,29 @@ class RecipeSearchResult(BaseModel):
     score: float
 
 
+# ── Tag-Treffer ────────────────────────────────────────────────────────────────
+
+# Schwelle für word_similarity(tag, anfrage). Die Richtung ist Absicht: gesucht
+# wird der *Tag* im Anfragetext, denn die KI-Suche bekommt ganze Sätze
+# ("etwas asiatisches zum Abendessen"). Gemessen: Tippfehler wie "asiatich"
+# liegen bei 0.6, der Tag im Satz bei 0.9; fremde Wörter ("schnell" gegen
+# "Schmorgericht") höchstens bei 0.4. Entspricht INGREDIENT_SIMILARITY_THRESHOLD
+# der Volltextsuche im Frontend.
+TAG_SIMILARITY_THRESHOLD = 0.5
+
+# Trifft die Anfrage einen Tag des Rezepts? Die KI erzeugt Tags wie "Asiatisch"
+# oder "Geflügel"; sie stehen nicht im fts_vector. Verglichen wird normalisiert
+# (rm_normalize: Kleinschreibung, Umlaute → ae/oe/ue), damit "gefluegel" und
+# "Geflügel" sich finden. Teilzeichenkette ab drei Zeichen ("asia"), sonst
+# Trigramm-Ähnlichkeit (Tippfehler, Tag im Satz).
+_TAG_MATCH_SQL = """EXISTS (
+    SELECT 1 FROM unnest(tags) AS t(tag)
+    WHERE (length(rm_normalize(:query)) >= 3
+           AND strpos(rm_normalize(t.tag), rm_normalize(:query)) > 0)
+       OR word_similarity(rm_normalize(t.tag), rm_normalize(:query)) > :tag_sim
+)"""
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _vec_str(vector: list[float]) -> str:
@@ -257,11 +280,13 @@ async def hybrid_search(
                 SELECT
                     id,
                     ROW_NUMBER() OVER (
-                        ORDER BY ts_rank(fts_vector, websearch_to_tsquery('german', :query)) DESC
+                        ORDER BY ts_rank(fts_vector, websearch_to_tsquery('german', :query))
+                                 + (CASE WHEN __TAG_MATCH__ THEN 0.2 ELSE 0 END) DESC
                     ) AS frank
                 FROM recipes
                 WHERE user_id = CAST(:uid AS uuid)
-                  AND fts_vector @@ websearch_to_tsquery('german', :query)
+                  AND (fts_vector @@ websearch_to_tsquery('german', :query)
+                       OR __TAG_MATCH__)
                   AND (CAST(:kategorie AS text) IS NULL OR category = CAST(:kategorie AS text))
                   AND (CAST(:kueche AS text) IS NULL OR cuisine = CAST(:kueche AS text))
                   AND (CAST(:schwierigkeit AS text) IS NULL
@@ -295,13 +320,14 @@ async def hybrid_search(
             LEFT JOIN images img ON img.recipe_id = r.id AND img.is_primary = true
             ORDER BY c.rrf_score DESC
             LIMIT :lim
-        """)
+        """.replace("__TAG_MATCH__", _TAG_MATCH_SQL))
 
         result = await session.execute(
             search_sql,
             {
                 "vec": vec,
                 "query": body.query,
+                "tag_sim": TAG_SIMILARITY_THRESHOLD,
                 "uid": body.user_id,
                 "lim": body.limit,
                 "kategorie": body.kategorie,
