@@ -64,3 +64,6 @@ export function escapeLike(value: string): string {
  */
 export const TITLE_SIMILARITY_THRESHOLD = 0.42;
 export const INGREDIENT_SIMILARITY_THRESHOLD = 0.5;
+// Tags sind kurze Einzelwoerter wie die Zutaten: "asiatich" -> "Asiatisch"
+// liegt bei 0.67, "schnell" -> "Schmorgericht" bei 0.38.
+export const TAG_SIMILARITY_THRESHOLD = 0.5;

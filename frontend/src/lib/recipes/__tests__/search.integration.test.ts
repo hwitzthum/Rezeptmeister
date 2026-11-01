@@ -101,6 +101,7 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
           cuisine: "Schweizer",
           description: "Knusprige Kartoffelfladen.",
           instructions: "Kartoffeln raffeln und braten.",
+          tags: ["Vegetarisch", "Geflügel"],
           servings: 2,
         },
         {
@@ -116,6 +117,7 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
           category: "Hauptgericht",
           cuisine: "Asiatisch",
           instructions: "Gemüse mit Currypaste kochen.",
+          tags: ["Asiatisch", "Vegetarisch"],
           servings: 2,
         },
       ])
@@ -212,6 +214,63 @@ describe.skipIf(!erreichbar)("Rezeptsuche gegen echte Datenbank", () => {
     const result = await filterSuche({}, randomUUID());
     expect(result.facets?.categories).toEqual([]);
     expect(result.facets?.cuisines).toEqual([]);
+  });
+
+  it("findet Rezepte über ihre Tags, auch ab dem Wortanfang und ohne Umlautschreibung", async () => {
+    expect(await suche("asiatisch")).toEqual([titel.curry]);
+    expect(await suche("asia")).toEqual([titel.curry]);
+    expect(await suche("gefluegel")).toEqual([titel.roesti]);
+  });
+
+  it("verzeiht Tippfehler bei Tags, ohne fremde Tags zu treffen", async () => {
+    expect(await suche("asiatich")).toEqual([titel.curry]);
+    expect(await suche("vegetarsch")).toEqual(
+      expect.arrayContaining([titel.curry, titel.roesti]),
+    );
+    // Ein fremdes Wort darf über die Ähnlichkeit keinen Tag treffen.
+    expect(await suche("schnell")).toEqual([]);
+  });
+
+  it("filtert exakt nach einem Tag und kombiniert ihn mit anderen Filtern", async () => {
+    const asiatisch = await filterSuche({ tag: "Asiatisch" });
+    expect(asiatisch.recipes.map((r) => r.title)).toEqual([titel.curry]);
+
+    const vegetarisch = await filterSuche({ tag: "Vegetarisch", limit: 10 });
+    expect(vegetarisch.recipes.map((r) => r.title).sort()).toEqual(
+      [titel.curry, titel.roesti].sort(),
+    );
+
+    const kombi = await filterSuche({ tag: "Vegetarisch", kueche: "Asiatisch" });
+    expect(kombi.recipes.map((r) => r.title)).toEqual([titel.curry]);
+  });
+
+  it("liefert Tag-Facetten mit Zählung, auch bei einer Suche ohne Treffer", async () => {
+    const alle = await filterSuche();
+    expect(alle.facets?.tags).toEqual([
+      { value: "Asiatisch", count: 1 },
+      { value: "Geflügel", count: 1 },
+      { value: "Vegetarisch", count: 2 },
+    ]);
+
+    const ohneTreffer = await filterSuche({ q: "quantenphysik" });
+    expect(ohneTreffer.facets?.tags).toEqual([
+      { value: "Asiatisch", count: 0 },
+      { value: "Geflügel", count: 0 },
+      { value: "Vegetarisch", count: 0 },
+    ]);
+
+    const mitTag = await filterSuche({ tag: "Asiatisch", kueche: "Schweizer" });
+    expect(mitTag.facets?.tags).toEqual([
+      { value: "Asiatisch", count: 0 },
+      { value: "Geflügel", count: 1 },
+      { value: "Vegetarisch", count: 1 },
+    ]);
+    // Die Küche-Zählung berücksichtigt den gewählten Tag.
+    expect(mitTag.facets?.cuisines).toEqual([
+      { value: "Asiatisch", count: 1 },
+      { value: "Italienisch", count: 0 },
+      { value: "Schweizer", count: 0 },
+    ]);
   });
 
   it("findet ein Rezept ab dem Wortanfang — das war der gemeldete Fehler", async () => {

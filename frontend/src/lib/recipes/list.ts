@@ -8,6 +8,7 @@ import {
   escapeLike,
   normalizeForSearch,
   INGREDIENT_SIMILARITY_THRESHOLD,
+  TAG_SIMILARITY_THRESHOLD,
   TITLE_SIMILARITY_THRESHOLD,
 } from "@/lib/recipes/search-query";
 
@@ -21,6 +22,7 @@ export const listQuerySchema = z.object({
   favoriten: z.enum(["true", "false"]).optional(),
   zeitaufwand: z.coerce.number().int().positive().optional(),
   zutaten: z.string().max(100).optional(),
+  tag: z.string().max(100).optional(),
   ernaehrungsform: z.string().max(50).optional(),
   includeFacets: z.enum(["true", "false"]).default("false"),
   seite: z.coerce.number().int().min(1).default(1),
@@ -53,6 +55,7 @@ export interface RecipeListFacets {
   categories: { value: string; count: number }[];
   cuisines: { value: string; count: number }[];
   difficulties: { value: string; count: number }[];
+  tags: { value: string; count: number }[];
 }
 
 export interface RecipeListResult {
@@ -79,6 +82,20 @@ function ingredientMatch(normQ: string) {
         rm_normalize(i.name) LIKE ${`%${escapeLike(normQ)}%`} ESCAPE '!'
         OR word_similarity(${normQ}, rm_normalize(i.name)) > ${INGREDIENT_SIMILARITY_THRESHOLD}
       )
+  )`;
+}
+
+/**
+ * Trifft der Suchbegriff einen Tag dieses Rezepts — als Teilzeichenkette oder
+ * trigramm-aehnlich (Tippfehler)? Die Tags erzeugt die KI beim Anlegen
+ * ("Asiatisch", "Geflügel", "Rind"); verglichen wird normalisiert, damit
+ * "gefluegel" und "Geflügel" sich finden.
+ */
+function tagMatch(normQ: string) {
+  return sql`EXISTS (
+    SELECT 1 FROM unnest(recipes.tags) AS t(tag)
+    WHERE rm_normalize(t.tag) LIKE ${`%${escapeLike(normQ)}%`} ESCAPE '!'
+      OR word_similarity(${normQ}, rm_normalize(t.tag)) > ${TAG_SIMILARITY_THRESHOLD}
   )`;
 }
 
@@ -110,6 +127,7 @@ export async function listRecipes(
     favoriten,
     zeitaufwand,
     zutaten,
+    tag,
     ernaehrungsform,
     includeFacets,
     seite,
@@ -139,6 +157,7 @@ export async function listRecipes(
         OR rm_normalize(recipes.title) LIKE ${`%${escapeLike(normQ)}%`} ESCAPE '!'
         OR ${titleSimilarity(normQ)} > ${TITLE_SIMILARITY_THRESHOLD}
         OR ${ingredientMatch(normQ)}
+        OR ${tagMatch(normQ)}
       )`,
     );
   }
@@ -160,12 +179,14 @@ export async function listRecipes(
   const difficultyCond = schwierigkeit
     ? eq(recipes.difficulty, schwierigkeit)
     : null;
+  const tagCond = tag ? sql`${tag} = ANY(${recipes.tags})` : null;
 
   const where = and(
     ...alwaysConditions,
     ...(categoryCond ? [categoryCond] : []),
     ...(cuisineCond ? [cuisineCond] : []),
     ...(difficultyCond ? [difficultyCond] : []),
+    ...(tagCond ? [tagCond] : []),
   );
 
   const [{ total }] = await db
@@ -183,6 +204,7 @@ export async function listRecipes(
           ts_rank(recipes.fts_vector, to_tsquery('german', ${prefixQuery})) * 1.0
           + ${titleSimilarity(normQ)} * 0.6
           + (CASE WHEN ${ingredientMatch(normQ)} THEN 0.2 ELSE 0 END)
+          + (CASE WHEN ${tagMatch(normQ)} THEN 0.2 ELSE 0 END)
         ) DESC, recipes.created_at DESC`
       : sortierung === "alphabetisch"
         ? asc(recipes.title)
@@ -288,13 +310,21 @@ export async function listRecipes(
       ...alwaysConditions,
       ...(cuisineCond ? [cuisineCond] : []),
       ...(difficultyCond ? [difficultyCond] : []),
+      ...(tagCond ? [tagCond] : []),
     );
     const cuisineCountWhere = and(
       ...alwaysConditions,
       ...(categoryCond ? [categoryCond] : []),
       ...(difficultyCond ? [difficultyCond] : []),
+      ...(tagCond ? [tagCond] : []),
     );
-    const [cats, cuisineRows, diffRows] = await Promise.all([
+    const tagCountWhere = and(
+      ...alwaysConditions,
+      ...(categoryCond ? [categoryCond] : []),
+      ...(cuisineCond ? [cuisineCond] : []),
+      ...(difficultyCond ? [difficultyCond] : []),
+    );
+    const [cats, cuisineRows, diffRows, tagRows] = await Promise.all([
       db
         .select({
           value: recipes.category,
@@ -324,9 +354,21 @@ export async function listRecipes(
             ...alwaysConditions,
             ...(categoryCond ? [categoryCond] : []),
             ...(cuisineCond ? [cuisineCond] : []),
+            ...(tagCond ? [tagCond] : []),
           ),
         )
         .groupBy(recipes.difficulty),
+      // Alle gespeicherten Tags der Nutzerin (wie Kategorien und Küchen
+      // unabhängig von der Suche wählbar); nur die Zählung folgt den Filtern.
+      db
+        .select({
+          value: sql<string>`t.tag`,
+          count: sql<number>`(count(*) FILTER (WHERE ${tagCountWhere}))::int`,
+        })
+        .from(sql`${recipes}, unnest(${recipes.tags}) AS t(tag)`)
+        .where(eq(recipes.userId, userId))
+        .groupBy(sql`t.tag`)
+        .orderBy(sql`t.tag`),
     ]);
     facets = {
       categories: cats
@@ -338,6 +380,7 @@ export async function listRecipes(
       difficulties: diffRows
         .filter((r) => r.value)
         .map((r) => ({ value: r.value!, count: r.count })),
+      tags: tagRows.map((r) => ({ value: r.value, count: r.count })),
     };
   }
 
