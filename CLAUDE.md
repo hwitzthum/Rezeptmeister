@@ -18,7 +18,7 @@ Two separate runtimes that never import each other:
 
 ```
 frontend/   → Next.js 16 (App Router, TypeScript) on port 3001
-backend/    → FastAPI (Python, uv) on port 8000
+backend/    → FastAPI (Python, uv) on host port 8100 (8000 inside the Docker container)
 db          → PostgreSQL + pgvector (Docker) on port 5432
 uploads/    → Local filesystem (originals/ and thumbnails/) in dev
 ```
@@ -57,7 +57,7 @@ npx drizzle-kit studio     # Drizzle Studio (visual DB browser)
 ```bash
 cd backend
 uv sync                        # Install dependencies
-uv run uvicorn app.main:app --reload --port 8000   # Dev server
+uv run uvicorn app.main:app --reload --port 8100   # Dev server
 uv run alembic upgrade head    # Apply DB migrations
 uv run alembic revision --autogenerate -m "description"  # Generate migration
 uv run pytest                  # All tests
@@ -153,7 +153,7 @@ These rules exist because previous sessions skipped todo items and omitted test 
 DATABASE_URL=postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister
 NEXTAUTH_SECRET=<random-secret>
 NEXTAUTH_URL=http://localhost:3001
-BACKEND_URL=http://localhost:8000
+BACKEND_URL=http://localhost:8100
 UPLOAD_DIR=./uploads
 ENCRYPTION_KEY=<32-byte-hex-key>
 INTERNAL_SECRET=<random-secret>

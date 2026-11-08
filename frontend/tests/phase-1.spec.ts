@@ -13,7 +13,7 @@
 
 import { test, expect } from "@playwright/test";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8100";
 
 test.describe("Phase 1 – Projektfundament", () => {
   test("Startseite lädt ohne Fehler (HTTP 200)", async ({ page }) => {
