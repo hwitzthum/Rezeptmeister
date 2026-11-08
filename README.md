@@ -578,7 +578,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 | `backend/.env` | FastAPI (`pydantic-settings`) | Only relevant when running FastAPI locally outside Docker. In Docker, `docker-compose.yml` injects these values directly via `environment:` — this file is not mounted into the container. |
 | `.env` (project root) | `docker-compose.yml` + test suites | Docker Compose reads it for `DB_PASSWORD` and `INTERNAL_SECRET`. Playwright and Pytest tests read it for `GEMINI_TEST_KEY` and admin credentials. Not read by Next.js or FastAPI at runtime. |
 
-> **Production:** None of these files travel to production. Secrets are set via the deployment platform (Vercel dashboard, Railway secrets, Fly.io `flyctl secrets set`). See [Production Deployment](#production-deployment).
+> **Production:** None of these files travel to production. Secrets are set on the deployment platforms (Vercel, Render) from 1Password via `scripts/sync-prod-env.sh`. See [Secrets in 1Password](#secrets-in-1password-single-source-of-truth) and [Production Deployment](#production-deployment).
 
 ---
 
@@ -645,6 +645,53 @@ Both Next.js and FastAPI connect to the same PostgreSQL instance, but use differ
 | FastAPI (SQLAlchemy async) | `asyncpg` | `postgresql+asyncpg://user:pass@host:port/db` |
 
 The host also differs: `localhost:5434` from the host machine vs. `db:5432` from inside the Docker network.
+
+---
+
+### Secrets in 1Password (single source of truth)
+
+All secrets live in [1Password Environments](https://www.1password.dev/environments/). The `.env` files above are not edited by hand: in development they are mounted from 1Password, in production the values are pushed to Vercel and Render by a script. To change a variable, change it in 1Password — never in a `.env` file or in the Vercel/Render dashboard.
+
+| 1Password Environment | Target | How it gets there |
+|-----------------------|--------|-------------------|
+| `Rezeptmeister Dev` | `frontend/.env.local` and `.env` (project root) | Mounted file |
+| `Rezeptmeister Dev Backend` | `backend/.env` | Mounted file |
+| `Rezeptmeister Prod` | Vercel (Production) | `scripts/sync-prod-env.sh vercel` |
+| `Rezeptmeister Prod Backend` | Render service `rezeptmeister-api` | `scripts/sync-prod-env.sh render` |
+
+Dev is split in two because `DATABASE_URL` (driver prefix) and `UPLOAD_DIR` differ between the frontend and the backend file. `INTERNAL_SECRET` therefore exists in both Dev environments and in both Prod environments; the values must be identical (the sync script refuses to run if the two Prod values differ).
+
+#### Development: mounted `.env` files
+
+A mounted `.env` path is a live named pipe (FIFO), not a regular file. 1Password feeds it on demand, so:
+
+- The 1Password desktop app must be unlocked for `npm run dev`, `docker compose` and the test suites to see their variables.
+- Do not `cat`, copy or commit these paths, and do not point editors or tools at them. Edit values in the 1Password app, then restart the dev servers.
+- `GEMINI_TEST_KEY`, `TEST_ADMIN_EMAIL` and `TEST_ADMIN_PASSWORD` exist only in the Dev environment.
+- The mounts are set up once per machine: in the 1Password app (Developer → Environments) enable the local `.env` mount for each Environment and choose the target path from the table above. Delete any existing plain `.env` file at that path first. See the [local `.env` file docs](https://www.1password.dev/environments/local-env-file/).
+
+**Host port of the backend:** the FastAPI container is published on host port **8100** (`docker-compose.override.yml`, gitignored, local only), because port 8000 is occupied by an always-on local service. Inside the container FastAPI still listens on 8000, and `BACKEND_URL=http://backend:8000` between containers and the Render deployment are unchanged. `BACKEND_URL` in `Rezeptmeister Dev` must therefore be `http://localhost:8100`.
+
+#### Production: sync script
+
+```bash
+scripts/sync-prod-env.sh                      # dry run for Vercel and Render, writes nothing
+scripts/sync-prod-env.sh vercel               # dry run, one target
+scripts/sync-prod-env.sh render --apply       # write differences
+scripts/sync-prod-env.sh vercel --apply --write-sensitive   # also write sensitive variables
+```
+
+Prerequisites: the 1Password CLI (`brew install 1password-cli`) with *Integrate with 1Password CLI* enabled (1Password → Settings → Developer), a logged-in `vercel` CLI, and a Render API key stored as `RENDER_API_KEY` in `Rezeptmeister Prod Backend`.
+
+What it does and does not do:
+
+- Values reach the script only as environment variables of an `op run --environment …` subprocess. It prints variable names with a status (`gleich`, `neu`, `geaendert`, …) and never values.
+- Only variables on a fixed allowlist per target are written. `RENDER_API_KEY` stays in 1Password. The `UPSTASH_REDIS_*` variables are managed by the Vercel/Upstash integration and are deliberately not part of 1Password.
+- Vercel is written for the **Production** target only. Preview deployments keep their own values.
+- **Sensitive Vercel variables cannot be read back** (`vercel env pull` returns an identical placeholder for all of them). `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, `CRON_SECRET`, `INTERNAL_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` are therefore shown as `nicht lesbar` and written only with `--write-sensitive`, again as sensitive. **Never seed 1Password from `vercel env pull`**: it would store the placeholder instead of the real secret.
+- `ENCRYPTION_KEY` is written only with `--allow-encryption-key`. Changing it makes every stored user API key undecryptable; users must re-enter their Gemini key, and the old `api_key_encrypted` values should be cleared so the app reports "no key stored" instead of a decryption error.
+- The script aborts if `DEBUG` is true while `ENVIRONMENT=production` (the backend would refuse to start).
+- It does not deploy. After a sync, redeploy Vercel (`vercel redeploy <production-url>`) and trigger a Render deploy, otherwise the running services keep their old values.
 
 ---
 
