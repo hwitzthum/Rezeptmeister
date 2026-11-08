@@ -590,7 +590,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 |----------|-------------|---------------------------|
 | `DATABASE_URL` | PostgreSQL connection string for Drizzle ORM (postgres.js driver) | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` — note port **5434** (host-mapped from Docker's 5432) |
 | `NEXTAUTH_SECRET` | Signs and verifies JWT session tokens | `openssl rand -base64 48` |
-| `NEXTAUTH_URL` | Canonical app URL — must match the browser origin exactly | `http://localhost:3001` |
+| `NEXTAUTH_URL` | Canonical app URL — must match the browser origin exactly. **Local only:** deliberately not set on Vercel, where Auth.js derives the host per request; a fixed value would break login on Preview URLs | `http://localhost:3001` |
 | `BACKEND_URL` | Internal URL for Next.js → FastAPI proxy calls (server-side only, never reaches the browser) | `http://localhost:8100` |
 | `UPLOAD_DIR` | Where uploaded images are stored, relative to `frontend/` | `./uploads` |
 | `ENCRYPTION_KEY` | AES-256-GCM key used to encrypt user API keys at rest. **Must be exactly 64 hex characters (32 bytes).** | `openssl rand -hex 32` |
