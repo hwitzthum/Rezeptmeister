@@ -44,6 +44,10 @@ VERCEL_UNREADABLE = {
     "INTERNAL_SECRET",
     "SUPABASE_SERVICE_ROLE_KEY",
 }
+# Preview-Deployments laufen mit einer eigenen Datenbank (Neon) und eigenen Secrets.
+# Alle sensitive, also nicht lesbar. BACKEND_URL und SUPABASE_SERVICE_ROLE_KEY gibt
+# es in Preview bewusst nicht (KI-Funktionen und Bildupload sind dort aus).
+PREVIEW_VARS = ["DATABASE_URL", "NEXTAUTH_SECRET", "ENCRYPTION_KEY", "INTERNAL_SECRET"]
 RENDER_VARS = [
     "DATABASE_URL",
     "INTERNAL_SECRET",
@@ -143,6 +147,21 @@ def sync_vercel(apply: bool, allow_enc: bool, write_sensitive: bool) -> None:
         print("Hinweis: Vercel uebernimmt neue Werte erst mit einem neuen Deployment (Redeploy).")
 
 
+def sync_preview(apply: bool, write_sensitive: bool) -> None:
+    desired = wanted(PREVIEW_VARS)
+    if "supabase" in desired["DATABASE_URL"].lower():
+        sys.exit("Preview-DATABASE_URL zeigt auf Supabase. Preview braucht eine eigene Datenbank (Neon).")
+    status = {n: "schreiben" if write_sensitive else "nicht lesbar" for n in desired}
+    report("Vercel (Preview)", status)
+    if not (apply and write_sensitive):
+        return
+    for name in desired:
+        res = vercel(["env", "add", name, "preview", "--force", "--yes", "--sensitive"], stdin=desired[name])
+        if res.returncode != 0:
+            sys.exit(f"vercel env add {name} (preview) fehlgeschlagen:\n{res.stderr.strip()}")
+        print(f"  geschrieben: {name}")
+
+
 # ── Render ───────────────────────────────────────────────────────────
 def render(method: str, path: str, body: dict | None = None):
     key = os.environ.get("RENDER_API_KEY")
@@ -190,6 +209,8 @@ def main() -> None:
         print(fingerprint(wanted(["INTERNAL_SECRET"])["INTERNAL_SECRET"]))
     elif cmd == "vercel":
         sync_vercel(apply, allow_enc, write_sensitive)
+    elif cmd == "preview":
+        sync_preview(apply, write_sensitive)
     elif cmd == "render":
         sync_render(apply, allow_enc)
     else:

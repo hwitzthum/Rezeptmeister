@@ -658,6 +658,7 @@ All secrets live in [1Password Environments](https://www.1password.dev/environme
 | `Rezeptmeister Dev Backend` | `backend/.env` | Mounted file |
 | `Rezeptmeister Prod` | Vercel (Production) | `scripts/sync-prod-env.sh vercel` |
 | `Rezeptmeister Prod Backend` | Render service `rezeptmeister-api` | `scripts/sync-prod-env.sh render` |
+| `Rezeptmeister Preview` | Vercel Preview (own Neon database) | `scripts/sync-prod-env.sh preview` |
 
 Dev is split in two because `DATABASE_URL` (driver prefix) and `UPLOAD_DIR` differ between the frontend and the backend file. `INTERNAL_SECRET` therefore exists in both Dev environments and in both Prod environments; the values must be identical (the sync script refuses to run if the two Prod values differ).
 
@@ -687,11 +688,32 @@ What it does and does not do:
 
 - Values reach the script only as environment variables of an `op run --environment …` subprocess. It prints variable names with a status (`gleich`, `neu`, `geaendert`, …) and never values.
 - Only variables on a fixed allowlist per target are written. `RENDER_API_KEY` stays in 1Password. The `UPSTASH_REDIS_*` variables are managed by the Vercel/Upstash integration and are deliberately not part of 1Password.
-- Vercel is written for the **Production** target only. Preview deployments keep their own values.
+- The `vercel` target writes the **Production** target only. Preview has its own target, see below.
 - **Sensitive Vercel variables cannot be read back** (`vercel env pull` returns an identical placeholder for all of them). `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, `CRON_SECRET`, `INTERNAL_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` are therefore shown as `nicht lesbar` and written only with `--write-sensitive`, again as sensitive. **Never seed 1Password from `vercel env pull`**: it would store the placeholder instead of the real secret.
 - `ENCRYPTION_KEY` is written only with `--allow-encryption-key`. Changing it makes every stored user API key undecryptable; users must re-enter their Gemini key, and the old `api_key_encrypted` values should be cleared so the app reports "no key stored" instead of a decryption error.
 - The script aborts if `DEBUG` is true while `ENVIRONMENT=production` (the backend would refuse to start).
 - It does not deploy. After a sync, redeploy Vercel (`vercel redeploy <production-url>`) and trigger a Render deploy, otherwise the running services keep their old values.
+
+#### Preview deployments (isolated from production)
+
+Preview deployments must never touch production data. They run with their own Neon database (`rezeptmeister-preview`, Frankfurt, scale-to-zero) and their own secrets from `Rezeptmeister Preview`:
+
+| Variable | Preview |
+|----------|---------|
+| `DATABASE_URL` | Neon pooled endpoint (the app uses `prepare: false`, so the pooler is fine) |
+| `NEXTAUTH_SECRET`, `ENCRYPTION_KEY`, `INTERNAL_SECRET` | own values, different from production (the script aborts if `INTERNAL_SECRET` equals production) |
+| `BACKEND_URL`, `SUPABASE_SERVICE_ROLE_KEY` | **not set** — AI features answer 503 and image upload does not work in Preview |
+| `SUPABASE_URL` | still set, because `env-check.ts` requires it when `NODE_ENV=production`; harmless without the service-role key |
+
+`scripts/sync-prod-env.sh preview --apply --write-sensitive` writes the four variables (all sensitive). The script refuses a `DATABASE_URL` that points to Supabase. `PREVIEW_ADMIN_EMAIL` and `PREVIEW_ADMIN_PASSWORD` in the same Environment are only used to create the one admin user of the Preview database; Preview has no seed users.
+
+Create a Preview deployment without pushing to GitHub (the Vercel project root is `frontend/`, so run it from the repository root):
+
+```bash
+VERCEL_ORG_ID=team_GTRnjCA1AqYMFTeMF4SKpygy VERCEL_PROJECT_ID=prj_2FLFo6ujE4EejrnlGoETGtbKd42p vercel deploy
+```
+
+**Setting up or rebuilding the Preview database:** dump the schema of the local database (`pg_dump --schema-only --no-owner --no-privileges`) and apply it over the **direct** (non-pooled) Neon endpoint. The dump header runs `set_config('search_path', '', false)`; over the pooled endpoint that session setting leaks into other pooled connections and later queries fail with `relation "users" does not exist`. If that happens, restart the Neon compute endpoint.
 
 ---
 
