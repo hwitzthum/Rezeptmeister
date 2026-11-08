@@ -694,6 +694,12 @@ What it does and does not do:
 - The script aborts if `DEBUG` is true while `ENVIRONMENT=production` (the backend would refuse to start).
 - It does not deploy. After a sync, redeploy Vercel (`vercel redeploy <production-url>`) and trigger a Render deploy, otherwise the running services keep their old values.
 
+The guards and write rules are covered by unit tests that need neither 1Password, Vercel nor Render (everything external is mocked):
+
+```bash
+python3 -m unittest discover -s scripts -p "test_*.py" -v
+```
+
 #### Preview deployments (isolated from production)
 
 Preview deployments must never touch production data. They run with their own Neon database (`rezeptmeister-preview`, Frankfurt, scale-to-zero) and their own secrets from `Rezeptmeister Preview`:
