@@ -84,7 +84,7 @@ npm run dev  # http://localhost:3001
 | Admin | `admin@rezeptmeister.ch` | `Rezeptmeister1!` |
 | Test user | `test@rezeptmeister.ch` | `test1234` |
 
-> **Port note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on **3001** (frontend) and **8000** (FastAPI — not published by Docker Compose; see [Access FastAPI Swagger Docs](#access-fastapi-swagger-docs)).
+> **Port note:** Port 3000 is reserved for open-webui (Ollama). Rezeptmeister runs on **3001** (frontend) and **8100** (FastAPI on the host — port 8000 is taken by the always-on Rautaki router; inside the container FastAPI still listens on 8000; not published by Docker Compose; see [Access FastAPI Swagger Docs](#access-fastapi-swagger-docs)).
 
 ---
 
@@ -504,7 +504,7 @@ cd frontend && npm run dev     # http://localhost:3001
 # (Optional) Run FastAPI outside Docker for active backend development
 cd backend
 uv sync
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8100
 # Note: set DATABASE_URL to localhost:5434 (host-mapped port)
 ```
 
@@ -532,7 +532,7 @@ npx playwright show-report    # View last test report
 ```bash
 cd backend
 uv sync                                              # Install dependencies
-uv run uvicorn app.main:app --reload --port 8000    # Dev server
+uv run uvicorn app.main:app --reload --port 8100    # Dev server
 uv run pytest                                        # All tests
 uv run pytest tests/test_embedding_service.py       # Single file
 uv run pytest -k "test_ocr"                         # By name
@@ -591,7 +591,7 @@ There are three `.env` locations, each for a different runtime. Merging them int
 | `DATABASE_URL` | PostgreSQL connection string for Drizzle ORM (postgres.js driver) | `postgresql://rezeptmeister:localdev@localhost:5434/rezeptmeister` — note port **5434** (host-mapped from Docker's 5432) |
 | `NEXTAUTH_SECRET` | Signs and verifies JWT session tokens | `openssl rand -base64 48` |
 | `NEXTAUTH_URL` | Canonical app URL — must match the browser origin exactly | `http://localhost:3001` |
-| `BACKEND_URL` | Internal URL for Next.js → FastAPI proxy calls (server-side only, never reaches the browser) | `http://localhost:8000` |
+| `BACKEND_URL` | Internal URL for Next.js → FastAPI proxy calls (server-side only, never reaches the browser) | `http://localhost:8100` |
 | `UPLOAD_DIR` | Where uploaded images are stored, relative to `frontend/` | `./uploads` |
 | `ENCRYPTION_KEY` | AES-256-GCM key used to encrypt user API keys at rest. **Must be exactly 64 hex characters (32 bytes).** | `openssl rand -hex 32` |
 | `INTERNAL_SECRET` | Shared secret that Next.js sends to FastAPI on every AI request, so FastAPI can reject unauthenticated calls. Must match `backend/.env`. | `openssl rand -hex 32` |
@@ -1012,7 +1012,7 @@ The same codebase runs in both environments. The only difference is environment 
 | Aspect | Local Development | Production |
 |--------|-------------------|------------|
 | **Frontend** | `npm run dev` on port 3001 | Vercel serverless |
-| **Backend** | Docker or `uv run uvicorn` on port 8000 | Render Docker container |
+| **Backend** | Docker or `uv run uvicorn` on host port 8100 | Render Docker container |
 | **Database** | Local Docker PostgreSQL on port 5434 | Supabase pooler on port 6543 |
 | **Image storage** | Local `uploads/` directory | Supabase Storage bucket |
 | **Image serving** | Next.js reads from filesystem | 302 redirect to Supabase CDN |
@@ -1167,8 +1167,8 @@ Check and adjust limits in `frontend/src/lib/rate-limit.ts`. Headers `RateLimit-
 `docker-compose.yml` does not publish port 8000, and FastAPI serves its docs only with `DEBUG=true`. Every route except `/health` also requires the `X-Internal-Token` header. Run the backend outside Docker to inspect the API:
 
 ```bash
-cd backend && DEBUG=true uv run uvicorn app.main:app --reload --port 8000
-curl -H "X-Internal-Token: $INTERNAL_SECRET" http://localhost:8000/openapi.json
+cd backend && DEBUG=true uv run uvicorn app.main:app --reload --port 8100
+curl -H "X-Internal-Token: $INTERNAL_SECRET" http://localhost:8100/openapi.json
 ```
 
 ### View Alembic Migration History
